@@ -45,4 +45,3 @@ export const clientNav: NavItem[] = [
   { label: "Notifications", href: "/espace-client/notifications" },
 ];
 
-export const WHATSAPP_NUMBER = "2250700000000"; // TODO: numéro réel à fournir par le client

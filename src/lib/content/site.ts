@@ -4,10 +4,20 @@ export const TBD = "[À fournir par le client]";
 
 export const contactInfo = {
   address: "Abidjan, Côte d'Ivoire", // TODO: adresse exacte à fournir
-  phone: "+225 07 00 00 00 00", // TODO: numéro réel à fournir
-  email: "contact@manga-performance.example", // TODO: email réel à fournir
+  phone: "+225 07 59 56 50 81",
+  whatsappNumber: "2250759565081", // format international sans « + », pour wa.me
+  email: "diakfode@hotmail.com",
   hours: "Du lundi au vendredi, 8 h – 17 h",
 };
+
+export const DEFAULT_WHATSAPP_MESSAGE = "Bonjour, je souhaite en savoir plus sur vos services.";
+
+// TODO: remplacer par les liens réels des comptes du cabinet (actuellement : page d'accueil de chaque réseau)
+export const socialLinks = [
+  { label: "LinkedIn", href: "https://www.linkedin.com/" },
+  { label: "Facebook", href: "https://www.facebook.com/" },
+  { label: "Instagram", href: "https://www.instagram.com/" },
+] as const;
 
 export interface ServiceContent {
   slug: string;

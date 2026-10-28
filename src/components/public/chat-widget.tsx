@@ -8,13 +8,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createProspect } from "@/lib/services";
 import { NEED_LABELS } from "@/lib/constants";
-import { services } from "@/lib/content/site";
-import { WHATSAPP_NUMBER } from "@/lib/nav";
+import { contactInfo, services } from "@/lib/content/site";
+import { useWhatsAppUrl } from "@/lib/hooks/use-whatsapp";
 import type { Need } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 
-type Menu = "services" | "tarifs" | "delais" | "recontact" | "whatsapp";
+type Intent =
+  | "services" | "tarifs" | "delais" | "recontact" | "whatsapp"
+  | "coordonnees" | "horaires" | "demo" | "blog" | "bonjour" | "merci" | "aurevoir" | "inconnu"
+  | `service:${string}`;
+
 interface Msg {
   id: number;
   from: "bot" | "user";
@@ -23,7 +27,7 @@ interface Msg {
   form?: boolean;
 }
 
-const OPTIONS: { key: Menu; label: string }[] = [
+const OPTIONS: { key: Intent; label: string }[] = [
   { key: "services", label: "Nos services" },
   { key: "tarifs", label: "Tarifs" },
   { key: "delais", label: "Délais" },
@@ -31,7 +35,31 @@ const OPTIONS: { key: Menu; label: string }[] = [
   { key: "whatsapp", label: "Parler sur WhatsApp" },
 ];
 
-const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Bonjour, je vous contacte depuis le site.")}`;
+/** Reconnaissance d'intention par mots-clés : chatbot scripté, sans IA. L'ordre compte (le plus précis d'abord). */
+const RULES: [Intent, RegExp][] = [
+  ["service:maitrise-des-couts", /maitris|reduire|baisser|ecart/],
+  ["tarifs", /prix|tarif|cout|combien|devis|honoraire|payer|cher|budget/],
+  ["delais", /delai|duree|temps|quand|rapide|livraison|urgent/],
+  ["service:business-plan-bancable", /business ?plan|financement|banque|bancable|investisseur/],
+  ["service:tableaux-de-bord-kpi", /tableau|kpi|indicateur|dashboard|pilotage/],
+  ["service:tresorerie", /tresor|cash|encaissement/],
+  ["whatsapp", /whatsapp|watsap/],
+  ["recontact", /rappel|recontact|contacter|joindre|rendez|rdv|appel|consultant|conseiller|humain|parler/],
+  ["coordonnees", /mail|adresse|telephone|numero|coordonnee|localis|ou etes|etes ou|trouve|situe|abidjan/],
+  ["horaires", /horaire|ouvert|ferme|heure/],
+  ["demo", /demo|exemple|essai|tester/],
+  ["blog", /blog|article|actualite|conseil/],
+  ["services", /service|prestation|mission|offre|proposez|faites|aide/],
+  ["bonjour", /bonjour|bonsoir|salut|hello|coucou|bjr/],
+  ["merci", /merci|super|parfait|genial/],
+  ["aurevoir", /au revoir|bye|a bientot|bonne journee/],
+];
+
+const normalize = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+export function detectIntent(text: string): Intent {
+  const t = normalize(text);
+  return RULES.find(([, re]) => re.test(t))?.[0] ?? "inconnu";
+}
 
 const needKeys = Object.keys(NEED_LABELS) as [Need, ...Need[]];
 const leadSchema = z
@@ -90,49 +118,74 @@ function LeadForm({ onDone }: { onDone: () => void }) {
 }
 
 export function ChatWidget() {
+  const waLink = useWhatsAppUrl("Bonjour, je vous contacte depuis le site.");
   const [open, setOpen] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Msg[]>([
-    { id: 0, from: "bot", text: "Bonjour, je suis l'assistant de MANGA PERFORMANCE. Comment puis-je vous aider ?" },
+    { id: 0, from: "bot", text: "Bonjour, je suis l'assistant de MANGA PERFORMANCE. Posez-moi votre question ou choisissez un sujet ci-dessous." },
   ]);
   const nextId = useRef(1);
   const panelRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) panelRef.current?.focus();
+    if (open) inputRef.current?.focus();
   }, [open]);
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
-  }, [messages]);
+  }, [messages, typing]);
 
   const push = (...m: Omit<Msg, "id">[]) => setMessages((prev) => [...prev, ...m.map((x) => ({ ...x, id: nextId.current++ }))]);
 
-  const choose = (key: Menu) => {
-    const label = OPTIONS.find((o) => o.key === key)!.label;
-    const user: Omit<Msg, "id"> = { from: "user", text: label };
-    switch (key) {
-      case "services":
-        return push(user, {
-          from: "bot",
-          text: "Nous accompagnons les entreprises sur quatre missions :",
-          links: services.map((s) => ({ href: `/services/${s.slug}`, label: s.title })),
-        });
-      case "tarifs":
-        return push(user, {
-          from: "bot",
-          text: "Chaque mission est chiffrée sur mesure selon votre besoin. Je vous invite à être recontacté pour recevoir une proposition adaptée.",
-        });
-      case "delais":
-        return push(user, {
-          from: "bot",
-          text: "Les délais dépendent de la mission et de la disponibilité de vos données. Un calendrier précis vous est proposé dès le premier échange.",
-          links: [{ href: "/contact", label: "Prendre rendez-vous" }],
-        });
-      case "recontact":
-        return push(user, { from: "bot", text: "Laissez-moi vos coordonnées, un consultant vous recontacte sous 24 h ouvrées.", form: true });
-      case "whatsapp":
-        return push(user, { from: "bot", text: "Vous pouvez nous écrire directement sur WhatsApp :", links: [{ href: waLink, label: "Ouvrir WhatsApp" }] });
+  const reply = (intent: Intent): Omit<Msg, "id"> => {
+    if (intent.startsWith("service:")) {
+      const s = services.find((x) => x.slug === intent.slice(8))!;
+      return { from: "bot", text: `${s.title} : ${s.short}`, links: [{ href: `/services/${s.slug}`, label: "Voir le détail" }, { href: "/contact", label: "Discuter de mon besoin" }] };
     }
+    switch (intent as Exclude<Intent, `service:${string}`>) {
+      case "services":
+        return { from: "bot", text: "Nous accompagnons les entreprises sur quatre missions :", links: services.map((s) => ({ href: `/services/${s.slug}`, label: s.title })) };
+      case "tarifs":
+        // Règle métier : jamais de prix affiché, proposer d'être recontacté.
+        return { from: "bot", text: "Chaque mission est chiffrée sur mesure selon votre besoin. Laissez-moi vos coordonnées pour recevoir une proposition adaptée.", form: true };
+      case "delais":
+        return { from: "bot", text: "Les délais dépendent de la mission et de la disponibilité de vos données. Un calendrier précis vous est proposé dès le premier échange.", links: [{ href: "/contact", label: "Prendre rendez-vous" }] };
+      case "recontact":
+        return { from: "bot", text: "Avec plaisir. Laissez-moi vos coordonnées, un consultant vous recontacte sous 24 h ouvrées.", form: true };
+      case "whatsapp":
+        return { from: "bot", text: "Vous pouvez nous écrire directement sur WhatsApp :", links: [{ href: waLink, label: "Ouvrir WhatsApp" }] };
+      case "coordonnees":
+        return { from: "bot", text: `Nous sommes à ${contactInfo.address}. Téléphone : ${contactInfo.phone}. Email : ${contactInfo.email}.`, links: [{ href: "/contact", label: "Page contact" }] };
+      case "horaires":
+        return { from: "bot", text: `${contactInfo.hours}. Hors horaires, laissez un message : un consultant vous répond sous 24 h ouvrées.` };
+      case "demo":
+        return { from: "bot", text: "Vous pouvez explorer un tableau de bord d'exemple (données fictives) :", links: [{ href: "/demo", label: "Voir la démo" }] };
+      case "blog":
+        return { from: "bot", text: "Retrouvez nos conseils de gestion et de pilotage sur le blog :", links: [{ href: "/blog", label: "Lire le blog" }] };
+      case "bonjour":
+        return { from: "bot", text: "Bonjour ! Comment puis-je vous aider ?" };
+      case "merci":
+        return { from: "bot", text: "Avec plaisir ! N'hésitez pas si vous avez d'autres questions." };
+      case "aurevoir":
+        return { from: "bot", text: "Merci de votre visite, à bientôt !" };
+      default:
+        return {
+          from: "bot",
+          text: "Je suis un assistant automatique et je n'ai pas bien compris. Choisissez un sujet ci-dessous, ou laissez vos coordonnées pour qu'un consultant vous réponde.",
+          links: [{ href: "/contact", label: "Écrire au cabinet" }],
+        };
+    }
+  };
+
+  const ask = (text: string, intent: Intent) => {
+    push({ from: "user", text });
+    setTyping(true);
+    setTimeout(() => {
+      setTyping(false);
+      push(reply(intent));
+    }, 500);
   };
 
   return (
@@ -149,11 +202,10 @@ export function ChatWidget() {
       {open && (
         <div
           ref={panelRef}
-          tabIndex={-1}
           role="dialog"
           aria-label="Assistant MANGA PERFORMANCE"
           onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-          className="fixed bottom-36 right-4 z-50 flex max-h-[70vh] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-border bg-background shadow-xl focus:outline-none"
+          className="fixed bottom-36 right-4 z-50 flex max-h-[70vh] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-border bg-background shadow-xl"
         >
           <header className="bg-primary px-4 py-3 text-primary-foreground">
             <p className="font-semibold">Assistant MANGA PERFORMANCE</p>
@@ -162,7 +214,7 @@ export function ChatWidget() {
           <div ref={logRef} role="log" aria-live="polite" className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
             {messages.map((m) => (
               <div key={m.id} className={m.from === "user" ? "text-right" : undefined}>
-                <div className={m.from === "user" ? "inline-block rounded-lg bg-accent px-3 py-2 text-accent-foreground" : "inline-block rounded-lg bg-muted px-3 py-2 text-left"}>
+                <div className={m.from === "user" ? "inline-block rounded-lg bg-accent px-3 py-2 text-left text-accent-foreground" : "inline-block rounded-lg bg-muted px-3 py-2 text-left"}>
                   <p>{m.text}</p>
                   {m.links && (
                     <ul className="mt-1 space-y-1">
@@ -188,14 +240,39 @@ export function ChatWidget() {
                 </div>
               </div>
             ))}
+            {typing && <p className="text-xs text-muted-foreground">L&apos;assistant écrit…</p>}
           </div>
           <div role="group" aria-label="Choix rapides" className="flex flex-wrap gap-1.5 border-t border-border p-2">
             {OPTIONS.map((o) => (
-              <button key={o.key} onClick={() => choose(o.key)} className="rounded-full border border-border px-3 py-1 text-xs hover:bg-muted">
+              <button key={o.key} onClick={() => ask(o.label, o.key)} className="rounded-full border border-border px-3 py-1 text-xs hover:bg-muted">
                 {o.label}
               </button>
             ))}
           </div>
+          <form
+            className="flex gap-2 border-t border-border p-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const text = draft.trim();
+              if (!text) return;
+              setDraft("");
+              ask(text, detectIntent(text));
+            }}
+          >
+            <label htmlFor="chat-input" className="sr-only">Votre message</label>
+            <input
+              id="chat-input"
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Écrivez votre question…"
+              autoComplete="off"
+              className="h-9 min-w-0 flex-1 rounded-md border border-border px-3 text-sm"
+            />
+            <Button type="submit" size="sm" aria-label="Envoyer" disabled={!draft.trim() || typing}>
+              <Send className="h-4 w-4" aria-hidden />
+            </Button>
+          </form>
         </div>
       )}
     </>

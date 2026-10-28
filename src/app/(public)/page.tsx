@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { BlogList } from "@/components/public/blog";
 import { NewsletterForm } from "@/components/public/newsletter-form";
 import { Section } from "@/components/public/section";
-import { contactInfo, keyFigures, references, services, testimonials } from "@/lib/content/site";
+import { contactInfo, socialLinks, keyFigures, references, services, testimonials } from "@/lib/content/site";
 
 export const metadata: Metadata = {
   title: "Audit, Data et Contrôle de Gestion à Abidjan",
@@ -20,6 +20,8 @@ const jsonLd = {
   description: "Cabinet de conseil en Audit, Data et Contrôle de Gestion",
   address: { "@type": "PostalAddress", addressLocality: "Abidjan", addressCountry: "CI" },
   telephone: contactInfo.phone,
+  email: contactInfo.email,
+  sameAs: socialLinks.map((l) => l.href),
   areaServed: "Côte d'Ivoire",
 };
 
