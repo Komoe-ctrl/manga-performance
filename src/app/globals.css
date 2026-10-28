@@ -51,3 +51,12 @@ h3 {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* Contenu riche (éditeur TipTap, aperçu, articles publics) */
+.rich-text > * + * { margin-top: 0.75rem; }
+.rich-text h2 { font-size: 1.4rem; font-weight: 700; margin-top: 1.5rem; }
+.rich-text h3 { font-size: 1.15rem; font-weight: 700; margin-top: 1.25rem; }
+.rich-text ul { list-style: disc; padding-left: 1.5rem; }
+.rich-text ol { list-style: decimal; padding-left: 1.5rem; }
+.rich-text blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--muted-foreground); }
+.rich-text a { text-decoration: underline; }
