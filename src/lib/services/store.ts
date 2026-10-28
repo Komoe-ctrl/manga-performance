@@ -14,6 +14,7 @@ export const db = {
   deliverables: structuredClone(m.deliverables),
   messages: structuredClone(m.messages),
   blogPosts: structuredClone(m.blogPosts),
+  invoiceEvents: {} as Record<string, { label: string; at: string }[]>,
   subscribers: structuredClone(m.subscribers),
 };
 

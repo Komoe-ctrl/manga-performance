@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
-import { PageHeader } from "@/components/shared";
+import { Suspense } from "react";
+import { LoadingState } from "@/components/shared";
+import { InvoiceDetail } from "@/components/billing/invoice-detail";
 
-export const metadata: Metadata = { title: "Détail facture" };
-
-export default function Page() {
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <div className="mx-auto max-w-6xl p-4">
-      <PageHeader title="Détail facture" description="Écran détaillé prévu à l'étape 5." />
-    </div>
+    <Suspense fallback={<LoadingState />}>
+      <InvoiceDetail params={params} />
+    </Suspense>
   );
 }
