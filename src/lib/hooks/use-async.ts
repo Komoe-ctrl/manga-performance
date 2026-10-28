@@ -8,7 +8,7 @@ export type AsyncState<T> =
   | { status: "success"; data: T };
 
 /** Charge une donnée depuis lib/services avec états chargement / erreur. */
-export function useAsync<T>(loader: () => Promise<T>) {
+export function useAsync<T>(loader: () => Promise<T>, deps: readonly unknown[] = []) {
   const [state, setState] = useState<AsyncState<T>>({ status: "loading" });
   const [tick, setTick] = useState(0);
 
@@ -21,7 +21,7 @@ export function useAsync<T>(loader: () => Promise<T>) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick]);
+  }, [tick, ...deps]);
 
   const reload = useCallback(() => {
     setState({ status: "loading" });

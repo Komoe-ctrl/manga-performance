@@ -7,7 +7,7 @@ import { LogOut } from "lucide-react";
 import { clientNav } from "@/lib/nav";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
-import { getProspect } from "@/lib/services";
+import { getProspect, listNotifications } from "@/lib/services";
 import { cn } from "@/lib/utils/cn";
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
@@ -16,6 +16,8 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const clientId = session?.role === "client" ? session.clientId : null;
   const client = useAsync(() => (clientId ? getProspect(clientId) : Promise.resolve(null)));
+  const notifications = useAsync(() => (clientId ? listNotifications(clientId) : Promise.resolve([])), [clientId, pathname]);
+  const unread = notifications.status === "success" ? notifications.data.length : 0;
 
   useEffect(() => {
     if (ready && !clientId) router.replace("/espace-client/connexion");
@@ -55,6 +57,12 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
               )}
             >
               {item.label}
+              {item.href.endsWith("/notifications") && unread > 0 && (
+                <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">
+                  {unread}
+                  <span className="sr-only"> non lues</span>
+                </span>
+              )}
             </Link>
           ))}
         </nav>
