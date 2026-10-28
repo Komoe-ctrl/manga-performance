@@ -20,12 +20,16 @@ export const createProspect = (input: NewProspect) =>
     return prospect;
   });
 
-export const updateProspectStatus = (id: string, status: ProspectStatus) =>
+export const updateProspectStatus = (
+  id: string,
+  status: ProspectStatus,
+  options: { createAccess?: boolean } = {},
+) =>
   latency(() => {
     const p = db.prospects.find((x) => x.id === id);
     if (!p) throw new Error("Prospect introuvable");
     p.status = status;
-    if (status === "client" && !db.clientAccess.some((a) => a.clientId === id)) {
+    if (status === "client" && options.createAccess && !db.clientAccess.some((a) => a.clientId === id)) {
       db.clientAccess.push({ clientId: id, active: true });
     }
     return p;

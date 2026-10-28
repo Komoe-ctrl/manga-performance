@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
-import { PageHeader } from "@/components/shared";
+import { Suspense } from "react";
+import { LoadingState } from "@/components/shared";
+import { ProspectDetail } from "@/components/crm/prospect-detail";
 
-export const metadata: Metadata = { title: "Fiche prospect" };
-
-export default function Page() {
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <div className="mx-auto max-w-6xl p-4">
-      <PageHeader title="Fiche prospect" description="Écran détaillé prévu à l'étape 4." />
-    </div>
+    <Suspense fallback={<LoadingState />}>
+      <ProspectDetail params={params} />
+    </Suspense>
   );
 }

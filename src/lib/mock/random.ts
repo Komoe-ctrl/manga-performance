@@ -1,3 +1,5 @@
+import { REFERENCE_DATE } from "@/lib/constants";
+
 /** PRNG déterministe : mêmes fixtures à chaque rendu (évite les écarts SSR/client). */
 export function createRng(seed: number) {
   let s = seed >>> 0;
@@ -16,7 +18,7 @@ export function createRng(seed: number) {
 }
 
 /** Date de référence de la maquette. */
-export const TODAY = new Date("2026-10-28T09:00:00.000Z");
+export const TODAY = new Date(REFERENCE_DATE);
 
 export function daysFromToday(offset: number): string {
   const d = new Date(TODAY);
