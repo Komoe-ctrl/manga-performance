@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { publicNav, WHATSAPP_NUMBER } from "@/lib/nav";
+import { ChatWidget } from "@/components/public/chat-widget";
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
   const wa = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Bonjour, je souhaite en savoir plus sur vos services.")}`;
@@ -32,7 +33,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </footer>
-      {/* Le widget chatbot (étape 8) sera empilé au-dessus de ce bouton. */}
+      {/* Chatbot empilé au-dessus du bouton WhatsApp : pas de chevauchement */}
+      <ChatWidget />
       <a
         href={wa}
         target="_blank"
