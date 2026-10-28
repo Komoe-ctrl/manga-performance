@@ -14,6 +14,18 @@ export const db = {
   deliverables: structuredClone(m.deliverables),
   messages: structuredClone(m.messages),
   blogPosts: structuredClone(m.blogPosts),
+  settings: {
+    cabinetName: "MANGA PERFORMANCE",
+    address: "Abidjan, Côte d'Ivoire",
+    phone: "+225 07 00 00 00 00",
+    email: "contact@manga-performance.example",
+    logoName: "",
+    followUps: { j7: true, j15: true, j30: false },
+    vatPercent: 18,
+    invoiceMentions: "",
+    bankDetails: "[À fournir par le client]",
+    whatsappMessage: "Bonjour, je souhaite en savoir plus sur vos services.",
+  },
   invoiceEvents: {} as Record<string, { label: string; at: string }[]>,
   subscribers: structuredClone(m.subscribers),
 };
