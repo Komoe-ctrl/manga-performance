@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, LogOut, Menu, Search, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
+import { GlobalSearch } from "./global-search";
+import { FollowUpBell } from "./follow-up-bell";
 import { adminNav } from "@/lib/nav";
 import { useSession } from "@/lib/auth/session";
 import { cn } from "@/lib/utils/cn";
@@ -82,18 +84,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <button className="md:hidden" aria-label="Ouvrir le menu" onClick={() => setOpen(true)}>
             <Menu />
           </button>
-          <label className="relative max-w-md flex-1">
-            <span className="sr-only">Recherche globale</span>
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
-            <input
-              type="search"
-              placeholder="Rechercher un prospect, une facture…"
-              className="h-9 w-full rounded-md border border-border pl-9 pr-3 text-sm"
-            />
-          </label>
-          <Link href="/admin/relances" aria-label="Relances du jour" className="relative ml-auto rounded-md p-2 hover:bg-muted">
-            <Bell className="h-5 w-5" />
-          </Link>
+          <GlobalSearch />
+          <FollowUpBell />
           <button
             onClick={() => {
               signOut();
@@ -104,7 +96,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <LogOut className="h-4 w-4" aria-hidden /> Déconnexion
           </button>
         </header>
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main id="contenu" tabIndex={-1} className="flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

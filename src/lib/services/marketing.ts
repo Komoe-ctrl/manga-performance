@@ -1,4 +1,6 @@
 import type { BlogPost, EmailSequence } from "@/lib/types";
+
+// TODO: à confirmer par le client — newsletter : envoi automatique de chaque nouvel article, ou envois manuels ?
 import { db, latency, nextId } from "./store";
 
 export const listSequences = () => latency(() => [...db.sequences]);

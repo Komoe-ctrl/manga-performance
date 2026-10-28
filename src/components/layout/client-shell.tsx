@@ -67,7 +67,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 p-4 md:p-6">{children}</main>
+      <main id="contenu" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 p-4 md:p-6">{children}</main>
     </div>
   );
 }

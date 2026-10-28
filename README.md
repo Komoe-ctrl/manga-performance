@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MANGA PERFORMANCE — maquette front
 
-## Getting Started
+Maquette fonctionnelle cliquable (données fictives, aucun backend) de la plateforme du cabinet : site public, back-office (`/admin`) et espace client (`/espace-client`).
 
-First, run the development server:
+Spécification : [SPEC_FRONT_MANGA_PERFORMANCE.md](SPEC_FRONT_MANGA_PERFORMANCE.md).
+
+## Démarrer
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm lint
+pnpm typecheck
+pnpm build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `src/lib/types` : modèle métier
+- `src/lib/mock` : fixtures déterministes (jamais importées par les composants)
+- `src/lib/services` : API asynchrone avec latence simulée, store en mémoire (non persisté au rechargement)
+- `src/components` : composants par domaine (`crm`, `billing`, `marketing`, `scraper`, `client`, `demo`, `public`) et partagés (`shared`, `ui`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Authentification simulée
 
-## Learn More
+- Back-office : `/admin/connexion`, bouton « Se connecter en tant que consultant »
+- Espace client : `/espace-client/connexion`, sélecteur de profil ou email d'un client avec accès actif et mot de passe de 4 caractères minimum
 
-To learn more about Next.js, take a look at the following resources:
+## Points en attente du client
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Recherchez `TODO` dans `src/` : formules des KPI du dashboard, relances (interne ou email), envoi de la newsletter, langue, contenus définitifs.

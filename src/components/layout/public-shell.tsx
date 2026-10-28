@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
-import { publicNav, WHATSAPP_NUMBER } from "@/lib/nav";
+import { WHATSAPP_NUMBER } from "@/lib/nav";
+import { PublicNav } from "./mobile-nav";
 import { ChatWidget } from "@/components/public/chat-widget";
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
@@ -12,16 +13,10 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="font-heading text-lg font-extrabold text-primary">
             MANGA <span className="rounded bg-accent px-1.5 text-accent-foreground">PERFORMANCE</span>
           </Link>
-          <nav aria-label="Navigation principale" className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-sm">
-            {publicNav.map((item) => (
-              <Link key={item.href} href={item.href} className="py-1 hover:text-primary hover:underline">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <PublicNav />
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main id="contenu" tabIndex={-1} className="flex-1">{children}</main>
       <footer className="bg-primary text-primary-foreground">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm">
           <p>© 2026 MANGA PERFORMANCE — Abidjan, Côte d&apos;Ivoire</p>

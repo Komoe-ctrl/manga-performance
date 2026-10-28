@@ -222,7 +222,7 @@ export function ProspectDetail({ params }: { params: Promise<{ id: string }> }) 
           ))}
         </div>
         <div role="tabpanel">
-          {tab === "historique" && <History prospectId={p.id} />}
+          {(tab === "historique" || (tab === "factures" && p.status !== "client")) && <History prospectId={p.id} />}
           {tab === "relances" && <FollowUps prospectId={p.id} />}
           {tab === "factures" && p.status === "client" && <ProspectInvoices clientId={p.id} />}
         </div>
