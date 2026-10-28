@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
-import { PageHeader } from "@/components/shared";
+import { Suspense } from "react";
+import { LoadingState, PageHeader } from "@/components/shared";
+import { SequenceEditor } from "@/components/marketing/sequences";
 
-export const metadata: Metadata = { title: "Éditeur de séquence" };
-
-export default function Page() {
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <div className="mx-auto max-w-6xl p-4">
-      <PageHeader title="Éditeur de séquence" description="Écran détaillé prévu à l'étape 7." />
-    </div>
+    <>
+      <PageHeader title="Éditeur de séquence" />
+      <Suspense fallback={<LoadingState />}>
+        <SequenceEditor params={params} />
+      </Suspense>
+    </>
   );
 }

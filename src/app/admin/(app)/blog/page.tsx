@@ -1,14 +1,17 @@
-"use client";
-
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared";
-import { MockOverview } from "@/components/shared/mock-overview";
-import { listBlogPosts } from "@/lib/services";
+import { AdminBlogList } from "@/components/marketing/blog-list";
 
 export default function Page() {
   return (
     <>
-      <PageHeader title="Blog" description="Écran détaillé prévu à l'étape 7." />
-      <MockOverview loader={listBlogPosts} label="articles" render={(b) => `${b.title} — ${b.status}`} />
+      <PageHeader
+        title="Blog"
+        description="Articles publiés et brouillons."
+        actions={<Link href="/admin/blog/nouveau" className={buttonVariants({ variant: "accent" })}>Nouvel article</Link>}
+      />
+      <AdminBlogList />
     </>
   );
 }

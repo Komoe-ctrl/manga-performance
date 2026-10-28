@@ -94,7 +94,7 @@ export function ArticleView({ slug }: { slug: string }) {
           Publié le <DateLabel value={p.publishedAt} />
         </p>
       )}
-      <div className="prose mt-6 max-w-none" dangerouslySetInnerHTML={{ __html: p.content }} />
+      <div className="rich-text mt-6" dangerouslySetInnerHTML={{ __html: p.content }} />
       <div className="mt-8 flex flex-wrap items-center gap-2 border-t border-border pt-4">
         <span className="text-sm">Partager :</span>
         <Button
