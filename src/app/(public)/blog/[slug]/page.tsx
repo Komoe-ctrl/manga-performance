@@ -1,17 +1,28 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/shared";
-import { blogPosts } from "@/lib/mock/business";
+import { ArticleView } from "@/components/public/blog";
+import { Section } from "@/components/public/section";
+import { getBlogPost, publishedPosts } from "@/lib/services";
 
-export const metadata: Metadata = { title: "Article" };
-
-export function generateStaticParams() {
-  return blogPosts.map((b) => ({ slug: b.slug }));
+export async function generateStaticParams() {
+  return (await publishedPosts()).map((b) => ({ slug: b.slug }));
 }
 
-export default function Page() {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getBlogPost(slug);
+  if (!post) return {};
+  const title = post.seo.metaTitle ?? post.title;
+  const description = post.seo.metaDescription ?? post.excerpt;
+  return { title, description, openGraph: { title, description, type: "article", locale: "fr_FR" } };
+}
+
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   return (
-    <div className="mx-auto max-w-6xl p-4">
-      <PageHeader title="Article" description="Page article prévue à l'étape 2." />
-    </div>
+    <Section>
+      <div className="mx-auto max-w-3xl">
+        <ArticleView slug={slug} />
+      </div>
+    </Section>
   );
 }

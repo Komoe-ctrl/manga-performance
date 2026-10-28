@@ -18,6 +18,8 @@ export const db = {
 };
 
 export function latency<T>(value: () => T): Promise<T> {
+  // Pas de latence côté serveur (prérendu) : elle sert aux états de chargement du client.
+  if (typeof window === "undefined") return Promise.resolve(value());
   const ms = 150 + Math.floor(Math.random() * 250);
   return new Promise((resolve) => setTimeout(() => resolve(value()), ms));
 }

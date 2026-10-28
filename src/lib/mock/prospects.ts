@@ -8,29 +8,8 @@ import type {
   ProspectSource,
   ProspectStatus,
 } from "@/lib/types";
+import { CITIES, SECTORS } from "@/lib/constants";
 import { createRng, daysFromToday, phoneCI } from "./random";
-
-export const SECTORS = [
-  "Hôtellerie",
-  "Santé",
-  "Restauration",
-  "PME industrie",
-  "Commerce",
-  "BTP",
-  "Services",
-] as const;
-
-export const CITIES = [
-  "Abidjan - Plateau",
-  "Abidjan - Cocody",
-  "Abidjan - Marcory",
-  "Abidjan - Zone 4",
-  "Abidjan - Treichville",
-  "Abidjan - Yopougon",
-  "Bouaké",
-  "San-Pédro",
-  "Yamoussoukro",
-] as const;
 
 const NAME_HEADS = ["Lagune", "Ébène", "Baobab", "Soleil", "Atlantic", "Akwaba", "Kôkô", "Ivoire", "Savane", "Comoé", "Bandama", "Tamarin", "Palmeraie", "Nzi", "Sassandra", "Horizon", "Kalao", "Cacao"];
 const NAME_TAILS: Record<string, string[]> = {

@@ -3,3 +3,4 @@ export * from "./billing";
 export * from "./marketing";
 export * from "./scraper";
 export * from "./client-space";
+export * from "./demo";

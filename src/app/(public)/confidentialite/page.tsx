@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/shared";
+import { PageIntro, Section } from "@/components/public/section";
+import { TBD } from "@/lib/content/site";
 
-export const metadata: Metadata = { title: "Politique de confidentialité" };
+export const metadata: Metadata = { title: "Politique de confidentialité", robots: { index: false } };
 
 export default function Page() {
   return (
-    <div className="mx-auto max-w-6xl p-4">
-      <PageHeader title="Politique de confidentialité" description="Écran détaillé prévu à l'étape 2." />
-    </div>
+    <>
+      <PageIntro title="Politique de confidentialité" />
+      <Section>
+        <div className="max-w-2xl space-y-3 text-sm">
+          <p>
+            Les données collectées via le formulaire de contact, la newsletter et le chatbot servent uniquement à répondre
+            à vos demandes et à vous informer, dans le respect de la loi ivoirienne n° 2013-450 sur la protection des
+            données à caractère personnel.
+          </p>
+          <p>Vous pouvez demander l&apos;accès, la rectification ou la suppression de vos données à tout moment.</p>
+          <p>
+            <strong>Texte juridique définitif :</strong> {TBD}
+          </p>
+        </div>
+      </Section>
+    </>
   );
 }
