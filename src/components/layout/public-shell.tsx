@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { contactInfo, socialLinks } from "@/lib/content/site";
+import { contactInfo } from "@/lib/content/site";
 import { PublicNav } from "./mobile-nav";
 import { ChatWidget } from "@/components/public/chat-widget";
+import { SocialLinks } from "@/components/public/social-icons";
 import { CopyrightYear } from "@/components/public/copyright";
 import { WhatsAppFab } from "@/components/public/whatsapp";
 
@@ -34,15 +35,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <h2 className="font-semibold">Suivez-nous</h2>
-            <ul className="mt-2 space-y-1 text-slate-300">
-              {socialLinks.map((s) => (
-                <li key={s.label}>
-                  <a href={s.href} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                    {s.label}<span className="sr-only"> (s&apos;ouvre dans un nouvel onglet)</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <SocialLinks />
           </div>
           <div>
             <h2 className="font-semibold">Informations</h2>
