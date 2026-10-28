@@ -63,6 +63,7 @@ function Form({ initial }: { initial: Settings }) {
 
       <fieldset className="space-y-3 rounded-lg border border-border p-4">
         <legend className="px-1 font-semibold text-primary">WhatsApp</legend>
+        <Field label="Numéro WhatsApp (format international, sans +)" htmlFor="st-wanum"><Input id="st-wanum" inputMode="numeric" value={s.whatsappNumber} onChange={(e) => set("whatsappNumber", e.target.value.replace(/D/g, ""))} /></Field>
         <Field label="Message prérempli" htmlFor="st-wa"><Textarea id="st-wa" className="min-h-20" value={s.whatsappMessage} onChange={(e) => set("whatsappMessage", e.target.value)} /></Field>
       </fieldset>
 

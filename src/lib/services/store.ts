@@ -1,3 +1,4 @@
+import { contactInfo, DEFAULT_WHATSAPP_MESSAGE } from "@/lib/content/site";
 import * as m from "@/lib/mock/business";
 import * as p from "@/lib/mock/prospects";
 
@@ -17,14 +18,15 @@ export const db = {
   settings: {
     cabinetName: "MANGA PERFORMANCE",
     address: "Abidjan, Côte d'Ivoire",
-    phone: "+225 07 00 00 00 00",
-    email: "contact@manga-performance.example",
+    phone: contactInfo.phone,
+    email: contactInfo.email,
     logoName: "",
     followUps: { j7: true, j15: true, j30: false },
     vatPercent: 18,
     invoiceMentions: "",
     bankDetails: "[À fournir par le client]",
-    whatsappMessage: "Bonjour, je souhaite en savoir plus sur vos services.",
+    whatsappNumber: contactInfo.whatsappNumber,
+    whatsappMessage: DEFAULT_WHATSAPP_MESSAGE,
   },
   invoiceEvents: {} as Record<string, { label: string; at: string }[]>,
   subscribers: structuredClone(m.subscribers),
