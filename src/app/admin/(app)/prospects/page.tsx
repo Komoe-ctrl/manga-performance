@@ -1,14 +1,11 @@
-"use client";
-
 import { PageHeader } from "@/components/shared";
-import { MockOverview } from "@/components/shared/mock-overview";
-import { listProspects } from "@/lib/services";
+import { ProspectsView } from "@/components/crm/prospects-view";
 
 export default function Page() {
   return (
     <>
-      <PageHeader title="Prospects" description="Écran détaillé prévu à l'étape 4." />
-      <MockOverview loader={listProspects} label="prospects" render={(p) => `${p.companyName} — ${p.city} — ${p.status}`} />
+      <PageHeader title="Prospects" description="Segmentation, kanban et création de prospects." />
+      <ProspectsView />
     </>
   );
 }

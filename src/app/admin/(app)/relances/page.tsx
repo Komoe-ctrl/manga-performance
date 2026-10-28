@@ -1,14 +1,11 @@
-"use client";
-
 import { PageHeader } from "@/components/shared";
-import { MockOverview } from "@/components/shared/mock-overview";
-import { listFollowUps } from "@/lib/services";
+import { FollowUpsView } from "@/components/crm/follow-ups-view";
 
 export default function Page() {
   return (
     <>
-      <PageHeader title="Relances" description="Écran détaillé prévu à l'étape 4." />
-      <MockOverview loader={listFollowUps} label="relances" render={(f) => `${f.prospectId} — ${f.rule} — ${f.dueAt.slice(0, 10)}`} />
+      <PageHeader title="Relances" description="En retard, aujourd'hui et à venir." />
+      <FollowUpsView />
     </>
   );
 }
