@@ -126,6 +126,7 @@ export interface Message {
   body: string;
   sentAt: string;
   read: boolean;
+  attachment?: string; // nom du fichier joint (simulé)
 }
 
 export interface BlogPost {

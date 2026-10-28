@@ -30,18 +30,20 @@ export function ProfilePicker({ space }: { space: "admin" | "client" }) {
   if (clients.status === "error") return <ErrorState message={clients.error.message} onRetry={clients.reload} />;
 
   return (
-    <ul className="space-y-2">
-      {clients.data.slice(0, 6).map((c) => (
+    <ul className="max-h-72 space-y-2 overflow-y-auto">
+      {clients.data.map((c) => (
         <li key={c.id}>
           <Button
             variant="outline"
             className="w-full justify-start"
+            disabled={!c.accessActive}
             onClick={() => {
               signIn({ role: "client", clientId: c.id });
               router.push("/espace-client");
             }}
           >
-            Se connecter en tant que {c.companyName}
+            {c.companyName}
+            {!c.accessActive && <span className="ml-auto text-xs text-muted-foreground">accès inactif</span>}
           </Button>
         </li>
       ))}
