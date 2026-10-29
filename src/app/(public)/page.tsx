@@ -54,7 +54,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/demo"
-                className={buttonVariants({ variant: "outline", size: "lg", className: "bg-transparent text-white hover:bg-white/10" })}
+                className={buttonVariants({ variant: "outlineLight", size: "lg" })}
               >
                 Voir une démo
               </Link>
