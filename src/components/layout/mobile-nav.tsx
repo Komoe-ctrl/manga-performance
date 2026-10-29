@@ -27,7 +27,7 @@ export function PublicNav() {
 
   return (
     <>
-      <nav aria-label="Navigation principale" className="hidden items-center gap-1 text-sm md:flex">
+      <nav aria-label="Navigation principale" className="hidden items-center gap-1 text-sm lg:flex">
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
@@ -35,23 +35,23 @@ export function PublicNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={cn("nav-link flex items-center rounded-md px-3.5 py-2 font-medium", active ? "text-primary" : "text-slate-600 hover:bg-muted hover:text-primary")}
+              className={cn("nav-link flex items-center whitespace-nowrap rounded-md px-3 py-2 font-medium", active ? "text-primary" : "text-slate-600 hover:bg-muted hover:text-primary")}
             >
               {item.label}
               <Pending />
             </Link>
           );
         })}
-        <Link href="/espace-client" className={buttonVariants({ variant: "ghost", size: "md", className: "ml-2 hidden xl:inline-flex" })}>
-          <UserRound className="h-4 w-4" aria-hidden /> Espace client
+        <Link href="/espace-client" aria-label="Espace client" title="Espace client" className={buttonVariants({ variant: "ghost", size: "md", className: "ml-1 hidden h-10 w-10 shrink-0 px-0 xl:inline-flex" })}>
+          <UserRound className="h-5 w-5" aria-hidden />
         </Link>
-        <Link href="/contact" className={buttonVariants({ variant: "accent", size: "md", className: "btn-shine ml-1 hidden lg:inline-flex" })}>
+        <Link href="/contact" className={buttonVariants({ variant: "accent", size: "md", className: "btn-shine ml-1 hidden shrink-0 whitespace-nowrap xl:inline-flex" })}>
           Prendre rendez-vous <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
       </nav>
 
       <button
-        className="rounded-md p-2 hover:bg-muted active:scale-95 md:hidden"
+        className="rounded-md p-2 hover:bg-muted active:scale-95 lg:hidden"
         aria-expanded={open}
         aria-controls="mobile-menu"
         aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
@@ -60,7 +60,7 @@ export function PublicNav() {
         {open ? <X aria-hidden /> : <Menu aria-hidden />}
       </button>
       {open && (
-        <nav id="mobile-menu" aria-label="Navigation principale" className="rise absolute left-0 right-0 top-16 border-b border-border bg-background p-4 shadow-lg md:hidden">
+        <nav id="mobile-menu" aria-label="Navigation principale" className="rise absolute left-0 right-0 top-16 border-b border-border bg-background p-4 shadow-lg lg:hidden">
           <ul className="space-y-1">
             {items.map((item) => {
               const active = isActive(pathname, item.href);

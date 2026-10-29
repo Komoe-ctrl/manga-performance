@@ -24,7 +24,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <div className="scroll-progress" aria-hidden="true" />
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4">
-          <Link href="/" aria-label="MANGA PERFORMANCE — retour à l'accueil" className="font-heading text-lg font-extrabold text-primary transition-transform hover:scale-[1.03] active:scale-95">
+          <Link href="/" aria-label="MANGA PERFORMANCE — retour à l'accueil" className="shrink-0 whitespace-nowrap font-heading text-lg font-extrabold text-primary transition-transform hover:scale-[1.03] active:scale-95">
             MANGA <span className="rounded bg-accent px-1.5 text-accent-foreground">PERFORMANCE</span>
           </Link>
           <PublicNav />
