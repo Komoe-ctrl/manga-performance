@@ -12,8 +12,7 @@ import { WhatsAppFab } from "@/components/public/whatsapp";
 
 function FooterTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
-      <span className="h-0.5 w-5 rounded bg-accent" aria-hidden="true" />
+    <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-white">
       {children}
     </h2>
   );
@@ -93,7 +92,6 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
               </ul>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link href="/espace-client" className={buttonVariants({ variant: "outlineLight", size: "sm" })}>Espace client</Link>
-                <Link href="/admin" className={buttonVariants({ variant: "outlineLight", size: "sm" })}>Back-office</Link>
               </div>
             </div>
           </div>

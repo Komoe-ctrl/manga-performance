@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LogOut } from "lucide-react";
+import { Bell, FileText, LogOut, MessageSquare } from "lucide-react";
 import { clientNav } from "@/lib/nav";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
@@ -39,7 +39,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
                 signOut();
                 router.push("/espace-client/connexion");
               }}
-              className="flex items-center gap-1 hover:underline"
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all hover:bg-white/10 active:scale-95"
             >
               <LogOut className="h-4 w-4" aria-hidden /> Déconnexion
             </button>
@@ -52,10 +52,17 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
               href={item.href}
               aria-current={pathname === item.href ? "page" : undefined}
               className={cn(
-                "rounded-t-md px-4 py-2 text-sm",
-                pathname === item.href ? "bg-background text-primary" : "hover:bg-white/10",
+                "nav-link flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors",
+                pathname === item.href ? "bg-background text-primary" : "text-slate-200 hover:bg-white/10 hover:text-white",
               )}
             >
+              {item.href.endsWith("/messages") ? (
+                <MessageSquare className="h-4 w-4" aria-hidden />
+              ) : item.href.endsWith("/notifications") ? (
+                <Bell className="h-4 w-4" aria-hidden />
+              ) : (
+                <FileText className="h-4 w-4" aria-hidden />
+              )}
               {item.label}
               {item.href.endsWith("/notifications") && unread > 0 && (
                 <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">

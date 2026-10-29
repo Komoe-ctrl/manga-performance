@@ -10,6 +10,8 @@ export interface ChatAnswer {
   links?: ChatLink[];
   /** Affiche le formulaire de capture de lead. */
   form?: boolean;
+  /** Question de l'utilisateur, transmise avec la demande de rappel. */
+  note?: string;
   /** Questions de suivi proposées sous la réponse. */
   chips?: string[];
 }
@@ -180,10 +182,14 @@ const KB: Entry[] = [
   },
   {
     id: "espace",
-    k: [[/espace client|connexion|connecter|login|mot de passe|\bacces\b|identifiant/, 3]],
+    k: [[/espace client|connexion|connect|login|mot de passe|\bacces\b|identifiant|\bcompte\b|inscri|se loguer/, 3]],
     answer: () => ({
-      text: "Chaque client dispose d'un espace sécurisé pour retrouver ses livrables, échanger avec le consultant et recevoir des notifications. L'accès est créé par le cabinet.",
-      links: [{ href: "/espace-client/connexion", label: "Accéder à l'espace client" }],
+      text: "Chaque client dispose d'un espace sécurisé pour retrouver ses livrables, échanger avec le consultant et recevoir des notifications. L'accès est créé par le cabinet : vous vous connectez avec votre email et votre mot de passe depuis la page de connexion. Pas encore d'accès ? Demandez-le à votre consultant.",
+      links: [
+        { href: "/espace-client/connexion", label: "Me connecter à mon espace" },
+        { href: "/espace-client/mot-de-passe-oublie", label: "Mot de passe oublié" },
+      ],
+      chips: ["Être recontacté"],
     }),
   },
   {
@@ -289,30 +295,114 @@ const KB: Entry[] = [
       chips: ["Être recontacté"],
     }),
   },
+  {
+    id: "equipe",
+    k: [[/qui travaille|equipe|effectif|combien de personnes|employes|collaborateurs|independant|seul/, 2]],
+    answer: () => ({
+      text: "MANGA PERFORMANCE est un cabinet indépendant dirigé par un consultant senior : vous avez un interlocuteur unique du premier échange à la remise des livrables.",
+      links: [{ href: "/a-propos", label: "Découvrir le cabinet" }],
+    }),
+  },
+  {
+    id: "contrat",
+    k: [[/contrat|engagement|signature|signer|acompte|modalites|conditions/, 3]],
+    answer: () => ({
+      text: "Le périmètre, le calendrier et les modalités de paiement sont précisés dans une proposition écrite, validée avec vous avant le démarrage de la mission.",
+      chips: ["Comment ça se passe ?", "Être recontacté"],
+    }),
+  },
+  {
+    id: "emploi",
+    k: [[/recrut|emploi|stage|stagiaire|candidature|\bcv\b|travailler chez|partenariat|partenaire/, 3]],
+    answer: () => ({
+      text: `Pour une candidature ou une proposition de partenariat, écrivez-nous à ${contactInfo.email} en précisant l'objet de votre message.`,
+      links: [{ href: "/contact", label: "Page contact" }],
+    }),
+  },
+  {
+    id: "probleme",
+    k: [[/probleme|reclamation|plainte|bug|erreur|ne marche pas|ne fonctionne pas|insatisfait/, 4]],
+    answer: () => ({
+      text: "Désolé pour ce désagrément. Décrivez-moi la situation et un consultant reviendra vers vous rapidement.",
+      form: true,
+    }),
+  },
+  {
+    id: "securite-donnees",
+    k: [[/hebergement|sauvegarde|piratage|fuite|chiffrement/, 3]],
+    answer: () => ({
+      text: "Vos documents sont partagés uniquement via votre espace client sécurisé, et vos données ne sont utilisées que pour votre mission.",
+      links: [{ href: "/confidentialite", label: "Politique de confidentialité" }],
+    }),
+  },
 ];
 
 export const FALLBACK: ChatAnswer = {
-  text: "Je suis un assistant automatique et je n'ai pas bien compris votre question. Voici des sujets que je connais, ou laissez vos coordonnées pour qu'un consultant vous réponde.",
-  chips: ["Nos services", "Tarifs", "Comment ça se passe ?", "Être recontacté"],
-  links: [{ href: "/contact", label: "Écrire au cabinet" }],
+  text: "Je n'ai pas la réponse à cette question. Laissez vos coordonnées : votre question sera transmise à un consultant qui vous répondra sous 24 h ouvrées. Ou choisissez un sujet ci-dessous.",
+  chips: ["Nos services", "Tarifs", "Comment ça se passe ?", "Espace client"],
+  form: true,
 };
 
-/** Réponse la plus pertinente pour un texte libre (mots-clés pondérés), ou le repli explicite. */
-export function answerFor(text: string, ctx: Ctx): ChatAnswer {
-  const t = text
+/** Mots du domaine utilisés pour corriger les fautes de frappe (« tarfis » → « tarifs »). */
+const VOCAB = [
+  "tarifs", "prix", "devis", "delais", "duree", "services", "prestations", "tresorerie", "tableau", "tableaux", "business", "financement",
+  "connexion", "connecter", "connecte", "contact", "contacter", "recontacter", "rendez-vous", "audit", "facture", "livrables", "horaires",
+  "adresse", "telephone", "whatsapp", "demo", "article", "formation", "budget", "couts", "marge", "indicateurs", "consultant", "entreprise",
+  "client", "espace", "references", "temoignages", "donnees", "confidentialite", "securite", "comment", "combien", "quand", "bonjour", "merci",
+];
+
+function lev(a: string, b: string): number {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)] as number[]);
+  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      // transposition de deux lettres (« tarfis »)
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + 1);
+    }
+  return dp[a.length][b.length];
+}
+
+const strip = (text: string) =>
+  text
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "");
-  let best: Entry | null = null;
-  let bestScore = 0;
-  for (const entry of KB) {
-    const score = entry.k.reduce((sum, [re, weight]) => sum + (re.test(t) ? weight : 0), 0);
-    if (score > bestScore) {
-      best = entry;
-      bestScore = score;
+
+/** Remplace les mots proches d'un mot du vocabulaire (1 faute pour 5+ lettres, 2 pour 8+). */
+function correct(text: string): string {
+  return text
+    .split(/(\s+|[?!.,;:'"’]+)/)
+    .map((tok) => {
+      if (tok.length < 5 || VOCAB.includes(tok)) return tok;
+      const max = tok.length >= 8 ? 2 : 1;
+      return VOCAB.find((w) => Math.abs(w.length - tok.length) <= max && lev(tok, w) <= max) ?? tok;
+    })
+    .join("");
+}
+
+function best(text: string): { entry: Entry | null; score: number } {
+  let entry: Entry | null = null;
+  let score = 0;
+  for (const e of KB) {
+    const s = e.k.reduce((sum, [re, weight]) => sum + (re.test(text) ? weight : 0), 0);
+    if (s > score) {
+      entry = e;
+      score = s;
     }
   }
-  return best ? best.answer(ctx) : FALLBACK;
+  return { entry, score };
+}
+
+/** Réponse la plus pertinente pour un texte libre (mots-clés pondérés, fautes de frappe tolérées), ou le repli explicite. */
+export function answerFor(text: string, ctx: Ctx): ChatAnswer {
+  const plain = strip(text);
+  const direct = best(plain);
+  const fixed = best(correct(plain));
+  const winner = fixed.score > direct.score ? fixed : direct;
+  const answer = winner.entry ? winner.entry.answer(ctx) : FALLBACK;
+  // La question posée est transmise avec la demande de rappel.
+  return answer.form ? { ...answer, note: text } : answer;
 }
 
 export const QUICK_QUESTIONS = ["Nos services", "Tarifs", "Délais", "Être recontacté", "Parler sur WhatsApp"];

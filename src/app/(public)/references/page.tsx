@@ -15,7 +15,7 @@ export default function Page() {
       <Section title="Études de cas">
         <div className="grid gap-4 md:grid-cols-3">
           {references.map((r) => (
-            <article key={r.sector} className="rounded-lg border border-border p-4">
+            <article key={r.sector} className="card-lift rounded-xl border border-border p-4">
               <h3 className="font-bold text-primary">{r.sector}</h3>
               <dl className="mt-2 space-y-2 text-sm">
                 <div><dt className="font-medium">Contexte</dt><dd className="text-muted-foreground">{r.context}</dd></div>

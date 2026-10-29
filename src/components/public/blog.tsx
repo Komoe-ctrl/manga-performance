@@ -14,7 +14,7 @@ import { DateLabel, EmptyState, ErrorState, LoadingState } from "@/components/sh
 
 function PostCard({ post }: { post: BlogPost }) {
   return (
-    <article className="flex flex-col rounded-lg border border-border p-4">
+    <article className="card-lift flex flex-col rounded-xl border border-border bg-background p-4">
       <p className="text-xs font-medium text-warning">{CATEGORY_LABELS[post.category]}</p>
       <h3 className="mt-1 font-bold text-primary">
         <Link href={`/blog/${post.slug}`} className="hover:underline">
