@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 
 /** Bandeau défilant infini (pause au survol). Le second jeu d'éléments est masqué aux lecteurs d'écran. */
@@ -25,10 +26,19 @@ export function Marquee({ items, reverse = false, className }: { items: string[]
 /** Visuel du hero : carte « photo » entourée de cartes KPI flottantes et d'une courbe qui se dessine. */
 export function HeroVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-md" role="img" aria-label="Aperçu d'un tableau de bord de pilotage (photo du consultant à fournir)">
+    <div className="relative mx-auto w-full max-w-md">
       <div className="orb absolute -inset-6 rounded-full bg-accent/30 blur-3xl" aria-hidden="true" />
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-white/20 to-white/5 text-sm text-slate-300 backdrop-blur">
-        Photo du consultant
+      <div className="relative aspect-[4/4.4] overflow-hidden rounded-2xl border-2 border-accent/60 bg-white shadow-2xl">
+        <Image
+          src="/images/consultant.jpg"
+          alt="Portrait de Diakité Manga, consultant en audit, data analytique et contrôle de gestion"
+          width={636}
+          height={724}
+          priority
+          sizes="(min-width: 768px) 420px, 90vw"
+          className="h-full w-full object-cover object-top"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-primary/85 to-transparent" aria-hidden="true" />
         <svg viewBox="0 0 300 120" className="absolute inset-x-0 bottom-0 h-1/3 w-full" aria-hidden="true">
           <path d="M0 100 C 40 90, 60 60, 100 70 S 170 30, 210 40 S 270 10, 300 15" fill="none" stroke="#F5B700" strokeWidth="3" strokeLinecap="round" className="draw" />
         </svg>

@@ -7,7 +7,8 @@ export const contactInfo = {
   phone: "+225 07 59 56 50 81",
   whatsappNumber: "2250759565081", // format international sans « + », pour wa.me
   email: "diakfode@hotmail.com",
-  hours: "Du lundi au vendredi, 8 h – 17 h",
+  linkedin: "DIAKITÉ MANGA",
+  hours: "Lundi – samedi, 8 h – 18 h (dimanche fermé)",
 };
 
 export const DEFAULT_WHATSAPP_MESSAGE = "Bonjour, je souhaite en savoir plus sur vos services.";
@@ -63,7 +64,7 @@ export const services: ServiceContent[] = [
     short: "Identifiez où vos coûts dérapent et reprenez la main.",
     need: "maitrise_couts",
     problem: "Vos coûts vous échappent : écarts avec le budget, marges qui s'érodent sans cause identifiée.",
-    approach: ["Analyse des coûts par poste", "Mesure des écarts prévu / réalisé", "Plan de réduction priorisé"],
+    approach: ["Cartographie des coûts et calcul du coût de revient", "Suivi budgétaire : mesure des écarts prévu / réalisé", "Plan de réduction priorisé"],
     deliverables: ["Rapport d'analyse des écarts", "Tableau de suivi budgétaire", "Plan d'actions chiffré"],
   },
 ];

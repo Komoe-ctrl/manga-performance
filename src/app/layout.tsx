@@ -10,7 +10,7 @@ const jakarta = Plus_Jakarta_Sans({ variable: "--font-jakarta", subsets: ["latin
 // TODO: à confirmer par le client — langue : français uniquement, ou aussi l'anglais ?
 export const metadata: Metadata = {
   title: { default: "MANGA PERFORMANCE", template: "%s | MANGA PERFORMANCE" },
-  description: "Cabinet de conseil en Audit, Data et Contrôle de Gestion à Abidjan.",
+  description: "Diakité Manga, consultant indépendant en Audit, Data Analytique et Contrôle de Gestion à Abidjan : optimisez vos coûts, pilotez votre performance.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

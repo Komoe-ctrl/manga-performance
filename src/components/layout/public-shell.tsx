@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { contactInfo, services } from "@/lib/content/site";
 import { publicNav } from "@/lib/nav";
+import { tagline } from "@/lib/content/profile";
 import { buttonVariants } from "@/components/ui/button";
 import { PublicNav } from "./mobile-nav";
 import { BackToTop } from "@/components/public/back-to-top";
@@ -53,7 +54,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
                 MANGA <span className="rounded bg-accent px-1.5 text-accent-foreground">PERFORMANCE</span>
               </p>
               <p className="mt-3 max-w-xs leading-relaxed">
-                Cabinet de conseil indépendant à Abidjan : audit, data et contrôle de gestion pour les entreprises ivoiriennes.
+                {tagline} Cabinet de conseil indépendant à Abidjan.
               </p>
               <SocialLinks />
             </div>
