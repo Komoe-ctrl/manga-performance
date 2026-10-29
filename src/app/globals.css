@@ -111,3 +111,14 @@ h3 {
   .draw { stroke-dashoffset: 0; }
   .reveal, .rise { animation: none !important; opacity: 1; transform: none; }
 }
+
+/* Navigation : soulignement doré qui se déploie au survol, fixe sur la page courante */
+.nav-link { position: relative; transition: color 0.2s ease, background-color 0.2s ease; }
+.nav-link::after { content: ""; position: absolute; left: 0.875rem; right: 0.875rem; bottom: 0.2rem; height: 3px; border-radius: 9999px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.25s ease; }
+.nav-link:hover::after, .nav-link[aria-current="page"]::after { transform: scaleX(1); }
+.nav-link:active { transform: scale(0.96); }
+
+/* Liens du pied de page : léger décalage et soulignement doré au survol */
+.footer-link { display: inline-block; padding: 0.15rem 0; background: linear-gradient(var(--accent), var(--accent)) left bottom / 0 2px no-repeat; transition: background-size 0.25s ease, color 0.2s ease, transform 0.2s ease; }
+.footer-link:hover { background-size: 100% 2px; color: #fff; transform: translateX(3px); }
+.footer-link:active { transform: translateX(3px) scale(0.97); }
