@@ -29,7 +29,7 @@ export default function Page() {
             ["Mesurer", "Mettre en place des indicateurs fiables et utiles."],
             ["Piloter", "Transmettre les outils et accompagner leur usage."],
           ].map(([t, d], i) => (
-            <li key={t} className="rounded-lg border border-border p-4">
+            <li key={t} className="card-lift rounded-xl border border-border p-4">
               <p className="text-sm font-semibold text-warning">Étape {i + 1}</p>
               <h3 className="font-bold text-primary">{t}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{d}</p>

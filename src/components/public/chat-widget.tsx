@@ -34,7 +34,7 @@ const leadSchema = z
   .refine((v) => v.email || v.phone, { path: ["email"], message: "Email ou téléphone requis" });
 type LeadValues = z.infer<typeof leadSchema>;
 
-function LeadForm({ onDone }: { onDone: () => void }) {
+function LeadForm({ note, onDone }: { note?: string; onDone: () => void }) {
   const {
     register,
     handleSubmit,
@@ -56,6 +56,7 @@ function LeadForm({ onDone }: { onDone: () => void }) {
           size: "pme",
           need: v.need,
           source: "chatbot",
+          ownerNote: note ? `Question posée au chatbot : ${note}` : undefined,
         });
         onDone();
       })}
@@ -131,7 +132,7 @@ function BotBubble({ m, onTyped, onClose, onAsk, onLeadDone }: { m: Msg; onTyped
           ))}
         </ul>
       )}
-      {complete && m.form && <LeadForm onDone={onLeadDone} />}
+      {complete && m.form && <LeadForm note={m.note} onDone={onLeadDone} />}
       {complete && m.chips && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {m.chips.map((c) => (

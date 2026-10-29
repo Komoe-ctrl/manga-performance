@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, UserRound, X } from "lucide-react";
 import { publicNav } from "@/lib/nav";
 import { cn } from "@/lib/utils/cn";
 import { buttonVariants } from "@/components/ui/button";
@@ -42,7 +42,10 @@ export function PublicNav() {
             </Link>
           );
         })}
-        <Link href="/contact" className={buttonVariants({ variant: "accent", size: "md", className: "btn-shine ml-3 hidden lg:inline-flex" })}>
+        <Link href="/espace-client" className={buttonVariants({ variant: "ghost", size: "md", className: "ml-2 hidden xl:inline-flex" })}>
+          <UserRound className="h-4 w-4" aria-hidden /> Espace client
+        </Link>
+        <Link href="/contact" className={buttonVariants({ variant: "accent", size: "md", className: "btn-shine ml-1 hidden lg:inline-flex" })}>
           Prendre rendez-vous <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
       </nav>
@@ -78,7 +81,10 @@ export function PublicNav() {
               );
             })}
           </ul>
-          <Link href="/contact" className={buttonVariants({ variant: "accent", className: "mt-3 w-full" })}>
+          <Link href="/espace-client" className={buttonVariants({ variant: "outline", className: "mt-3 w-full" })}>
+            <UserRound className="h-4 w-4" aria-hidden /> Espace client
+          </Link>
+          <Link href="/contact" className={buttonVariants({ variant: "accent", className: "mt-2 w-full" })}>
             Prendre rendez-vous
           </Link>
         </nav>

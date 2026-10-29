@@ -5,6 +5,7 @@ import { BlogList } from "@/components/public/blog";
 import { NewsletterForm } from "@/components/public/newsletter-form";
 import { Marquee, HeroVisual } from "@/components/public/motion";
 import { CountUp, Typewriter } from "@/components/public/motion-client";
+import { MoreLabel, MoreLink } from "@/components/shared/more-link";
 import { Section } from "@/components/public/section";
 import { contactInfo, socialLinks, keyFigures, references, services, testimonials } from "@/lib/content/site";
 
@@ -73,11 +74,11 @@ export default function HomePage() {
       <Section title="Nos services">
         <div className="reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {services.map((s, i) => (
-            <Link key={s.slug} href={`/services/${s.slug}`} className="card-lift rounded-lg border border-border bg-background p-5">
+            <Link key={s.slug} href={`/services/${s.slug}`} className="card-lift group rounded-xl border border-border bg-background p-5">
               <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">{i + 1}</span>
               <h3 className="font-bold text-primary">{s.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{s.short}</p>
-              <span className="mt-3 inline-block text-sm font-medium underline">En savoir plus</span>
+              <span className="mt-4 inline-block"><MoreLabel>En savoir plus</MoreLabel></span>
             </Link>
           ))}
         </div>
@@ -113,9 +114,7 @@ export default function HomePage() {
             </blockquote>
           ))}
         </div>
-        <Link href="/references" className="mt-4 inline-block text-sm font-medium underline">
-          Toutes les références
-        </Link>
+        <MoreLink href="/references" className="mt-5">Toutes les références</MoreLink>
       </Section>
 
       <Section title="Derniers articles" tone="muted">

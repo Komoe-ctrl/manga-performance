@@ -87,7 +87,7 @@ export function AdminDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={funnel}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="label" fontSize={11} />
+                <XAxis dataKey="label" fontSize={11} interval={0} />
                 <YAxis allowDecimals={false} fontSize={12} />
                 <Tooltip />
                 <Bar dataKey="count" name="Prospects">
@@ -106,7 +106,7 @@ export function AdminDashboard() {
               <BarChart data={cashed}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="label" fontSize={12} />
-                <YAxis tickFormatter={(v) => `${Math.round(v / 1_000_000)} M`} fontSize={12} width={44} />
+                <YAxis tickFormatter={(v) => `${(v / 1_000_000).toFixed(1).replace(".0", "")} M`} fontSize={12} width={44} />
                 <Tooltip formatter={(v) => formatFCFA(Number(v))} />
                 <Bar dataKey="amount" name="Encaissé" fill={GOLD} />
               </BarChart>

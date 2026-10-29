@@ -43,13 +43,14 @@ function build(): Prospect[] {
     const companyName = `${tail} ${NAME_HEADS[i % NAME_HEADS.length]}`;
     const first = rng.pick(FIRST);
     const last = rng.pick(LAST);
+    const hasEmail = rng.next() > 0.15; // tirage conservé à sa place : les clients ont toujours un email
     const slug = companyName.toLowerCase().normalize("NFD").replace(/[^a-z]+/g, "");
     const active = status === "nouveau" || status === "en_negociation";
     return {
       id: `p${String(i + 1).padStart(3, "0")}`,
       companyName,
       contactName: `${first} ${last}`,
-      email: rng.next() > 0.15 ? `contact@${slug}.example` : undefined,
+      email: hasEmail || status === "client" ? `contact@${slug}.example` : undefined,
       phone: rng.next() > 0.1 ? phoneCI(rng) : undefined,
       sector,
       city: rng.pick(CITIES),

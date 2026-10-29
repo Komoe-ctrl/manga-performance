@@ -122,3 +122,14 @@ h3 {
 .footer-link { display: inline-block; padding: 0.15rem 0; background: linear-gradient(var(--accent), var(--accent)) left bottom / 0 2px no-repeat; transition: background-size 0.25s ease, color 0.2s ease, transform 0.2s ease; }
 .footer-link:hover { background-size: 100% 2px; color: #fff; transform: translateX(3px); }
 .footer-link:active { transform: translateX(3px) scale(0.97); }
+
+/* Lien secondaire « voir plus » : pastille avec flèche qui glisse au survol */
+.more-link { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 1rem; border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent); border-radius: 9999px; font-size: 0.875rem; font-weight: 500; color: var(--primary); transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
+.more-link svg { transition: transform 0.2s ease; }
+.more-link:hover, .group:hover .more-link { background: var(--accent); border-color: var(--accent); color: var(--accent-foreground); box-shadow: 0 6px 16px -8px rgba(245, 183, 0, 0.9); }
+.more-link:hover svg, .group:hover .more-link svg { transform: translateX(4px); }
+.more-link:active { transform: scale(0.96); }
+
+/* Tableaux : survol de ligne */
+tbody tr { transition: background-color 0.15s ease; }
+tbody tr:hover { background-color: color-mix(in srgb, var(--accent) 10%, transparent); }
