@@ -3,6 +3,8 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { BlogList } from "@/components/public/blog";
 import { NewsletterForm } from "@/components/public/newsletter-form";
+import { Marquee, HeroVisual } from "@/components/public/motion";
+import { CountUp, Typewriter } from "@/components/public/motion-client";
 import { Section } from "@/components/public/section";
 import { contactInfo, socialLinks, keyFigures, references, services, testimonials } from "@/lib/content/site";
 
@@ -25,21 +27,29 @@ const jsonLd = {
   areaServed: "Côte d'Ivoire",
 };
 
+const HERO_WORDS = ["Audit.", "Data.", "Contrôle de gestion."];
+const SECTOR_ITEMS = ["Hôtellerie", "Santé", "Restauration", "PME industrie", "Commerce", "BTP", "Services"];
+const SKILL_ITEMS = ["Business plan bancable", "Tableaux de bord KPI", "Trésorerie", "Maîtrise des coûts", "Audit", "Data"];
+
 export default function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="bg-primary text-primary-foreground">
-        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:grid-cols-[1.4fr_1fr]">
+      <div className="relative overflow-hidden bg-primary text-primary-foreground">
+        <div className="hero-grid absolute inset-0" aria-hidden="true" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 md:grid-cols-[1.3fr_1fr]">
           <div>
-            <h1 className="text-4xl font-extrabold leading-tight md:text-5xl">
-              Vos coûts vous échappent ? <span className="text-accent">Pilotez-les.</span>
+            <p className="rise text-sm font-semibold uppercase tracking-widest text-accent">
+              Cabinet de conseil · <Typewriter phrases={HERO_WORDS} />
+            </p>
+            <h1 className="rise mt-4 text-4xl font-extrabold leading-tight md:text-6xl" style={{ "--i": 1 } as React.CSSProperties}>
+              Vos coûts vous échappent&nbsp;? <span className="bg-gradient-to-r from-accent to-amber-200 bg-clip-text text-transparent">Pilotez-les.</span>
             </h1>
-            <p className="mt-4 max-w-xl text-lg text-slate-200">
+            <p className="rise mt-5 max-w-xl text-lg text-slate-200" style={{ "--i": 2 } as React.CSSProperties}>
               Audit, data et contrôle de gestion pour les PME et entreprises d&apos;Abidjan et de Côte d&apos;Ivoire.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/contact" className={buttonVariants({ variant: "accent", size: "lg" })}>
+            <div className="rise mt-8 flex flex-wrap gap-3" style={{ "--i": 3 } as React.CSSProperties}>
+              <Link href="/contact" className={buttonVariants({ variant: "accent", size: "lg", className: "btn-shine pulse-ring" })}>
                 Prendre rendez-vous
               </Link>
               <Link
@@ -50,20 +60,21 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <div
-            role="img"
-            aria-label="Photo du consultant (à fournir)"
-            className="flex aspect-square items-center justify-center rounded-xl bg-white/10 text-sm text-slate-300"
-          >
-            Photo du consultant
+          <div className="rise" style={{ "--i": 2 } as React.CSSProperties}>
+            <HeroVisual />
           </div>
         </div>
       </div>
 
+      <div className="border-y border-white/10 bg-[#111d35] py-4 text-sm font-semibold uppercase tracking-wider text-white" aria-label="Secteurs accompagnés">
+        <Marquee items={SECTOR_ITEMS} />
+      </div>
+
       <Section title="Nos services">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {services.map((s) => (
-            <Link key={s.slug} href={`/services/${s.slug}`} className="rounded-lg border border-border p-4 hover:border-accent">
+        <div className="reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {services.map((s, i) => (
+            <Link key={s.slug} href={`/services/${s.slug}`} className="card-lift rounded-lg border border-border bg-background p-5">
+              <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">{i + 1}</span>
               <h3 className="font-bold text-primary">{s.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{s.short}</p>
               <span className="mt-3 inline-block text-sm font-medium underline">En savoir plus</span>
@@ -72,11 +83,15 @@ export default function HomePage() {
         </div>
       </Section>
 
+      <div className="bg-accent py-5 text-lg font-bold uppercase tracking-wide text-accent-foreground" aria-hidden="true">
+        <Marquee items={SKILL_ITEMS} reverse />
+      </div>
+
       <Section tone="muted">
-        <dl className="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
+        <dl className="reveal grid grid-cols-2 gap-6 text-center md:grid-cols-4">
           {keyFigures.map((f) => (
             <div key={f.label}>
-              <dd className="text-4xl font-extrabold text-primary">{f.value}</dd>
+              <dd className="text-4xl font-extrabold text-primary md:text-5xl"><CountUp value={f.value} /></dd>
               <dt className="mt-1 text-sm text-muted-foreground">{f.label}</dt>
             </div>
           ))}
@@ -84,15 +99,15 @@ export default function HomePage() {
       </Section>
 
       <Section title="Références et témoignages">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="reveal grid gap-4 md:grid-cols-3">
           {references.slice(0, 2).map((r) => (
-            <div key={r.sector} className="rounded-lg border border-border p-4">
+            <div key={r.sector} className="card-lift rounded-lg border border-border p-4">
               <p className="text-xs font-medium text-warning">{r.sector}</p>
               <p className="mt-2 text-sm text-muted-foreground">{r.result}</p>
             </div>
           ))}
           {testimonials.slice(0, 1).map((t) => (
-            <blockquote key={t.author} className="rounded-lg bg-muted p-4 text-sm">
+            <blockquote key={t.author} className="card-lift rounded-lg bg-muted p-4 text-sm">
               <p>{t.quote}</p>
               <footer className="mt-2 text-xs text-muted-foreground">— {t.author}</footer>
             </blockquote>
@@ -104,11 +119,15 @@ export default function HomePage() {
       </Section>
 
       <Section title="Derniers articles" tone="muted">
-        <BlogList limit={3} />
+        <div className="reveal">
+          <BlogList limit={3} />
+        </div>
       </Section>
 
       <Section title="Restez informé" intro="Recevez nos conseils de pilotage et de gestion, sans spam.">
-        <NewsletterForm />
+        <div className="reveal">
+          <NewsletterForm />
+        </div>
       </Section>
     </>
   );
