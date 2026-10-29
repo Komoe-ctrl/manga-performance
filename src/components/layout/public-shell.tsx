@@ -9,6 +9,7 @@ import { WhatsAppFab } from "@/components/public/whatsapp";
 export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <div className="scroll-progress" aria-hidden="true" />
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
           <Link href="/" className="font-heading text-lg font-extrabold text-primary">
