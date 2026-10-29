@@ -76,9 +76,9 @@ const KB: Entry[] = [
   },
   {
     id: "cabinet",
-    k: [[/cabinet|presentation|qui est|experience|parcours|diplome|\bmba\b|expert|competence/, 2]],
+    k: [[/cabinet|presentation|qui est|qui etes|diakite|manga|experience|parcours|diplome|\bmba\b|expert|competence/, 2]],
     answer: () => ({
-      text: "MANGA PERFORMANCE est un cabinet de conseil indépendant basé à Abidjan, spécialisé en audit, data et contrôle de gestion. Le consultant est titulaire d'un MBA Audit & Contrôle de Gestion, avec plus de 10 ans d'expérience.",
+      text: "MANGA PERFORMANCE est le cabinet de Diakité Manga, consultant indépendant en audit, data analytique et contrôle de gestion, basé à Abidjan. Titulaire d'un MBA Audit & Contrôle de Gestion, avec plus de 10 ans d'expérience, il accompagne les dirigeants dans la maîtrise des coûts, le pilotage de la trésorerie et la décision basée sur les données.",
       links: [{ href: "/a-propos", label: "En savoir plus sur le cabinet" }],
       chips: ["Nos références", "Nos services"],
     }),
@@ -196,7 +196,7 @@ const KB: Entry[] = [
     id: "secteurs",
     k: [[/secteur|hotel|clinique|restaura|industrie|\bbtp\b|commerce|pour qui|\btpe\b|\bpme\b|grande entreprise|taille|association/, 2]],
     answer: () => ({
-      text: "Nous travaillons avec des TPE, PME et grandes entreprises, notamment dans l'hôtellerie, la santé, la restauration, l'industrie, le commerce, le BTP et les services.",
+      text: "J'interviens auprès des PME et startups, des hôtels, des restaurants et bars, ainsi que des cliniques et centres médicaux.",
       links: [{ href: "/references", label: "Voir nos références" }],
       chips: ["Nos services", "Être recontacté"],
     }),
@@ -293,6 +293,24 @@ const KB: Entry[] = [
     answer: () => ({
       text: "Chaque mission inclut l'explication des livrables pour que vos équipes soient autonomes. Une formation dédiée peut être discutée selon votre besoin.",
       chips: ["Être recontacté"],
+    }),
+  },
+  {
+    // Formules fournies par le client ; aucun prix affiché (devis sur mesure).
+    id: "formules",
+    k: [[/formule|abonnement|diagnostic|pilotage complet|express|offres?\b|forfait|accompagnement mensuel/, 3]],
+    answer: () => ({
+      text: "Trois formules d'accompagnement : le Diagnostic Express (5 jours : audit flash + tableau de bord simplifié), le Pilotage Complet (3 mois : suivi mensuel + accompagnement) et l'Abonnement Mensuel (12 mois : reporting et alertes automatiques). Chacune est chiffrée sur mesure : laissez-moi vos coordonnées pour un devis.",
+      form: true,
+    }),
+  },
+  {
+    id: "problemes",
+    k: [[/budget previsionnel|decisions? intuitive|pas de tableau|tresorerie tendue|couts? non maitrises|je ne sais pas|aucun suivi/, 4]],
+    answer: () => ({
+      text: "Ce sont exactement les situations pour lesquelles on me sollicite : coûts non maîtrisés, absence de budget prévisionnel, trésorerie tendue, aucun tableau de bord, décisions prises à l'intuition. Parlons de votre cas.",
+      links: [{ href: "/a-propos", label: "Voir mes missions clés" }],
+      chips: ["Nos services", "Être recontacté"],
     }),
   },
   {

@@ -22,7 +22,7 @@ export default function Page() {
               <h2 className="text-lg font-bold text-primary">Coordonnées</h2>
               <ul className="mt-2 space-y-1 text-sm">
                 <li>{contactInfo.address}</li>
-                <li><a href={`tel:${contactInfo.phone.replace(/s/g, "")}`} className="underline">{contactInfo.phone}</a></li>
+                <li><a href={`tel:${contactInfo.phone.replace(/\s/g, "")}`} className="underline">{contactInfo.phone}</a></li>
                 <li><a href={`mailto:${contactInfo.email}`} className="underline">{contactInfo.email}</a></li>
                 <li>{contactInfo.hours}</li>
               </ul>

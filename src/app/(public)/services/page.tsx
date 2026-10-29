@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageIntro, Section } from "@/components/public/section";
 import { MoreLabel } from "@/components/shared/more-link";
+import { Formulas } from "@/components/public/profile-sections";
 import { services } from "@/lib/content/site";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function Page() {
           ))}
         </div>
       </Section>
+      <Formulas tone="muted" />
     </>
   );
 }

@@ -7,6 +7,8 @@ import { Marquee, HeroVisual } from "@/components/public/motion";
 import { CountUp, Typewriter } from "@/components/public/motion-client";
 import { MoreLabel, MoreLink } from "@/components/shared/more-link";
 import { Section } from "@/components/public/section";
+import { AboutTeaser, Formulas, ProblemChips } from "@/components/public/profile-sections";
+import { consultant, sectors } from "@/lib/content/profile";
 import { contactInfo, socialLinks, keyFigures, references, services, testimonials } from "@/lib/content/site";
 
 export const metadata: Metadata = {
@@ -23,13 +25,16 @@ const jsonLd = {
   description: "Cabinet de conseil en Audit, Data et Contrôle de Gestion",
   address: { "@type": "PostalAddress", addressLocality: "Abidjan", addressCountry: "CI" },
   telephone: contactInfo.phone,
+  image: "/images/consultant.jpg",
+  founder: { "@type": "Person", name: consultant.name, jobTitle: consultant.role },
+  openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "08:00", closes: "18:00" }],
   email: contactInfo.email,
   sameAs: socialLinks.map((l) => l.href),
   areaServed: "Côte d'Ivoire",
 };
 
-const HERO_WORDS = ["Audit.", "Data.", "Contrôle de gestion."];
-const SECTOR_ITEMS = ["Hôtellerie", "Santé", "Restauration", "PME industrie", "Commerce", "BTP", "Services"];
+const HERO_WORDS = ["Audit.", "Data Analytique.", "Contrôle de gestion."];
+const SECTOR_ITEMS = sectors;
 const SKILL_ITEMS = ["Business plan bancable", "Tableaux de bord KPI", "Trésorerie", "Maîtrise des coûts", "Audit", "Data"];
 
 export default function HomePage() {
@@ -71,6 +76,8 @@ export default function HomePage() {
         <Marquee items={SECTOR_ITEMS} />
       </div>
 
+      <ProblemChips />
+
       <Section title="Nos services">
         <div className="reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {services.map((s, i) => (
@@ -87,6 +94,10 @@ export default function HomePage() {
       <div className="bg-accent py-5 text-lg font-bold uppercase tracking-wide text-accent-foreground" aria-hidden="true">
         <Marquee items={SKILL_ITEMS} reverse />
       </div>
+
+      <AboutTeaser />
+
+      <Formulas />
 
       <Section tone="muted">
         <dl className="reveal grid grid-cols-2 gap-6 text-center md:grid-cols-4">
