@@ -35,15 +35,15 @@ export function PublicNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={cn("nav-link flex items-center whitespace-nowrap rounded-md px-3 py-2 font-medium", active ? "text-primary" : "text-slate-600 hover:bg-muted hover:text-primary")}
+              className={cn("nav-link flex items-center whitespace-nowrap rounded-md px-2.5 py-2 font-medium", active ? "text-primary" : "text-slate-600 hover:bg-muted hover:text-primary")}
             >
               {item.label}
               <Pending />
             </Link>
           );
         })}
-        <Link href="/espace-client" aria-label="Espace client" title="Espace client" className={buttonVariants({ variant: "ghost", size: "md", className: "ml-1 hidden h-10 w-10 shrink-0 px-0 xl:inline-flex" })}>
-          <UserRound className="h-5 w-5" aria-hidden />
+        <Link href="/espace-client" className={buttonVariants({ variant: "outline", size: "md", className: "ml-2 hidden shrink-0 whitespace-nowrap lg:inline-flex" })}>
+          <UserRound className="h-4 w-4" aria-hidden /> Espace client
         </Link>
         <Link href="/contact" className={buttonVariants({ variant: "accent", size: "md", className: "btn-shine ml-1 hidden shrink-0 whitespace-nowrap xl:inline-flex" })}>
           Prendre rendez-vous <ArrowRight className="h-4 w-4" aria-hidden />
