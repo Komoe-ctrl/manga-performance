@@ -6,7 +6,8 @@ import { Bot, Send, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createProspect } from "@/lib/services";
+import { submitLead } from "@/lib/services";
+import { LeadGuardFields, useLeadGuard } from "./lead-guard";
 import { NEED_LABELS } from "@/lib/constants";
 import { answerFor, QUICK_QUESTIONS, type ChatAnswer } from "@/lib/content/chat-kb";
 import { useWhatsAppUrl } from "@/lib/hooks/use-whatsapp";
@@ -35,6 +36,8 @@ const leadSchema = z
 type LeadValues = z.infer<typeof leadSchema>;
 
 function LeadForm({ note, onDone }: { note?: string; onDone: () => void }) {
+  const guard = useLeadGuard();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -44,20 +47,26 @@ function LeadForm({ note, onDone }: { note?: string; onDone: () => void }) {
   return (
     <form
       noValidate
-      className="mt-2 space-y-2 rounded-md bg-background p-3"
+      className="relative mt-2 space-y-2 rounded-md bg-background p-3"
       onSubmit={handleSubmit(async (v) => {
-        await createProspect({
-          companyName: v.name,
-          contactName: v.name,
-          email: v.email || undefined,
-          phone: v.phone || undefined,
-          sector: "Non précisé",
-          city: "Abidjan",
-          size: "pme",
-          need: v.need,
-          source: "chatbot",
-          ownerNote: note ? `Question posée au chatbot : ${note}` : undefined,
-        });
+        setSubmitError(null);
+        try {
+          await submitLead({
+            source: "chatbot",
+            name: v.name,
+            email: v.email || undefined,
+            phone: v.phone || undefined,
+            need: v.need,
+            message: note ? `Question posée au chatbot : ${note}` : undefined,
+            consent: true, // notice shown below the form
+            ...guard.read(),
+          });
+        } catch (error) {
+          guard.reset();
+          setSubmitError(error instanceof Error ? error.message : "Envoi impossible, réessayez.");
+          return;
+        }
+        guard.reset();
         onDone();
       })}
     >
@@ -75,6 +84,11 @@ function LeadForm({ note, onDone }: { note?: string; onDone: () => void }) {
           {needKeys.map((k) => <option key={k} value={k}>{NEED_LABELS[k]}</option>)}
         </Select>
       </Field>
+      <LeadGuardFields guard={guard} />
+      <p className="text-[11px] text-muted-foreground">
+        En envoyant ce formulaire, vous acceptez le traitement de vos données selon la <a href="/confidentialite" className="underline">politique de confidentialité</a>.
+      </p>
+      {submitError && <p role="alert" className="text-xs text-danger">{submitError}</p>}
       <Button type="submit" size="sm" disabled={isSubmitting}><Send className="h-4 w-4" aria-hidden /> Envoyer</Button>
     </form>
   );

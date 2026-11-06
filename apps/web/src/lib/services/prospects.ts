@@ -1,6 +1,6 @@
 import type { FollowUp, Interaction, Prospect, ProspectStatus } from "@/lib/types";
 import * as crm from "@/server/actions/crm";
-import { USE_DB, unwrap } from "./data-source";
+import { ServiceError, USE_DB, unwrap } from "./data-source";
 import { db, latency, nextId } from "./store";
 
 export const listProspects = (): Promise<Prospect[]> =>
@@ -27,6 +27,60 @@ export const createProspect = (input: NewProspect): Promise<Prospect> =>
         db.prospects.unshift(prospect);
         return prospect;
       });
+
+export interface LeadSubmission {
+  source: "site_formulaire" | "chatbot" | "demo";
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  sector?: string;
+  need?: Prospect["need"];
+  message?: string;
+  /** Consent to the processing of personal data (recorded with its source). */
+  consent: boolean;
+  /** Anti-spam proofs from `useLeadGuard()` (ignored in mock mode). */
+  turnstileToken?: string;
+  website?: string;
+}
+
+/**
+ * Public lead (contact form, chatbot, demo). `DATA_SOURCE=db`: `POST /api/leads`, which
+ * checks Turnstile, a honeypot and a rate limit, and never reveals whether the contact
+ * already exists. `mock`: added to the in-memory CRM, as before.
+ */
+export async function submitLead(lead: LeadSubmission): Promise<void> {
+  if (!USE_DB) {
+    await createProspect({
+      companyName: lead.company || lead.name,
+      contactName: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      sector: lead.sector || "Non précisé",
+      city: "Abidjan",
+      size: "pme",
+      need: lead.need ?? "autre",
+      source: lead.source === "chatbot" ? "chatbot" : "site_formulaire",
+      ownerNote: lead.message,
+    });
+    return;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lead),
+    });
+  } catch {
+    throw new ServiceError("Impossible de joindre le serveur. Vérifiez votre connexion.", "NETWORK");
+  }
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ServiceError(body?.error ?? "Une erreur est survenue. Réessayez.", String(response.status));
+  }
+}
 
 export const updateProspectStatus = (
   id: string,

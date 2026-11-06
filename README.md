@@ -36,3 +36,13 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   (`server/auth/guards.ts`). Les requêtes de l'espace client passent par `clientScope(session)`.
 - Les tests d'intégration (`pnpm test`) ont besoin de PostgreSQL (`pnpm db:up`) et utilisent la base
   `manga_test`, jamais la base de dev.
+
+## Mode de données et leads (étapes 3 et 4)
+
+- `DATA_SOURCE=mock` (défaut) : le front tourne sur les données fictives. `DATA_SOURCE=db` : CRM,
+  clients, paramètres et formulaires publics passent par la base. Relancer le serveur après changement.
+- Les formulaires publics (contact, chatbot, démo) envoient `POST /api/leads` : Turnstile vérifié côté
+  serveur, champ piège, 5 envois/heure/IP, validation stricte, dédoublonnage (un contact existant reçoit
+  une note, pas un doublon), consentement enregistré, notification du consultant.
+- En local, `.env.example` fournit les clés de test publiques de Cloudflare (toujours valides). Elles
+  sont refusées en production, tout comme les valeurs `change-me`.

@@ -50,6 +50,12 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ ...valid, DATABASE_URL: "mysql://u:p@h/db" })).toThrow(EnvError);
   });
 
+  it("rejects Cloudflare's Turnstile test keys in production only", () => {
+    const testKey = { ...valid, TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA" };
+    expect(() => parseEnv(testKey)).not.toThrow();
+    expect(() => parseEnv({ ...testKey, NODE_ENV: "production" })).toThrow(/TURNSTILE_SECRET_KEY: Cloudflare test key/);
+  });
+
   it("rejects placeholder values in production only", () => {
     const placeholder = { ...valid, BREVO_API_KEY: "change-me" };
     expect(() => parseEnv(placeholder)).not.toThrow();

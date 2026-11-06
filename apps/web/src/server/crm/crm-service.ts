@@ -30,6 +30,27 @@ import {
 export type CreateProspectData = z.input<typeof createProspectSchema>;
 export type SettingsData = z.output<typeof settingsSchema>;
 
+export interface IngestLead {
+  source: "site_formulaire" | "chatbot" | "demo";
+  /** Human wording used in the interaction note: "le formulaire de contact"… */
+  sourceLabel: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  sector?: string;
+  need?: Parameters<typeof toDbNeed>[0];
+  message?: string;
+}
+
+export interface IngestResult {
+  prospectId: string;
+  /** false when an existing prospect was found and only a note was added. */
+  created: boolean;
+  companyName: string;
+  contactName: string;
+}
+
 export interface CrmDeps {
   prisma: PrismaClient;
   flows: Pick<AccountFlows, "inviteClientUser" | "resendInvitation">;
@@ -265,6 +286,85 @@ export function createCrmService({ prisma, flows, now = () => new Date() }: CrmD
       const prospect = await this.getProspect(id);
       if (!prospect) throw new CrmError("NOT_FOUND", "Prospect introuvable.");
       return prospect;
+    },
+
+    /**
+     * Inbound lead from a public form, the chatbot or the demo (spec, 6.1). No admin involved.
+     * An existing prospect (same email, same phone, or a very similar company name) is never
+     * duplicated: a NOTE interaction records the new contact instead.
+     */
+    async ingestLead(lead: IngestLead): Promise<IngestResult> {
+      const email = lead.email ? normalizeEmail(lead.email) : undefined;
+      let phone: string | undefined;
+      if (lead.phone) {
+        const normalized = normalizePhone(lead.phone);
+        if (!normalized) {
+          throw new CrmError("INVALID", "Numéro de téléphone invalide (format ivoirien attendu).");
+        }
+        phone = normalized;
+      }
+      if (lead.source === "chatbot" && !email && !phone) {
+        throw new CrmError("INVALID", "Un email ou un téléphone valide est requis.");
+      }
+
+      const companyName = lead.company || lead.name;
+      const companyNameNorm = normalizeCompanyName(companyName);
+      const at = now();
+      const consentSource = `lead:${lead.source}`;
+
+      const existing = await findDuplicate({ email, phone, companyNameNorm });
+      if (existing) {
+        const summary = [`Nouveau contact via ${lead.sourceLabel}.`, lead.message]
+          .filter(Boolean)
+          .join("\n")
+          .slice(0, 5000);
+        await prisma.$transaction(async (tx) => {
+          await tx.interaction.create({
+            data: { prospectId: existing.id, type: "NOTE", summary, occurredAt: at, createdBy: "system" },
+          });
+          // The person consented again: keep the first consent if there is one.
+          await tx.prospect.updateMany({
+            where: { id: existing.id, consentAt: null },
+            data: { consentAt: at, consentSource },
+          });
+        });
+        return { prospectId: existing.id, created: false, companyName, contactName: lead.name };
+      }
+
+      const rules = (await settings.get()).followUps;
+      const prospectId = await prisma.$transaction(async (tx) => {
+        const created = await tx.prospect.create({
+          data: {
+            companyName,
+            companyNameNorm,
+            contactName: lead.name,
+            email,
+            phone,
+            sector: lead.sector || "Non précisé",
+            need: lead.need ? toDbNeed(lead.need) : undefined,
+            source: lead.source.toUpperCase() as "SITE_FORMULAIRE" | "CHATBOT" | "DEMO",
+            notes: lead.message,
+            consentAt: at,
+            consentSource,
+            createdAt: at,
+          },
+        });
+        await recordAudit(tx, {
+          actorId: null,
+          action: "prospect.created",
+          entity: "Prospect",
+          entityId: created.id,
+          diff: { source: lead.source },
+        });
+        const plan = planFollowUps(at, rules);
+        if (plan.length > 0) {
+          await tx.followUp.createMany({
+            data: plan.map((step) => ({ prospectId: created.id, rule: step.rule, dueAt: step.dueAt })),
+          });
+        }
+        return created.id;
+      });
+      return { prospectId, created: true, companyName, contactName: lead.name };
     },
 
     /**

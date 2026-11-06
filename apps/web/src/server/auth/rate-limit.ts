@@ -24,6 +24,8 @@ export const LIMITS = {
   resetIp: { name: "reset-ip", points: 5, durationSeconds: 60 * 60 },
   resetEmail: { name: "reset-email", points: 3, durationSeconds: 60 * 60 },
   tokenIp: { name: "token-ip", points: 20, durationSeconds: 60 * 60 },
+  /** Public forms: 5 per hour per IP (spec, section 5). */
+  leadIp: { name: "lead-ip", points: 5, durationSeconds: 60 * 60 },
 } as const satisfies Record<string, LimitRule>;
 
 const globalForLimiter = globalThis as unknown as {

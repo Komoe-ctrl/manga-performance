@@ -14,14 +14,15 @@ const isDev = process.env.NODE_ENV !== "production";
 // Content-Security-Policy (spec, section 5). Next.js inlines its bootstrap scripts, so
 // `script-src` keeps 'unsafe-inline' until nonces are adopted (they would force every
 // page to render dynamically, which conflicts with the static marketing pages).
-// Third-party origins (Turnstile, S3 public prefix) are added when those steps land.
+// Cloudflare Turnstile is allowed for the public forms; the S3 public prefix is added with the blog step.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://challenges.cloudflare.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self' https://challenges.cloudflare.com${isDev ? " ws: wss:" : ""}`,
+  "frame-src https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

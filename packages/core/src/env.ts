@@ -40,6 +40,7 @@ export type Env = z.infer<typeof envSchema>;
 
 /** Marker used by `.env.example`: refused in production. */
 const PLACEHOLDER = "change-me";
+const TURNSTILE_TEST_SECRET = /^[123]x0{4}/;
 
 export class EnvError extends Error {
   constructor(public readonly issues: string[]) {
@@ -65,6 +66,10 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     const placeholders = Object.entries(env)
       .filter(([, value]) => typeof value === "string" && value.includes(PLACEHOLDER))
       .map(([key]) => `${key}: placeholder value is not allowed in production`);
+    // Cloudflare's public test keys always pass: they would disable the anti-spam in production.
+    if (TURNSTILE_TEST_SECRET.test(env.TURNSTILE_SECRET_KEY)) {
+      placeholders.push("TURNSTILE_SECRET_KEY: Cloudflare test key is not allowed in production");
+    }
     if (placeholders.length > 0) throw new EnvError(placeholders);
   }
   return env;

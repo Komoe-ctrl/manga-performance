@@ -110,3 +110,46 @@ export const settingsSchema = z.object({
 
 export type CreateProspectInput = z.input<typeof createProspectSchema>;
 export type Settings = z.infer<typeof settingsSchema>;
+
+// ---------------------------------------------------------------------------
+// Public leads (POST /api/leads). Strict: unknown fields are rejected.
+// ---------------------------------------------------------------------------
+
+export const leadSources = ["site_formulaire", "chatbot", "demo"] as const;
+export type LeadSource = (typeof leadSources)[number];
+
+export const leadSchema = z
+  .strictObject({
+    source: z.enum(leadSources),
+    name: text(120).min(2),
+    email: z
+      .string()
+      .trim()
+      .max(254)
+      .optional()
+      .transform((value) => (value ? value.toLowerCase() : undefined))
+      .pipe(z.email().optional()),
+    phone: optionalText(40),
+    company: optionalText(200),
+    sector: optionalText(80),
+    need: z.enum(needs).optional(),
+    message: optionalText(5000),
+    /** Consent to the processing of personal data: required, and recorded with its source. */
+    consent: z.literal(true),
+    /** Cloudflare Turnstile response token, verified server-side. */
+    turnstileToken: z.string().max(2048).optional(),
+    /** Honeypot: real visitors never fill it. */
+    website: z.string().max(200).optional(),
+  })
+  .superRefine((lead, ctx) => {
+    // The chatbot only sends a lead with a way to reach the person (spec, 6.1).
+    if (lead.source === "chatbot" && !lead.email && !lead.phone) {
+      ctx.addIssue({ code: "custom", path: ["email"], message: "Email ou téléphone requis" });
+    }
+    if (lead.source !== "chatbot" && !lead.email) {
+      ctx.addIssue({ code: "custom", path: ["email"], message: "Email requis" });
+    }
+  });
+
+export type LeadInput = z.input<typeof leadSchema>;
+export type LeadData = z.output<typeof leadSchema>;

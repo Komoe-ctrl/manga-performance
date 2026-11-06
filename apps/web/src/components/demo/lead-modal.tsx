@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { createProspect } from "@/lib/services";
+import { submitLead } from "@/lib/services";
+import { LeadGuardFields, useLeadGuard } from "@/components/public/lead-guard";
 import { SECTORS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -20,6 +21,7 @@ type Values = z.infer<typeof schema>;
 
 export function LeadModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const guard = useLeadGuard();
   const {
     register,
     handleSubmit,
@@ -47,19 +49,26 @@ export function LeadModal({ open, onClose }: { open: boolean; onClose: () => voi
       <p className="mt-1 text-sm text-muted-foreground">Laissez vos coordonnées, je vous recontacte sous 24 h ouvrées.</p>
       <form
         noValidate
-        className="mt-4 space-y-3"
+        className="relative mt-4 space-y-3"
         onSubmit={handleSubmit(async (v) => {
-          await createProspect({
-            companyName: v.company,
-            contactName: v.name,
-            email: v.email,
-            sector: v.sector,
-            city: "Abidjan",
-            size: "pme",
-            need: "tableau_de_bord",
-            source: "site_formulaire",
-            ownerNote: "Demande issue du dashboard de démonstration",
-          });
+          try {
+            await submitLead({
+              source: "demo",
+              name: v.name,
+              email: v.email,
+              company: v.company,
+              sector: v.sector,
+              need: "tableau_de_bord",
+              message: "Demande issue du dashboard de démonstration",
+              consent: true, // notice shown below the form
+              ...guard.read(),
+            });
+          } catch (error) {
+            guard.reset();
+            toast.error(error instanceof Error ? error.message : "Envoi impossible, réessayez.");
+            return;
+          }
+          guard.reset();
           toast.success("Demande envoyée");
           reset();
           onClose();
@@ -82,6 +91,11 @@ export function LeadModal({ open, onClose }: { open: boolean; onClose: () => voi
             ))}
           </Select>
         </Field>
+        <LeadGuardFields guard={guard} />
+        <p className="text-xs text-muted-foreground">
+          En envoyant ce formulaire, vous acceptez le traitement de vos données selon la{" "}
+          <a href="/confidentialite" className="underline">politique de confidentialité</a>.
+        </p>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Annuler

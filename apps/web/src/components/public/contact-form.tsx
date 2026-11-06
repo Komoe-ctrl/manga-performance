@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { createProspect } from "@/lib/services";
+import { USE_DB, submitLead } from "@/lib/services";
+import { LeadGuardFields, useLeadGuard } from "./lead-guard";
 import { NEED_LABELS, SECTORS } from "@/lib/constants";
 import type { Need } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ type Values = z.infer<typeof schema>;
 
 export function ContactForm() {
   const [sent, setSent] = useState(false);
+  const guard = useLeadGuard();
   const {
     register,
     handleSubmit,
@@ -44,7 +46,7 @@ export function ContactForm() {
       <div role="status" className="rounded-lg border border-border bg-muted p-6">
         <p className="font-semibold text-primary">Message envoyé</p>
         <p className="mt-1 text-sm">
-          Merci, un consultant vous recontacte sous 24 h ouvrées. Votre demande est visible dans le CRM (mock).
+          Merci, un consultant vous recontacte sous 24 h ouvrées.{!USE_DB && " Votre demande est visible dans le CRM (mock)."}
         </p>
         <Button variant="outline" className="mt-4" onClick={() => setSent(false)}>
           Envoyer un autre message
@@ -56,20 +58,26 @@ export function ContactForm() {
   return (
     <form
       noValidate
-      className="space-y-4"
+      className="relative space-y-4"
       onSubmit={handleSubmit(async (v) => {
-        await createProspect({
-          companyName: v.name,
-          contactName: v.name,
-          email: v.email,
-          phone: v.phone || undefined,
-          sector: v.sector,
-          city: "Abidjan",
-          size: "pme",
-          need: v.need,
-          source: "site_formulaire",
-          ownerNote: v.message,
-        });
+        try {
+          await submitLead({
+            source: "site_formulaire",
+            name: v.name,
+            email: v.email,
+            phone: v.phone || undefined,
+            sector: v.sector,
+            need: v.need,
+            message: v.message,
+            consent: v.consent,
+            ...guard.read(),
+          });
+        } catch (error) {
+          guard.reset();
+          toast.error(error instanceof Error ? error.message : "Envoi impossible, réessayez.");
+          return;
+        }
+        guard.reset();
         toast.success("Message envoyé");
         reset();
         setSent(true);
@@ -121,6 +129,7 @@ export function ContactForm() {
           </p>
         )}
       </div>
+      <LeadGuardFields guard={guard} />
       <Button type="submit" disabled={isSubmitting}>
         Envoyer
       </Button>
