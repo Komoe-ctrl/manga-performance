@@ -18,7 +18,8 @@ export async function resetDatabase(): Promise<void> {
   await db().$executeRawUnsafe(
     `TRUNCATE TABLE "User", "Session", "Account", "Verification", "TwoFactor", "Client", "Prospect",
       "Invoice", "InvoiceLine", "Deliverable", "DeliverableDownload", "Message", "Notification",
-      "AuditLog", rate_limiter CASCADE`,
+      "AuditLog", "Interaction", "FollowUp", "SequenceEnrollment", "SequenceStep", "EmailSequence",
+      "Setting", rate_limiter CASCADE`,
   );
 }
 

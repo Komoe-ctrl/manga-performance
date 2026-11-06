@@ -1,16 +1,20 @@
 import type { Deliverable, Message } from "@/lib/types";
+import * as crm from "@/server/actions/crm";
+import { USE_DB, unwrap } from "./data-source";
 import { db, latency, nextId } from "./store";
 
 export const listClients = () =>
-  latency(() =>
-    db.prospects
-      .filter((p) => p.status === "client")
-      .map((c) => ({
-        ...c,
-        accessActive: db.clientAccess.find((a) => a.clientId === c.id)?.active ?? false,
-        deliverablesCount: db.deliverables.filter((d) => d.clientId === c.id).length,
-      })),
-  );
+  USE_DB
+    ? unwrap(crm.listClientsAction())
+    : latency(() =>
+        db.prospects
+          .filter((p) => p.status === "client")
+          .map((c) => ({
+            ...c,
+            accessActive: db.clientAccess.find((a) => a.clientId === c.id)?.active ?? false,
+            deliverablesCount: db.deliverables.filter((d) => d.clientId === c.id).length,
+          })),
+      );
 export const listDeliverables = (clientId: string) =>
   latency(() => db.deliverables.filter((d) => d.clientId === clientId));
 export const listMessages = (clientId: string) =>
@@ -31,12 +35,14 @@ export const publishDeliverable = (
   });
 
 export const setClientAccess = (clientId: string, active: boolean) =>
-  latency(() => {
-    const access = db.clientAccess.find((a) => a.clientId === clientId);
-    if (access) access.active = active;
-    else db.clientAccess.push({ clientId, active });
-    return { clientId, active };
-  });
+  USE_DB
+    ? unwrap(crm.setClientAccessAction(clientId, active))
+    : latency(() => {
+        const access = db.clientAccess.find((a) => a.clientId === clientId);
+        if (access) access.active = active;
+        else db.clientAccess.push({ clientId, active });
+        return { clientId, active };
+      });
 
 export interface Notification {
   id: string;

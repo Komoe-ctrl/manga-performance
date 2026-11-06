@@ -5,3 +5,5 @@ export * from "./scraper";
 export * from "./client-space";
 export * from "./demo";
 export * from "./settings";
+export * from "./auth";
+export { USE_DB, ServiceError } from "./data-source";

@@ -42,7 +42,10 @@ async function readSession(): Promise<AppSession | null> {
     role?: string;
     clientId?: string | null;
     twoFactorEnabled?: boolean | null;
+    disabledAt?: Date | string | null;
   };
+  // Access switched off by the firm: refuse even if a session cookie is still around.
+  if (user.disabledAt) throw new AuthorizationError("FORBIDDEN");
   return {
     userId: user.id,
     email: user.email,

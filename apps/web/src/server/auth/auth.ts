@@ -60,6 +60,7 @@ export function createAuth({ prisma, env }: AuthDeps) {
       additionalFields: {
         role: { type: "string", required: false, defaultValue: "CLIENT", input: false },
         clientId: { type: "string", required: false, input: false },
+        disabledAt: { type: "date", required: false, input: false },
       },
     },
 
@@ -81,6 +82,11 @@ export function createAuth({ prisma, env }: AuthDeps) {
               .toLowerCase();
             await consume(LIMITS.loginIp, ip);
             if (email) await consume(LIMITS.loginEmail, email);
+            if (email && (await users.isDisabled(email))) {
+              throw new APIError("FORBIDDEN", {
+                message: "Accès désactivé. Contactez votre consultant.",
+              });
+            }
             if (email && (await users.isLockedOut(email))) {
               throw new APIError("TOO_MANY_REQUESTS", {
                 message: "Compte temporairement verrouillé. Réessayez dans 15 minutes.",

@@ -46,6 +46,8 @@ const nextConfig: NextConfig = {
   experimental: {
     agentFeedback: true,
   },
+  // `DATA_SOURCE=mock|db`, readable by client components (see lib/services/data-source.ts).
+  env: { NEXT_PUBLIC_DATA_SOURCE: process.env.DATA_SOURCE === "db" ? "db" : "mock" },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

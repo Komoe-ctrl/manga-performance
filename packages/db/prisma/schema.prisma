@@ -84,6 +84,8 @@ model User {
   twoFactorEnabled Boolean     @default(false)
   failedLoginCount Int         @default(0)
   lockedUntil      DateTime?   @db.Timestamptz(3)
+  /// Set when the firm disables a client's access to the portal.
+  disabledAt       DateTime?   @db.Timestamptz(3)
   createdAt        DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
   sessions         Session[]

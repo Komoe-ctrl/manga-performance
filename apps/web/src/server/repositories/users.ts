@@ -90,6 +90,23 @@ export function createUsersRepository(prisma: PrismaClient) {
       await prisma.session.deleteMany({ where: { userId } });
     },
 
+    /** Disables (or re-enables) portal access. Disabling also signs the user out everywhere. */
+    async setDisabled(userId: string, disabled: boolean, now: Date = new Date()): Promise<void> {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { disabledAt: disabled ? now : null },
+      });
+      if (disabled) await prisma.session.deleteMany({ where: { userId } });
+    },
+
+    async isDisabled(email: string): Promise<boolean> {
+      const user = await prisma.user.findUnique({
+        where: { email: normalize(email) },
+        select: { disabledAt: true },
+      });
+      return user?.disabledAt != null;
+    },
+
     async isLockedOut(email: string, now: Date = new Date()): Promise<boolean> {
       const user = await prisma.user.findUnique({
         where: { email: normalize(email) },
