@@ -1,0 +1,25 @@
+# Development services. Production compose (caddy, web, worker, scraper) comes in step 11.
+name: manga-performance-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: manga
+      POSTGRES_PASSWORD: manga_dev_password
+      POSTGRES_DB: manga
+    ports:
+      # 5434 on the host: 5432 is commonly taken by other local projects.
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manga -d manga"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

@@ -1,0 +1,84 @@
+import { z } from "zod";
+
+const secret = z.string().min(32, "must be at least 32 characters");
+const nonEmpty = z.string().min(1);
+
+export const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+    .default("info"),
+  // Front mocks stay available until the end of step 4 (see spec, section 0).
+  DATA_SOURCE: z.enum(["mock", "db"]).default("mock"),
+
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  BETTER_AUTH_SECRET: secret,
+  APP_URL: z.url(),
+
+  EMAIL_PROVIDER: z.enum(["brevo", "resend"]).default("brevo"),
+  BREVO_API_KEY: nonEmpty,
+  BREVO_WEBHOOK_SECRET: nonEmpty,
+  EMAIL_FROM_TRANSACTIONAL: nonEmpty,
+  EMAIL_FROM_MARKETING: nonEmpty,
+
+  S3_ENDPOINT: z.url(),
+  S3_REGION: nonEmpty,
+  S3_BUCKET: nonEmpty,
+  S3_ACCESS_KEY: nonEmpty,
+  S3_SECRET_KEY: nonEmpty,
+
+  TURNSTILE_SECRET_KEY: nonEmpty,
+  INTERNAL_API_TOKEN: secret,
+  INTERNAL_API_HMAC_SECRET: secret,
+  TRACKING_HMAC_SECRET: secret,
+
+  ADMIN_NOTIFICATION_EMAIL: z.email(),
+  TZ_DISPLAY: z.string().default("Africa/Abidjan"),
+});
+
+export type Env = z.infer<typeof envSchema>;
+
+/** Marker used by `.env.example`: refused in production. */
+const PLACEHOLDER = "change-me";
+
+export class EnvError extends Error {
+  constructor(public readonly issues: string[]) {
+    super(`Invalid environment configuration:\n${issues.map((i) => `  - ${i}`).join("\n")}`);
+    this.name = "EnvError";
+  }
+}
+
+/**
+ * Validates an environment source. Throws `EnvError` listing the offending
+ * variable names — never their values, which may be secrets.
+ */
+export function parseEnv(source: Record<string, string | undefined> = process.env): Env {
+  const result = envSchema.safeParse(source);
+  if (!result.success) {
+    throw new EnvError(
+      result.error.issues.map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`),
+    );
+  }
+
+  const env = result.data;
+  if (env.NODE_ENV === "production") {
+    const placeholders = Object.entries(env)
+      .filter(([, value]) => typeof value === "string" && value.includes(PLACEHOLDER))
+      .map(([key]) => `${key}: placeholder value is not allowed in production`);
+    if (placeholders.length > 0) throw new EnvError(placeholders);
+  }
+  return env;
+}
+
+let cached: Env | undefined;
+
+/** Validated environment, parsed once per process. */
+export function getEnv(): Env {
+  cached ??= parseEnv();
+  return cached;
+}
+
+/** Test helper: forget the cached environment. */
+export function resetEnvCache(): void {
+  cached = undefined;
+}
