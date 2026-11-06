@@ -70,21 +70,95 @@ enum PaymentMethod {
   AUTRE
 }
 
-/// Core Better Auth user table. Session, account, verification and twoFactor
-/// tables are added with the auth step; `role` and `clientId` are ours.
+/// Better Auth tables (user, session, account, verification, twoFactor) plus our own
+/// fields on user: role, clientId, and the login lockout counters.
 model User {
-  id            String   @id @default(cuid(2))
-  name          String
-  email         String   @unique @db.Citext
-  emailVerified Boolean  @default(false)
-  image         String?
-  role          Role     @default(CLIENT)
-  clientId      String?
-  client        Client?  @relation(fields: [clientId], references: [id])
-  createdAt     DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  id               String      @id @default(cuid(2))
+  name             String
+  email            String      @unique @db.Citext
+  emailVerified    Boolean     @default(false)
+  image            String?
+  role             Role        @default(CLIENT)
+  clientId         String?
+  client           Client?     @relation(fields: [clientId], references: [id])
+  twoFactorEnabled Boolean     @default(false)
+  failedLoginCount Int         @default(0)
+  lockedUntil      DateTime?   @db.Timestamptz(3)
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+  sessions         Session[]
+  accounts         Account[]
+  twoFactors       TwoFactor[]
 
   @@index([clientId])
+}
+
+model Session {
+  id        String   @id @default(cuid(2))
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid(2))
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  scope                 String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([userId])
+}
+
+/// One-time tokens (invitation, password reset) live here with a hashed identifier.
+model Verification {
+  id         String   @id @default(cuid(2))
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([identifier])
+}
+
+model TwoFactor {
+  id                      String    @id @default(cuid(2))
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret                  String
+  backupCodes             String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime? @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([secret])
+}
+
+/// Storage for rate-limiter-flexible (RateLimiterPostgres): fixed table and column names.
+model RateLimit {
+  key    String  @id @db.VarChar(255)
+  points Int
+  expire BigInt?
+
+  @@map("rate_limiter")
 }
 
 model Prospect {

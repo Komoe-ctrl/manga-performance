@@ -26,3 +26,13 @@ pnpm dev                      # web (http://localhost:3000) + worker
 | `pnpm db:seed` | seed (vide pour l'instant) |
 
 Les variables d'environnement sont validées au démarrage (`packages/core/src/env.ts`).
+
+## Authentification (étape 2)
+
+- Better Auth (`apps/web/src/server/auth`), routes sous `/api/auth/*`. Pas d'inscription publique : le
+  consultant est créé par `pnpm db:seed` (lien d'activation à usage unique affiché dans le terminal),
+  les clients sont invités depuis l'admin.
+- Chaque Server Action ou Route Handler protégé commence par `requireAdmin()` ou `requireClient()`
+  (`server/auth/guards.ts`). Les requêtes de l'espace client passent par `clientScope(session)`.
+- Les tests d'intégration (`pnpm test`) ont besoin de PostgreSQL (`pnpm db:up`) et utilisent la base
+  `manga_test`, jamais la base de dev.

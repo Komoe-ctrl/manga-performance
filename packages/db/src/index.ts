@@ -2,6 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/client";
 
 export * from "./generated/client";
+export * from "./auth-tokens";
 
 /** Creates a Prisma client bound to the given PostgreSQL connection string. */
 export function createPrismaClient(connectionString: string): PrismaClient {
