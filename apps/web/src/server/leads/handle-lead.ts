@@ -1,5 +1,4 @@
 import { createLogger } from "@manga/core";
-import type { PrismaClient } from "@manga/db";
 import { leadSchema, type LeadSource } from "@manga/validation";
 import { LIMITS, RateLimitError, clientIp, consume } from "../auth/rate-limit";
 import { CrmError } from "../crm/errors";
@@ -17,7 +16,6 @@ const SOURCE_LABELS: Record<LeadSource, string> = {
 
 export interface LeadDeps {
   crm: Pick<CrmService, "ingestLead">;
-  prisma: PrismaClient;
   notifier: ConsultantNotifier;
   env: { TURNSTILE_SECRET_KEY: string; ADMIN_NOTIFICATION_EMAIL: string; APP_URL: string };
   /** Injected in tests. */
@@ -111,19 +109,7 @@ async function notifyConsultant(
   sourceLabel: string,
 ) {
   try {
-    const admins = await deps.prisma.user.findMany({
-      where: { role: "ADMIN", disabledAt: null },
-      select: { id: true },
-    });
-    if (admins.length > 0) {
-      await deps.prisma.notification.createMany({
-        data: admins.map((admin) => ({
-          userId: admin.id,
-          type: "NEW_LEAD",
-          payload: { prospectId: lead.prospectId, returning: !lead.created },
-        })),
-      });
-    }
+    // Queued: the worker creates the in-app notifications and sends the email, with retries.
     await deps.notifier.notifyNewLead({
       to: deps.env.ADMIN_NOTIFICATION_EMAIL,
       prospectId: lead.prospectId,

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./queue": "./src/queue.ts"
   },
   "scripts": {
     "generate": "prisma generate",
@@ -16,9 +17,11 @@
   },
   "dependencies": {
     "@manga/core": "workspace:*",
+    "@manga/emails": "workspace:*",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
-    "pg": "^8"
+    "pg": "^8",
+    "pg-boss": "^12.38.1"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -52,8 +52,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  transpilePackages: ["@manga/core", "@manga/db", "@manga/validation"],
-  serverExternalPackages: ["@node-rs/argon2", "pg"],
+  transpilePackages: ["@manga/core", "@manga/db", "@manga/emails", "@manga/validation"],
+  serverExternalPackages: ["@node-rs/argon2", "pg", "pg-boss"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

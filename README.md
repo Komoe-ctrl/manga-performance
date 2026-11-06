@@ -46,3 +46,16 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   une note, pas un doublon), consentement enregistré, notification du consultant.
 - En local, `.env.example` fournit les clés de test publiques de Cloudflare (toujours valides). Elles
   sont refusées en production, tout comme les valeurs `change-me`.
+
+## Emails et jobs (étape 5)
+
+- `apps/worker` traite les jobs pg-boss (PostgreSQL, pas de Redis) : `email.send` (3 tentatives, backoff
+  exponentiel), `notifications.fanout` (notifications in-app + email, idempotent) et
+  `followups.daily-digest` (tous les jours à 07:00, Africa/Abidjan). Le web ne fait que publier des jobs.
+- Templates React Email en français dans `packages/emails` (bleu nuit et jaune, version texte, coordonnées
+  du cabinet en pied de mail). Les emails contenant un lien à usage unique ne restent qu'une heure dans la
+  table des jobs une fois traités.
+- En développement, tant que `BREVO_API_KEY` vaut `change-me`, les emails sont écrits dans `.dev-mailbox/`
+  (ouvrir le `.html` dans un navigateur) au lieu d'être envoyés. Avec une vraie clé Brevo, ils partent
+  vraiment. `pnpm dev` lance le web et le worker.
+- `pnpm test` exécute les paquets l'un après l'autre : web et worker partagent la base `manga_test`.

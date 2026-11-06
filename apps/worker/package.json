@@ -1,19 +1,24 @@
 {
-  "name": "@manga/worker",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@manga/core": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "^22",
-    "tsx": "^4",
-    "typescript": "^5"
-  }
+    "name":  "@manga/worker",
+    "version":  "0.1.0",
+    "private":  true,
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "tsx watch src/index.ts",
+                    "start":  "tsx src/index.ts",
+                    "typecheck":  "tsc --noEmit",
+                    "test":  "vitest run"
+                },
+    "dependencies":  {
+                         "@manga/core":  "workspace:*",
+                         "@manga/db":  "workspace:*",
+                         "@manga/emails":  "workspace:*",
+                         "@manga/validation":  "workspace:*"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^22",
+                            "tsx":  "^4",
+                            "typescript":  "^5",
+                            "vitest":  "^5.1.0"
+                        }
 }

@@ -3,7 +3,7 @@ import { createAccountFlows } from "@/server/auth/account-flows";
 import { createCrmService } from "@/server/crm/crm-service";
 import type { ConsultantNotifier, NewLeadNotice } from "@/server/email/consultant-notifier";
 import { handleLeadRequest } from "@/server/leads/handle-lead";
-import { MemoryMailer, createUser, db, resetDatabase, shutdown } from "./helpers";
+import { MemoryMailer, db, resetDatabase, shutdown } from "./helpers";
 
 class MemoryNotifier implements ConsultantNotifier {
   notices: NewLeadNotice[] = [];
@@ -35,7 +35,7 @@ function post(body: unknown, options: { ip?: string; contentType?: string | null
     prisma: db(),
     flows: createAccountFlows({ prisma: db(), mailer: new MemoryMailer(), appUrl: env.APP_URL }),
   });
-  return handleLeadRequest(request, { crm, prisma: db(), notifier, env, verifyHuman });
+  return handleLeadRequest(request, { crm, notifier, env, verifyHuman });
 }
 
 const contact = {
@@ -180,15 +180,9 @@ describe("new lead", () => {
     });
   });
 
-  it("notifies the consultant by email and in the app", async () => {
-    const admin = await createUser({ role: "ADMIN" });
-    const disabled = await createUser({ role: "ADMIN" });
-    await db().user.update({ where: { id: disabled.id }, data: { disabledAt: new Date() } });
-    await createUser({ role: "CLIENT" });
-
+  it("asks for the consultant to be notified", async () => {
     await post(contact);
     const prospect = await db().prospect.findFirstOrThrow();
-
     expect(notifier.notices).toEqual([
       {
         to: "admin@example.com",
@@ -200,9 +194,6 @@ describe("new lead", () => {
         appUrl: "https://app.example.com",
       },
     ]);
-    const notifications = await db().notification.findMany();
-    expect(notifications).toHaveLength(1);
-    expect(notifications[0]).toMatchObject({ userId: admin.id, type: "NEW_LEAD", payload: { prospectId: prospect.id, returning: false } });
   });
 
   it("still succeeds when the notification fails", async () => {
@@ -244,7 +235,6 @@ describe("existing contacts", () => {
     await expectNoDuplicate(contact);
     expect(await db().followUp.count()).toBe(2);
     expect(notifier.notices).toMatchObject([{ returning: true }]);
-    expect(await db().notification.count({ where: { type: "NEW_LEAD" } })).toBe(0); // no admin user in this test
   });
 
   it("records consent on a prospect that had none, and keeps an existing one", async () => {

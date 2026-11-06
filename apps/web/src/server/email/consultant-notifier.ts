@@ -1,4 +1,4 @@
-import { getEnv } from "@manga/core/env";
+import { getEnqueuer, type Enqueuer } from "../queue";
 
 export interface NewLeadNotice {
   to: string;
@@ -11,33 +11,49 @@ export interface NewLeadNotice {
   appUrl: string;
 }
 
-/**
- * Port for the "new lead" email to the consultant. The Brevo + React Email
- * implementation, queued through pg-boss, arrives with step 5.
- */
+/** Port for the "new lead" alert to the consultant. */
 export interface ConsultantNotifier {
   notifyNewLead(notice: NewLeadNotice): Promise<void>;
 }
 
-/** Development stand-in: prints a one-line summary (no contact details). */
-export class ConsoleConsultantNotifier implements ConsultantNotifier {
-  async notifyNewLead(notice: NewLeadNotice) {
-    if (getEnv().NODE_ENV === "production") {
-      throw new Error("No email provider configured: transactional emails arrive with step 5.");
-    }
-    const kind = notice.returning ? "returning contact" : "new lead";
-    console.info(`[DEV MAIL] ${kind} via ${notice.sourceLabel}: ${notice.appUrl}/admin/prospects/${notice.prospectId}`);
-  }
+/**
+ * Queues one `notifications.fanout` job: the worker creates the in-app notification for
+ * every active admin and sends the email, both with retries.
+ */
+export function createQueuedConsultantNotifier(
+  getQueue: () => Promise<Enqueuer> = getEnqueuer,
+): ConsultantNotifier {
+  return {
+    async notifyNewLead(notice) {
+      const queue = await getQueue();
+      await queue.enqueueFanout({
+        type: "NEW_LEAD",
+        audience: "ADMINS",
+        payload: { prospectId: notice.prospectId, returning: notice.returning },
+        email: {
+          template: "new-lead",
+          to: notice.to,
+          data: {
+            contactName: notice.contactName,
+            companyName: notice.companyName,
+            sourceLabel: notice.sourceLabel,
+            returning: notice.returning,
+            url: `${notice.appUrl.replace(/\/$/, "")}/admin/prospects/${notice.prospectId}`,
+          },
+        },
+      });
+    },
+  };
 }
 
 let notifier: ConsultantNotifier | undefined;
 
 export function getConsultantNotifier(): ConsultantNotifier {
-  notifier ??= new ConsoleConsultantNotifier();
+  notifier ??= createQueuedConsultantNotifier();
   return notifier;
 }
 
-/** Replaces the notifier (tests, and the real provider from step 5). */
+/** Replaces the notifier (tests). */
 export function setConsultantNotifier(next: ConsultantNotifier | undefined): void {
   notifier = next;
 }
