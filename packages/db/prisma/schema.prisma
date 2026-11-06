@@ -166,7 +166,7 @@ model RateLimit {
 model Prospect {
   id              String               @id @default(cuid(2))
   companyName     String
-  companyNameNorm String // pour le dÃ©doublonnage (index trigram)
+  companyNameNorm String // pour le dédoublonnage (index trigram)
   contactName     String?
   email           String?              @db.Citext
   phone           String? // E.164
@@ -229,8 +229,8 @@ model Client {
   prospect     Prospect      @relation(fields: [prospectId], references: [id])
   legalName    String
   address      String?
-  taxId        String? // NCC (numÃ©ro de compte contribuable)
-  portalUsers  User[] // utilisateurs Role.CLIENT rattachÃ©s
+  taxId        String? // NCC (numéro de compte contribuable)
+  portalUsers  User[] // utilisateurs Role.CLIENT rattachés
   invoices     Invoice[]
   deliverables Deliverable[]
   messages     Message[]
@@ -239,28 +239,32 @@ model Client {
 }
 
 model Invoice {
-  id             String        @id @default(cuid(2))
-  number         String?       @unique // attribuÃ© Ã  l'Ã©mission, jamais en brouillon
-  fneNumber      String? // NÂ° FNE saisi aprÃ¨s Ã©mission sur la plateforme DGI
-  clientId       String
-  client         Client        @relation(fields: [clientId], references: [id])
-  status         InvoiceStatus @default(BROUILLON)
-  vatRate        Int           @default(1800) // en points de base : 1800 = 18 %
-  totalHt        Int
-  totalVat       Int
-  totalTtc       Int
-  amountPaid     Int           @default(0)
-  issuedAt       DateTime?     @db.Timestamptz(3)
-  dueAt          DateTime?     @db.Timestamptz(3)
-  cancelledAt    DateTime?     @db.Timestamptz(3)
-  cancelReason   String?
-  creditNoteOfId String? // avoir liÃ© Ã  une facture d'origine
-  remindersSent  Int           @default(0)
-  lastReminderAt DateTime?     @db.Timestamptz(3)
-  lines          InvoiceLine[]
-  payments       Payment[]
-  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  id                String        @id @default(cuid(2))
+  number            String?       @unique // attribué à l'émission, jamais en brouillon
+  fneNumber         String? // N° FNE saisi après émission sur la plateforme DGI
+  clientId          String
+  client            Client        @relation(fields: [clientId], references: [id])
+  status            InvoiceStatus @default(BROUILLON)
+  vatRate           Int           @default(1800) // en points de base : 1800 = 18 %
+  totalHt           Int
+  totalVat          Int
+  totalTtc          Int
+  amountPaid        Int           @default(0)
+  issuedAt          DateTime?     @db.Timestamptz(3)
+  dueAt             DateTime?     @db.Timestamptz(3)
+  cancelledAt       DateTime?     @db.Timestamptz(3)
+  cancelReason      String?
+  creditNoteOfId    String? // avoir lié à une facture d'origine
+  remindersSent     Int           @default(0)
+  /// Unpaid-invoice reminders can be switched off per invoice.
+  remindersDisabled Boolean       @default(false)
+  lastReminderAt    DateTime?     @db.Timestamptz(3)
+  lines             InvoiceLine[]
+  payments          Payment[]
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
 
+  /// At most one credit note per invoice (a credit note always cancels the whole invoice).
+  @@unique([creditNoteOfId])
   @@index([status, dueAt])
 }
 
@@ -270,7 +274,7 @@ model InvoiceLine {
   invoice   Invoice @relation(fields: [invoiceId], references: [id])
   position  Int
   label     String
-  quantity  Int // en centiÃ¨mes si besoin de fractions (ex. 150 = 1,5 jour)
+  quantity  Int // en centièmes si besoin de fractions (ex. 150 = 1,5 jour)
   unitPrice Int // FCFA HT
   total     Int // FCFA HT
 }
@@ -285,7 +289,7 @@ model Payment {
   reference String?
 }
 
-/// NumÃ©rotation sÃ©quentielle sans trou, par annÃ©e.
+/// Numérotation séquentielle sans trou, par année.
 model InvoiceCounter {
   year  Int @id
   value Int
@@ -354,7 +358,7 @@ model SequenceStep {
   order      Int
   delayDays  Int
   subject    String
-  bodyJson   Json // contenu Ã©diteur, rendu via React Email
+  bodyJson   Json // contenu éditeur, rendu via React Email
 
   @@unique([sequenceId, order])
 }
@@ -410,8 +414,8 @@ model BlogPost {
   title           String
   excerpt         String
   category        String
-  contentJson     Json // JSON TipTap (source de vÃ©ritÃ©)
-  contentHtml     String // HTML assaini, gÃ©nÃ©rÃ© Ã  l'enregistrement
+  contentJson     Json // JSON TipTap (source de vérité)
+  contentHtml     String // HTML assaini, généré à l'enregistrement
   coverKey        String?
   status          String // DRAFT | PUBLISHED
   publishedAt     DateTime? @db.Timestamptz(3)
@@ -455,7 +459,7 @@ model ScrapeResult {
   @@index([companyNameNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "ScrapeResult_companyNameNorm_trgm_idx")
 }
 
-/// ParamÃ¨tres du cabinet (clÃ©/valeur typÃ©e par zod).
+/// Paramètres du cabinet (clé/valeur typée par zod).
 model Setting {
   key   String @id
   value Json

@@ -30,6 +30,8 @@ export const QUEUE_DEFINITIONS: Record<string, QueueDefinition> = {
   [QUEUES.emailSend]: { retryLimit: 3, retryDelay: 30, retryBackoff: true, expireInSeconds: 120, retentionSeconds: 3 * DAY, deleteAfterSeconds: 3600 },
   [QUEUES.notificationsFanout]: { retryLimit: 3, retryDelay: 15, retryBackoff: true, expireInSeconds: 120, retentionSeconds: 3 * DAY, deleteAfterSeconds: 3600 },
   [QUEUES.followupsDailyDigest]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
+  [QUEUES.invoicesMarkOverdue]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
+  [QUEUES.invoicesPaymentReminders]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 600, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
 };
 
 export interface JobQueueOptions {

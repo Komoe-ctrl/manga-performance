@@ -94,6 +94,13 @@ export async function requireClient(): Promise<ClientSession> {
   return { ...session, role: "CLIENT", clientId: session.clientId };
 }
 
+/** For downloads shared by both spaces: the admin, or a client (who is then scoped). */
+export async function requireAdminOrClient(): Promise<AdminSession | ClientSession> {
+  const session = await readSession();
+  if (!session) throw new AuthorizationError("UNAUTHENTICATED");
+  return session.role === "ADMIN" ? requireAdmin() : requireClient();
+}
+
 /**
  * Anti-IDOR: the only way client-space queries get their `clientId`. It always
  * comes from the server-side session, never from the browser.

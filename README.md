@@ -59,3 +59,19 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   (ouvrir le `.html` dans un navigateur) au lieu d'être envoyés. Avec une vraie clé Brevo, ils partent
   vraiment. `pnpm dev` lance le web et le worker.
 - `pnpm test` exécute les paquets l'un après l'autre : web et worker partagent la base `manga_test`.
+
+## Facturation (étape 6)
+
+- Montants en FCFA entiers, quantités en centièmes, TVA en points de base ; tous les calculs sont dans
+  `packages/core/src/invoice.ts` (TVA arrondie une seule fois sur le total). Le serveur recalcule toujours
+  les totaux, ceux du navigateur sont ignorés.
+- Cycle : brouillon (modifiable, sans numéro) → émission (numéro `AAAA-NNN` sans trou, y compris avec des
+  émissions simultanées) → facture immuable. Une correction passe par un avoir (facture négative liée, un
+  seul par facture) puis une nouvelle facture (`duplicateAsDraft`).
+- L'immuabilité est aussi garantie par PostgreSQL (triggers de la migration `invoice_immutability`) :
+  aucune requête, même manuelle, ne peut modifier ou supprimer une facture émise ni ses lignes.
+- PDF à la demande : `GET /api/invoices/:id/pdf` (admin, ou client propriétaire hors brouillon). Il affiche
+  le n° FNE s'il est renseigné et rappelle qu'il ne s'agit jamais d'une facture normalisée. Aucune
+  intégration à l'API de la DGI : `ManualFneProvider` garde simplement le numéro saisi.
+- Worker : `invoices.mark-overdue` (06:00), `followups.daily-digest` (07:00), `invoices.payment-reminders`
+  (09:00, relances à J+3, J+10 et J+20 après l'échéance, 3 au maximum, journalisées).

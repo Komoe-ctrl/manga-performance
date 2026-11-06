@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   transpilePackages: ["@manga/core", "@manga/db", "@manga/emails", "@manga/validation"],
-  serverExternalPackages: ["@node-rs/argon2", "pg", "pg-boss"],
+  serverExternalPackages: ["@node-rs/argon2", "pg", "pg-boss", "@react-pdf/renderer"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

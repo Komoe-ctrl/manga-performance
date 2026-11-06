@@ -5,6 +5,8 @@ export const QUEUES = {
   emailSend: "email.send",
   notificationsFanout: "notifications.fanout",
   followupsDailyDigest: "followups.daily-digest",
+  invoicesMarkOverdue: "invoices.mark-overdue",
+  invoicesPaymentReminders: "invoices.payment-reminders",
 } as const;
 
 const url = z.url({ protocol: /^https?$/ });

@@ -19,7 +19,7 @@ export async function resetDatabase(): Promise<void> {
     `TRUNCATE TABLE "User", "Session", "Account", "Verification", "TwoFactor", "Client", "Prospect",
       "Invoice", "InvoiceLine", "Deliverable", "DeliverableDownload", "Message", "Notification",
       "AuditLog", "Interaction", "FollowUp", "SequenceEnrollment", "SequenceStep", "EmailSequence",
-      "Setting", rate_limiter CASCADE`,
+      "Setting", "InvoiceCounter", rate_limiter CASCADE`,
   );
 }
 

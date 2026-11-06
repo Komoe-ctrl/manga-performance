@@ -1,3 +1,5 @@
+import { DomainError } from "../domain-error";
+
 export type CrmErrorCode =
   | "NOT_FOUND"
   | "DUPLICATE"
@@ -6,14 +8,13 @@ export type CrmErrorCode =
   | "CLIENT_LOCKED"
   | "NOT_A_CLIENT";
 
-/** Business-rule failure with a French message that is safe to show to the admin. */
-export class CrmError extends Error {
-  constructor(
-    public readonly code: CrmErrorCode,
-    message: string,
-    public readonly details?: { existingId?: string },
-  ) {
-    super(message);
+/** Business-rule failure of the CRM. */
+export class CrmError extends DomainError {
+  declare readonly code: CrmErrorCode;
+  declare readonly details?: { existingId?: string };
+
+  constructor(code: CrmErrorCode, message: string, details?: { existingId?: string }) {
+    super(code, message, details);
     this.name = "CrmError";
   }
 }

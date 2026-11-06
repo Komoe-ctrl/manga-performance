@@ -153,3 +153,43 @@ export const leadSchema = z
 
 export type LeadInput = z.input<typeof leadSchema>;
 export type LeadData = z.output<typeof leadSchema>;
+
+// ---------------------------------------------------------------------------
+// Billing. Same vocabulary as the front: client id = prospect id, VAT as a fraction,
+// decimal quantities. The server converts to hundredths and basis points.
+// ---------------------------------------------------------------------------
+
+export const paymentMethods = ["VIREMENT", "CHEQUE", "ESPECES", "MOBILE_MONEY", "AUTRE"] as const;
+
+const invoiceLineInput = z.object({
+  label: text(300).min(1),
+  quantity: z.number().positive().max(1_000_000),
+  unitPrice: z.number().int().min(-2_000_000_000).max(2_000_000_000),
+});
+
+export const createInvoiceInputSchema = z.object({
+  clientId: id,
+  lines: z.array(invoiceLineInput).max(100),
+  vatRate: z.number().min(0).max(1),
+  dueAt: z.iso.datetime({ offset: true }).optional(),
+  /** `emise` issues the invoice right away; `brouillon` only saves a draft. */
+  status: z.enum(["brouillon", "emise"]),
+  fneNumber: optionalText(60),
+});
+
+export const updateInvoicePatchSchema = z.object({
+  fneNumber: z.string().trim().max(60).optional(),
+  status: z.literal("payee").optional(),
+});
+
+export const recordPaymentSchema = z.object({
+  id,
+  amount: z.number().int().positive().max(2_000_000_000),
+  method: z.enum(paymentMethods),
+  paidAt: z.iso.datetime({ offset: true }),
+  reference: optionalText(120),
+});
+
+export const cancelInvoiceSchema = z.object({ id, reason: text(500).min(1) });
+
+export type CreateInvoiceInput = z.input<typeof createInvoiceInputSchema>;

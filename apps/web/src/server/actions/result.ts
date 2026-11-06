@@ -1,6 +1,7 @@
 import { createLogger } from "@manga/core";
 import { AuthorizationError, requireAdmin, type AdminSession } from "../auth/guards";
 import type { z } from "zod";
+import { DomainError } from "../domain-error";
 import { CrmError } from "../crm/errors";
 
 /**
@@ -35,7 +36,7 @@ export async function runAdmin<T>(operation: (admin: AdminSession) => Promise<T>
     if (error instanceof AuthorizationError) {
       return { ok: false, code: error.code, error: AUTH_MESSAGES[error.code] };
     }
-    if (error instanceof CrmError) {
+    if (error instanceof DomainError) {
       return { ok: false, code: error.code, error: error.message };
     }
     // Never log the error object itself: database errors can embed submitted values.

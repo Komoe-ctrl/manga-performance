@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./env": "./src/env.ts",
-    "./logger": "./src/logger.ts"
+    "./logger": "./src/logger.ts",
+    "./invoice": "./src/invoice.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -23,4 +24,3 @@
     "vitest": "^5.1.0"
   }
 }
-
