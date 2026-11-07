@@ -110,8 +110,11 @@ export function ClientLoginForm() {
       </form>
 
       {!USE_DB && (
-      <section aria-labelledby="demo-title" className="rounded-xl border border-dashed border-border p-4">
-        <h2 id="demo-title" className="text-sm font-semibold text-primary">Maquette : pré-remplir avec un client</h2>
+      <details className="group rounded-xl border border-dashed border-border p-4">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-primary list-none [&::-webkit-details-marker]:hidden">
+          <span aria-hidden className="mr-1 inline-block transition-transform group-open:rotate-90">›</span>
+          Mode démonstration : pré-remplir avec un client
+        </summary>
         <p className="mt-1 text-xs text-muted-foreground">
           Tapez le nom d&apos;une entreprise, cliquez dessus : l&apos;email et le mot de passe de démonstration se remplissent.
         </p>
@@ -149,7 +152,7 @@ export function ClientLoginForm() {
             );
           })}
         </ul>
-      </section>
+      </details>
       )}
     </div>
   );

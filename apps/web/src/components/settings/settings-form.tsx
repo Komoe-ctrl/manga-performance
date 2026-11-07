@@ -34,10 +34,15 @@ function Form({ initial }: { initial: Settings }) {
           <Field label="Email" htmlFor="st-email"><Input id="st-email" type="email" value={s.email} onChange={(e) => set("email", e.target.value)} /></Field>
         </div>
         <div>
-          <label htmlFor="st-logo" className="text-sm font-medium">Logo</label>
+          <p className="text-sm font-medium">Logo</p>
           {/* Téléversement simulé : seul le nom du fichier est conservé */}
-          <input id="st-logo" type="file" accept="image/*" className="mt-1 block text-sm" onChange={(e) => set("logoName", e.target.files?.[0]?.name ?? "")} />
-          {s.logoName && <p className="mt-1 text-xs text-muted-foreground">{s.logoName}</p>}
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <label htmlFor="st-logo" className="cursor-pointer rounded-full border border-border px-4 py-1.5 text-sm font-medium transition-colors hover:bg-muted focus-within:ring-2 focus-within:ring-accent">
+              {s.logoName ? "Changer le logo" : "Choisir un fichier"}
+              <input id="st-logo" type="file" accept="image/*" className="sr-only" onChange={(e) => set("logoName", e.target.files?.[0]?.name ?? "")} />
+            </label>
+            <span className="text-sm text-muted-foreground">{s.logoName || "Aucun fichier choisi (PNG ou JPG)"}</span>
+          </div>
         </div>
       </fieldset>
 
