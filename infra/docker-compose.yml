@@ -1,0 +1,136 @@
+# Production stack (spec, section 12). Only Caddy publishes ports (80 and 443).
+#
+#   cp infra/.env.production.example infra/.env.production   # then fill it in
+#   docker compose -f infra/docker-compose.yml --env-file infra/.env.production up -d --build
+name: manga-performance
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATA_SOURCE: db
+  DATABASE_URL: postgresql://manga:${POSTGRES_PASSWORD}@postgres:5432/manga
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+  APP_URL: https://${APP_DOMAIN}
+  EMAIL_PROVIDER: brevo
+  BREVO_API_KEY: ${BREVO_API_KEY}
+  BREVO_WEBHOOK_SECRET: ${BREVO_WEBHOOK_SECRET}
+  EMAIL_FROM_TRANSACTIONAL: ${EMAIL_FROM_TRANSACTIONAL}
+  EMAIL_FROM_MARKETING: ${EMAIL_FROM_MARKETING}
+  S3_ENDPOINT: ${S3_ENDPOINT}
+  S3_REGION: ${S3_REGION}
+  S3_BUCKET: ${S3_BUCKET}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
+  TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+  INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+  INTERNAL_API_HMAC_SECRET: ${INTERNAL_API_HMAC_SECRET}
+  TRACKING_HMAC_SECRET: ${TRACKING_HMAC_SECRET}
+  ADMIN_NOTIFICATION_EMAIL: ${ADMIN_NOTIFICATION_EMAIL}
+  TZ_DISPLAY: Africa/Abidjan
+  LOG_LEVEL: info
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/app.Dockerfile
+      args:
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+    image: manga-app
+    restart: unless-stopped
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Liveness only: /api/health also reports the worker, which must not block the web start.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.status<500||r.status===503?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  worker:
+    image: manga-app
+    restart: unless-stopped
+    command: ["pnpm", "--filter", "@manga/worker", "start"]
+    environment: *app-env
+    depends_on:
+      web:
+        condition: service_healthy
+
+  scraper:
+    build:
+      context: ..
+      dockerfile: infra/docker/scraper.Dockerfile
+    restart: unless-stopped
+    environment:
+      # Straight to the web container: the public hostname blocks /api/internal.
+      INTERNAL_API_URL: http://web:3000
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+      INTERNAL_API_HMAC_SECRET: ${INTERNAL_API_HMAC_SECRET}
+      SCRAPER_ALLOWED_DOMAINS: ${SCRAPER_ALLOWED_DOMAINS:-}
+      SCRAPER_USER_AGENT: ${SCRAPER_USER_AGENT:-}
+    depends_on:
+      web:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: manga
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: manga
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manga -d manga"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Daily encrypted dump to the object storage (see docs/runbook.md for the restore).
+  backup:
+    build:
+      context: ..
+      dockerfile: infra/docker/backup.Dockerfile
+    restart: unless-stopped
+    environment:
+      TZ: Africa/Abidjan
+      PGHOST: postgres
+      PGUSER: manga
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: manga
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

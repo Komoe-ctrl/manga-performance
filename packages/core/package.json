@@ -1,0 +1,37 @@
+{
+  "name": "@manga/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./env": "./src/env.ts",
+    "./logger": "./src/logger.ts",
+    "./invoice": "./src/invoice.ts",
+    "./files": "./src/files.ts",
+    "./rich-text": "./src/rich-text.ts",
+    "./template-vars": "./src/template-vars.ts",
+    "./signed-tokens": "./src/signed-tokens.ts",
+    "./marketing-schedule": "./src/marketing-schedule.ts",
+    "./slug": "./src/slug.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@tiptap/html": "3.32.0",
+    "@tiptap/pm": "3.32.0",
+    "@tiptap/starter-kit": "3.32.0",
+    "pino": "^10.4.0",
+    "sanitize-html": "^2.18.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/sanitize-html": "^2.16.2",
+    "@vitest/coverage-v8": "^5.1.0",
+    "typescript": "^5",
+    "vitest": "^5.1.0"
+  }
+}

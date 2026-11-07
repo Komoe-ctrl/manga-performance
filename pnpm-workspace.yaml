@@ -1,2 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
 allowBuilds:
   unrs-resolver: false
+  prisma: true
+  '@prisma/engines': true
+  esbuild: true
+
+# Security: transitive dependencies with published advisories (see docs/security-review.md).
+overrides:
+  happy-dom: ">=21.0.4"
+  uuid: ">=11.1.1"

@@ -1,0 +1,1 @@
+"""MANGA PERFORMANCE collection service."""

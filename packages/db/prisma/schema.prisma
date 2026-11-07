@@ -1,0 +1,490 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm, citext, unaccent]
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum ProspectStatus {
+  NOUVEAU
+  EN_NEGOCIATION
+  CLIENT
+  PERDU
+}
+
+enum ProspectSource {
+  SITE_FORMULAIRE
+  CHATBOT
+  SCRAPER
+  NEWSLETTER
+  MANUEL
+  RECOMMANDATION
+  DEMO
+}
+
+enum CompanySize {
+  TPE
+  PME
+  GRANDE_ENTREPRISE
+}
+
+enum Need {
+  BUSINESS_PLAN
+  TABLEAU_DE_BORD
+  TRESORERIE
+  MAITRISE_COUTS
+  AUDIT
+  AUTRE
+}
+
+enum InteractionType {
+  EMAIL
+  APPEL
+  REUNION
+  NOTE
+}
+
+enum InvoiceStatus {
+  BROUILLON
+  EMISE
+  PAYEE
+  PARTIELLEMENT_PAYEE
+  EN_RETARD
+  ANNULEE
+}
+
+enum PaymentMethod {
+  VIREMENT
+  CHEQUE
+  ESPECES
+  MOBILE_MONEY
+  AUTRE
+}
+
+/// Better Auth tables (user, session, account, verification, twoFactor) plus our own
+/// fields on user: role, clientId, and the login lockout counters.
+model User {
+  id               String      @id @default(cuid(2))
+  name             String
+  email            String      @unique @db.Citext
+  emailVerified    Boolean     @default(false)
+  image            String?
+  role             Role        @default(CLIENT)
+  clientId         String?
+  client           Client?     @relation(fields: [clientId], references: [id])
+  twoFactorEnabled Boolean     @default(false)
+  failedLoginCount Int         @default(0)
+  lockedUntil      DateTime?   @db.Timestamptz(3)
+  /// Set when the firm disables a client's access to the portal.
+  disabledAt       DateTime?   @db.Timestamptz(3)
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+  sessions         Session[]
+  accounts         Account[]
+  twoFactors       TwoFactor[]
+
+  @@index([clientId])
+}
+
+model Session {
+  id        String   @id @default(cuid(2))
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid(2))
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  scope                 String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([userId])
+}
+
+/// One-time tokens (invitation, password reset) live here with a hashed identifier.
+model Verification {
+  id         String   @id @default(cuid(2))
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([identifier])
+}
+
+model TwoFactor {
+  id                      String    @id @default(cuid(2))
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret                  String
+  backupCodes             String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime? @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([secret])
+}
+
+/// Storage for rate-limiter-flexible (RateLimiterPostgres): fixed table and column names.
+model RateLimit {
+  key    String  @id @db.VarChar(255)
+  points Int
+  expire BigInt?
+
+  @@map("rate_limiter")
+}
+
+model Prospect {
+  id              String               @id @default(cuid(2))
+  companyName     String
+  companyNameNorm String // pour le dédoublonnage (index trigram)
+  contactName     String?
+  email           String?              @db.Citext
+  phone           String? // E.164
+  sector          String
+  city            String?
+  size            CompanySize?
+  need            Need?
+  status          ProspectStatus       @default(NOUVEAU)
+  source          ProspectSource
+  estimatedValue  Int? // FCFA
+  notes           String?
+  consentAt       DateTime?            @db.Timestamptz(3) // consentement au traitement (formulaires publics)
+  consentSource   String?
+  lostReason      String?
+  convertedAt     DateTime?            @db.Timestamptz(3)
+  createdAt       DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime             @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime?            @db.Timestamptz(3)
+  interactions    Interaction[]
+  followUps       FollowUp[]
+  client          Client?
+  enrollments     SequenceEnrollment[]
+
+  @@index([status])
+  @@index([sector])
+  @@index([email])
+  @@index([phone])
+  @@index([companyNameNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "Prospect_companyNameNorm_trgm_idx")
+}
+
+model Interaction {
+  id         String          @id @default(cuid(2))
+  prospectId String
+  prospect   Prospect        @relation(fields: [prospectId], references: [id])
+  type       InteractionType
+  summary    String
+  occurredAt DateTime        @db.Timestamptz(3)
+  createdBy  String // userId
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@index([prospectId, occurredAt])
+}
+
+model FollowUp {
+  id          String    @id @default(cuid(2))
+  prospectId  String
+  prospect    Prospect  @relation(fields: [prospectId], references: [id])
+  rule        String // "J+7" | "J+15" | "J+30" | "MANUEL"
+  dueAt       DateTime  @db.Timestamptz(3)
+  doneAt      DateTime? @db.Timestamptz(3)
+  cancelledAt DateTime? @db.Timestamptz(3)
+  note        String?
+
+  @@index([dueAt, doneAt])
+}
+
+model Client {
+  id           String        @id @default(cuid(2))
+  prospectId   String        @unique
+  prospect     Prospect      @relation(fields: [prospectId], references: [id])
+  legalName    String
+  address      String?
+  taxId        String? // NCC (numéro de compte contribuable)
+  portalUsers  User[] // utilisateurs Role.CLIENT rattachés
+  invoices     Invoice[]
+  deliverables Deliverable[]
+  messages     Message[]
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  deletedAt    DateTime?     @db.Timestamptz(3)
+}
+
+model Invoice {
+  id                String        @id @default(cuid(2))
+  number            String?       @unique // attribué à l'émission, jamais en brouillon
+  fneNumber         String? // N° FNE saisi après émission sur la plateforme DGI
+  clientId          String
+  client            Client        @relation(fields: [clientId], references: [id])
+  status            InvoiceStatus @default(BROUILLON)
+  vatRate           Int           @default(1800) // en points de base : 1800 = 18 %
+  totalHt           Int
+  totalVat          Int
+  totalTtc          Int
+  amountPaid        Int           @default(0)
+  issuedAt          DateTime?     @db.Timestamptz(3)
+  dueAt             DateTime?     @db.Timestamptz(3)
+  cancelledAt       DateTime?     @db.Timestamptz(3)
+  cancelReason      String?
+  creditNoteOfId    String? // avoir lié à une facture d'origine
+  remindersSent     Int           @default(0)
+  /// Unpaid-invoice reminders can be switched off per invoice.
+  remindersDisabled Boolean       @default(false)
+  lastReminderAt    DateTime?     @db.Timestamptz(3)
+  lines             InvoiceLine[]
+  payments          Payment[]
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+
+  /// At most one credit note per invoice (a credit note always cancels the whole invoice).
+  @@unique([creditNoteOfId])
+  @@index([status, dueAt])
+}
+
+model InvoiceLine {
+  id        String  @id @default(cuid(2))
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+  position  Int
+  label     String
+  quantity  Int // en centièmes si besoin de fractions (ex. 150 = 1,5 jour)
+  unitPrice Int // FCFA HT
+  total     Int // FCFA HT
+}
+
+model Payment {
+  id        String        @id @default(cuid(2))
+  invoiceId String
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id])
+  amount    Int
+  method    PaymentMethod
+  paidAt    DateTime      @db.Timestamptz(3)
+  reference String?
+}
+
+/// Numérotation séquentielle sans trou, par année.
+model InvoiceCounter {
+  year  Int @id
+  value Int
+}
+
+model Deliverable {
+  id          String                @id @default(cuid(2))
+  clientId    String
+  client      Client                @relation(fields: [clientId], references: [id])
+  title       String
+  storageKey  String                @unique
+  mimeType    String
+  sizeBytes   Int
+  checksum    String // sha256
+  publishedAt DateTime              @default(now()) @db.Timestamptz(3)
+  publishedBy String
+  downloads   DeliverableDownload[]
+}
+
+model DeliverableDownload {
+  id            String      @id @default(cuid(2))
+  deliverableId String
+  deliverable   Deliverable @relation(fields: [deliverableId], references: [id])
+  userId        String
+  downloadedAt  DateTime    @default(now()) @db.Timestamptz(3)
+}
+
+model Message {
+  id             String    @id @default(cuid(2))
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id])
+  authorId       String
+  fromRole       Role
+  body           String
+  attachmentKey  String?
+  /// Original file name, shown in the thread and used for the download.
+  attachmentName String?
+  attachmentMime String?
+  attachmentSize Int?
+  readAt         DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([clientId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid(2))
+  userId    String
+  type      String // NEW_DELIVERABLE | NEW_MESSAGE | FOLLOW_UP_DUE | ...
+  payload   Json
+  readAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, readAt])
+}
+
+model EmailSequence {
+  id          String               @id @default(cuid(2))
+  name        String
+  trigger     String // NEWSLETTER_SIGNUP | MANUAL
+  active      Boolean              @default(false)
+  steps       SequenceStep[]
+  enrollments SequenceEnrollment[]
+}
+
+model SequenceStep {
+  id         String        @id @default(cuid(2))
+  sequenceId String
+  sequence   EmailSequence @relation(fields: [sequenceId], references: [id])
+  order      Int
+  delayDays  Int
+  subject    String
+  bodyJson   Json // contenu éditeur, rendu via React Email
+
+  @@unique([sequenceId, order])
+}
+
+model SequenceEnrollment {
+  id          String        @id @default(cuid(2))
+  sequenceId  String
+  sequence    EmailSequence @relation(fields: [sequenceId], references: [id])
+  prospectId  String
+  prospect    Prospect      @relation(fields: [prospectId], references: [id])
+  currentStep Int           @default(0)
+  status      String // ACTIVE | COMPLETED | STOPPED | UNSUBSCRIBED | BOUNCED
+  nextSendAt  DateTime?     @db.Timestamptz(3)
+  enrolledAt  DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@unique([sequenceId, prospectId])
+  @@index([status, nextSendAt])
+}
+
+model EmailEvent {
+  id           String   @id @default(cuid(2))
+  messageId    String // id fournisseur
+  enrollmentId String?
+  email        String   @db.Citext
+  type         String // SENT | DELIVERED | OPENED | CLICKED | BOUNCED | COMPLAINED | UNSUBSCRIBED
+  occurredAt   DateTime @db.Timestamptz(3)
+  meta         Json?
+
+  @@index([enrollmentId])
+  @@index([messageId])
+  @@index([email, type])
+}
+
+/// Liste d'exclusion globale : jamais d'envoi marketing.
+model Suppression {
+  email     String   @id @db.Citext
+  reason    String // UNSUBSCRIBED | HARD_BOUNCE | COMPLAINT | MANUAL
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model NewsletterSubscriber {
+  id               String    @id @default(cuid(2))
+  email            String    @unique @db.Citext
+  confirmTokenHash String?
+  confirmExpiresAt DateTime? @db.Timestamptz(3)
+  confirmedAt      DateTime? @db.Timestamptz(3)
+  unsubscribedAt   DateTime? @db.Timestamptz(3)
+  consentIp        String?
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+}
+
+model BlogPost {
+  id              String    @id @default(cuid(2))
+  slug            String    @unique
+  title           String
+  excerpt         String
+  category        String
+  contentJson     Json // JSON TipTap (source de vérité)
+  contentHtml     String // HTML assaini, généré à l'enregistrement
+  coverKey        String?
+  status          String // DRAFT | PUBLISHED
+  publishedAt     DateTime? @db.Timestamptz(3)
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime? @db.Timestamptz(3)
+
+  @@index([status, publishedAt])
+}
+
+model ScrapeJob {
+  id           String         @id @default(cuid(2))
+  source       String // ANNUAIRE | APPELS_OFFRES | SITE_WEB
+  filters      Json
+  status       String // QUEUED | RUNNING | DONE | FAILED
+  startedAt    DateTime?      @db.Timestamptz(3)
+  finishedAt   DateTime?      @db.Timestamptz(3)
+  resultsCount Int            @default(0)
+  error        String?
+  createdBy    String
+  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
+  results      ScrapeResult[]
+
+  @@index([status, createdAt])
+}
+
+model ScrapeResult {
+  id                    String    @id @default(cuid(2))
+  jobId                 String
+  job                   ScrapeJob @relation(fields: [jobId], references: [id])
+  companyName           String
+  companyNameNorm       String
+  sector                String?
+  city                  String?
+  address               String?
+  phone                 String?
+  email                 String?   @db.Citext
+  sourceUrl             String
+  collectedAt           DateTime  @db.Timestamptz(3)
+  duplicateOfProspectId String?
+  importedProspectId    String?
+
+  @@index([jobId])
+  @@index([companyNameNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "ScrapeResult_companyNameNorm_trgm_idx")
+}
+
+/// Paramètres du cabinet (clé/valeur typée par zod).
+model Setting {
+  key   String @id
+  value Json
+}
+
+model AuditLog {
+  id        String   @id @default(cuid(2))
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  diff      Json?
+  ip        String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([entity, entityId])
+}

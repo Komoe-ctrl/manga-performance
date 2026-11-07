@@ -1,0 +1,13 @@
+**/node_modules
+**/.next
+.git
+.github
+.env*
+!.env.example
+**/.venv
+**/__pycache__
+**/.pytest_cache
+.dev-mailbox
+**/*.tsbuildinfo
+docs
+packages/db/src/generated

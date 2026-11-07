@@ -1,0 +1,47 @@
+# Development services. Production compose (caddy, web, worker, scraper) comes in step 11.
+name: manga-performance-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: manga
+      POSTGRES_PASSWORD: manga_dev_password
+      POSTGRES_DB: manga
+    ports:
+      # 5434 on the host: 5432 is commonly taken by other local projects.
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manga -d manga"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # S3-compatible storage for deliverables, message attachments and blog covers.
+  # (MinIO no longer publishes images on Docker Hub; this is a Bitnami build of it, for development only.)
+  minio:
+    image: bitnamilegacy/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: manga
+      MINIO_ROOT_PASSWORD: manga_dev_password
+      MINIO_DEFAULT_BUCKETS: manga-performance,manga-test
+    ports:
+      # 9100 (API) and 9101 (console) on the host: 9000 is commonly taken by other projects.
+      - "127.0.0.1:9100:9000"
+      - "127.0.0.1:9101:9001"
+    volumes:
+      - miniodata:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
+  miniodata:
