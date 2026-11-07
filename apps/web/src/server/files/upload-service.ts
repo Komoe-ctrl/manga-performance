@@ -1,10 +1,13 @@
 import {
   FILE_KINDS,
   MAX_UPLOAD_BYTES,
+  PUBLIC_IMAGE_KINDS,
   SIGNATURE_BYTES,
   detectFileKind,
   extensionOf,
+  isBlogCoverKey,
   isKeyOfClient,
+  newPublicBlogKey,
   newStorageKey,
   validateUploadRequest,
   type FileKind,
@@ -55,6 +58,25 @@ export interface VerifiedUpload {
  * number (the extension is not trusted) and SHA-256. A file that fails is deleted.
  */
 export function createUploadService({ storage }: { storage: ObjectStorage }) {
+  /** Reads the object back: size, magic number, checksum. A file that fails is deleted. */
+  async function verifyKey(key: string, allowed?: readonly FileKind[]): Promise<VerifiedUpload> {
+    const head = await storage.head(key);
+    if (!head) throw new FileError("FILE_MISSING");
+
+    const reject = async (code: FileErrorCode): Promise<never> => {
+      await storage.delete(key).catch(() => undefined);
+      throw new FileError(code);
+    };
+    if (head.size === 0) return reject("EMPTY");
+    if (head.size > MAX_UPLOAD_BYTES) return reject("TOO_LARGE");
+
+    const expected = (Object.keys(FILE_KINDS) as FileKind[]).find((kind) => FILE_KINDS[kind].extensions.includes(extensionOf(key)));
+    const detected = detectFileKind(await storage.readHead(key, SIGNATURE_BYTES));
+    if (!expected || detected !== expected || (allowed && !allowed.includes(detected))) return reject("INVALID_CONTENT");
+
+    return { key, kind: detected, mimeType: FILE_KINDS[detected].mime, sizeBytes: head.size, checksum: await storage.sha256(key) };
+  }
+
   return {
     async requestUpload(clientId: string, input: { filename: string; mimeType: string; sizeBytes: number }): Promise<UploadTicket> {
       const check = validateUploadRequest(input);
@@ -73,28 +95,22 @@ export function createUploadService({ storage }: { storage: ObjectStorage }) {
     async verifyUploaded(clientId: string, key: string): Promise<VerifiedUpload> {
       // A client can only ever attach files that live under its own prefix.
       if (!isKeyOfClient(key, clientId)) throw new FileError("INVALID_KEY");
+      return verifyKey(key);
+    },
 
-      const head = await storage.head(key);
-      if (!head) throw new FileError("FILE_MISSING");
+    /** Blog cover: an image, uploaded to the only public prefix of the bucket (public/blog/). */
+    async requestPublicImageUpload(input: { filename: string; mimeType: string; sizeBytes: number }): Promise<UploadTicket> {
+      const check = validateUploadRequest(input);
+      if (!check.ok) throw new FileError(check.reason);
+      if (!PUBLIC_IMAGE_KINDS.includes(check.kind)) throw new FileError("TYPE_NOT_ALLOWED");
+      const key = newPublicBlogKey(FILE_KINDS[check.kind].extensions[0]!);
+      const uploadUrl = await storage.presignUpload({ key, contentType: check.mime, contentLength: input.sizeBytes, expiresInSeconds: UPLOAD_URL_SECONDS });
+      return { key, uploadUrl, headers: { "Content-Type": check.mime }, expiresInSeconds: UPLOAD_URL_SECONDS, maxBytes: MAX_UPLOAD_BYTES };
+    },
 
-      const reject = async (code: FileErrorCode): Promise<never> => {
-        await storage.delete(key).catch(() => undefined);
-        throw new FileError(code);
-      };
-      if (head.size === 0) return reject("EMPTY");
-      if (head.size > MAX_UPLOAD_BYTES) return reject("TOO_LARGE");
-
-      const expected = (Object.keys(FILE_KINDS) as FileKind[]).find((kind) => FILE_KINDS[kind].extensions.includes(extensionOf(key)));
-      const detected = detectFileKind(await storage.readHead(key, SIGNATURE_BYTES));
-      if (!expected || detected !== expected) return reject("INVALID_CONTENT");
-
-      return {
-        key,
-        kind: detected,
-        mimeType: FILE_KINDS[detected].mime,
-        sizeBytes: head.size,
-        checksum: await storage.sha256(key),
-      };
+    async verifyPublicImage(key: string): Promise<VerifiedUpload> {
+      if (!isBlogCoverKey(key)) throw new FileError("INVALID_KEY");
+      return verifyKey(key, PUBLIC_IMAGE_KINDS);
     },
   };
 }

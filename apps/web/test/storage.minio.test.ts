@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { CreateBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUploadService, FileError } from "@/server/files/upload-service";
+import { applyPublicBlogPolicy, publicBlogPolicy } from "@/server/storage/public-policy";
 import { createS3Storage } from "@/server/storage/object-storage";
 import { FILES } from "./memory-storage";
 
@@ -115,6 +116,42 @@ describe.skipIf(!reachable)("S3 storage (MinIO)", () => {
     await storage.delete(key);
     expect(await storage.head(key)).toBeNull();
     await expect(storage.delete(key)).resolves.toBeUndefined();
+  });
+
+  describe("public blog prefix", () => {
+    const s3 = () =>
+      new S3Client({ endpoint: config.endpoint, region: config.region, forcePathStyle: true, credentials: { accessKeyId: config.accessKey, secretAccessKey: config.secretKey } });
+    const png = Buffer.from(FILES.png, "latin1");
+    const uploads = createUploadService({ storage });
+
+    it("serves public/blog/* to anyone, and nothing else", async () => {
+      await applyPublicBlogPolicy(s3(), config.bucket);
+
+      const cover = await uploads.requestPublicImageUpload({ filename: "cover.png", mimeType: "", sizeBytes: png.length });
+      keys.push(cover.key);
+      expect((await put(cover.uploadUrl, png, cover.headers)).status).toBe(200);
+      const privateKey = newKey();
+      await put(await storage.presignUpload({ key: privateKey, contentType: "application/pdf", contentLength: pdf.length }), pdf, { "Content-Type": "application/pdf" });
+
+      const objectUrl = (key: string) => `${config.endpoint}/${config.bucket}/${key}`;
+      const publicUrl = objectUrl(cover.key);
+      const anonymous = await fetch(publicUrl);
+      expect(anonymous.status).toBe(200);
+      expect(anonymous.headers.get("content-type")).toBe("image/png");
+      expect(Buffer.from(await anonymous.arrayBuffer()).equals(png)).toBe(true);
+
+      // Everything outside the prefix stays private, and the public prefix is read-only.
+      expect((await fetch(objectUrl(privateKey))).status).toBe(403);
+      expect((await fetch(objectUrl("public/blog/overwrite.png"), { method: "PUT", body: png as unknown as BodyInit })).status).toBe(403);
+      expect((await fetch(`${config.endpoint}/${config.bucket}?list-type=2&prefix=public/blog/`)).status).toBe(403);
+      expect((await fetch(publicUrl, { method: "DELETE" })).status).toBe(403);
+    });
+
+    it("limits the policy to read access on that single prefix", () => {
+      const policy = JSON.parse(publicBlogPolicy("my-bucket"));
+      expect(policy.Statement).toHaveLength(1);
+      expect(policy.Statement[0]).toMatchObject({ Effect: "Allow", Principal: "*", Action: ["s3:GetObject"], Resource: ["arn:aws:s3:::my-bucket/public/blog/*"] });
+    });
   });
 
   describe("full upload flow", () => {

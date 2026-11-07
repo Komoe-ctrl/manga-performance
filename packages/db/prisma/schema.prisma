@@ -379,6 +379,7 @@ model SequenceEnrollment {
   enrolledAt  DateTime      @default(now()) @db.Timestamptz(3)
 
   @@unique([sequenceId, prospectId])
+  @@index([status, nextSendAt])
 }
 
 model EmailEvent {
@@ -391,6 +392,7 @@ model EmailEvent {
   meta         Json?
 
   @@index([enrollmentId])
+  @@index([messageId])
   @@index([email, type])
 }
 
@@ -428,6 +430,8 @@ model BlogPost {
   createdAt       DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt       DateTime? @db.Timestamptz(3)
+
+  @@index([status, publishedAt])
 }
 
 model ScrapeJob {

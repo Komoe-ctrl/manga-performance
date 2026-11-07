@@ -92,3 +92,20 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   celui du navigateur.
 - Avec un fournisseur réel (OVH, R2), il faudra configurer le CORS du bucket pour autoriser le `PUT` depuis
   l'adresse du site (voir le runbook, étape 11).
+
+## Marketing (étape 8)
+
+- **Blog** : le JSON TipTap est la source de vérité ; le HTML est généré **et assaini** (liste blanche stricte,
+  `sanitize-html`) à chaque enregistrement. Slug translittéré et unique, figé une fois l'article publié.
+  Publier, modifier un article publié ou le supprimer rafraîchit `/blog`, l'article, l'accueil et le sitemap
+  (`revalidatePath`). Les couvertures PNG/JPG vont sous `public/blog/`, **seul préfixe public** du bucket
+  (`pnpm storage:setup` applique la politique de lecture ; le reste reste privé).
+- **Newsletter** en double opt-in (`POST /api/newsletter/subscribe`, lien de confirmation à usage unique de 48 h),
+  désinscription en un clic par lien signé (`List-Unsubscribe` + `List-Unsubscribe-Post`). Une confirmation crée
+  ou relie un prospect de source NEWSLETTER et l'inscrit aux séquences actives « inscription newsletter ».
+- **Séquences** : `sequences.dispatch` (toutes les 15 min) envoie l'étape due derrière les garde-fous (liste
+  d'exclusion, fenêtre lundi-vendredi 08:00-18:00, plafond quotidien, 50 par défaut). Variables `{{prenom}}`,
+  `{{entreprise}}`, `{{secteur}}`, `{{besoin}}` avec repli (`{{prenom|cher client}}`) ; les variables inconnues
+  sont refusées à l'enregistrement. `pnpm db:seed` crée les 3 séquences modèles, inactives.
+- **Suivi et webhooks** : pixel d'ouverture `/api/t/o/:id`, clics `/api/t/c/:id` (identifiants signés HMAC),
+  webhook fournisseur `/api/webhooks/email` (signature vérifiée). Voir `docs/deliverability.md`.

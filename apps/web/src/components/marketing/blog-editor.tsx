@@ -7,7 +7,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Italic, List, ListOrdered, Redo2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { createBlogPost, getBlogPost, updateBlogPost, type BlogDraft } from "@/lib/services";
+import { createBlogPost, getBlogPostForEdit, updateBlogPost, type BlogDraft } from "@/lib/services";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import type { BlogPost } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -56,10 +56,11 @@ function Editor({ initial, id }: { initial: BlogDraft; id?: string }) {
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: initial.content,
+    // The TipTap document is the source of truth when the article comes from the database.
+    content: (initial.contentJson as object | undefined) ?? initial.content,
     immediatelyRender: false,
     editorProps: { attributes: { class: "rich-text min-h-60 rounded-b-md border border-border p-3 focus:outline-none", "aria-label": "Contenu de l'article" } },
-    onUpdate: ({ editor: e }) => setDraft((d) => ({ ...d, content: e.getHTML() })),
+    onUpdate: ({ editor: e }) => setDraft((d) => ({ ...d, content: e.getHTML(), contentJson: e.getJSON() })),
   });
 
   useEffect(() => {
@@ -76,12 +77,18 @@ function Editor({ initial, id }: { initial: BlogDraft; id?: string }) {
     if (draft.title.trim().length < 3) return toast.error("Le titre est requis");
     setSaving(true);
     const payload = { ...draft, status };
-    if (id) await updateBlogPost(id, payload);
-    else {
-      const post = await createBlogPost(payload);
-      router.replace(`/admin/blog/${post.id}`);
+    try {
+      if (id) await updateBlogPost(id, payload);
+      else {
+        const post = await createBlogPost(payload);
+        router.replace(`/admin/blog/${post.id}`);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Enregistrement impossible, réessayez.");
+      return;
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
     setDraft(payload);
     toast.success(status === "publie" ? "Article publié" : "Brouillon enregistré");
   };
@@ -168,7 +175,7 @@ export function NewPostEditor() {
 
 export function EditPostEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const post = useAsync(() => getBlogPost(id));
+  const post = useAsync(() => getBlogPostForEdit(id));
   if (post.status === "loading") return <LoadingState />;
   if (post.status === "error") return <ErrorState message="Article indisponible." onRetry={post.reload} />;
   if (!post.data) return <EmptyState message="Article introuvable." />;

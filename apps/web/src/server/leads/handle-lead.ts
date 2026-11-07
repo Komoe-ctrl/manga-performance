@@ -1,12 +1,11 @@
 import { createLogger } from "@manga/core";
 import { leadSchema, type LeadSource } from "@manga/validation";
-import { LIMITS, RateLimitError, clientIp, consume } from "../auth/rate-limit";
+import { LIMITS, type consume } from "../auth/rate-limit";
 import { CrmError } from "../crm/errors";
 import type { CrmService } from "../crm/crm-service";
 import type { ConsultantNotifier } from "../email/consultant-notifier";
+import { GENERIC_INVALID, isHoneypotFilled, json, readPublicJson } from "../security/public-form";
 import { verifyTurnstile } from "../security/turnstile";
-
-const MAX_BODY_BYTES = 20_000;
 
 const SOURCE_LABELS: Record<LeadSource, string> = {
   site_formulaire: "le formulaire de contact",
@@ -25,53 +24,18 @@ export interface LeadDeps {
 
 const logger = createLogger({ service: "web" });
 
-const json = (status: number, body: Record<string, unknown>, headers?: HeadersInit) =>
-  Response.json(body, { status, headers });
-
-/** Public answers are deliberately generic: they never reveal whether a contact already exists. */
-const GENERIC_INVALID = { ok: false, error: "Les informations saisies sont invalides." };
-
 /**
  * `POST /api/leads` (spec, 5 and 6.1): rate limit, honeypot, Turnstile, strict
  * validation, then dedup-aware ingestion, consultant notification and follow-ups.
  */
 export async function handleLeadRequest(request: Request, deps: LeadDeps): Promise<Response> {
-  const ip = clientIp(request.headers);
   const verifyHuman = deps.verifyHuman ?? verifyTurnstile;
-  const rateLimit = deps.rateLimit ?? consume;
-
-  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
-    return json(415, { ok: false, error: "Format non supporté." });
-  }
-  const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES) return json(413, { ok: false, error: "Requête trop volumineuse." });
-
-  // Rate limit first, so malformed and spam attempts count too (5 per hour per IP).
-  try {
-    await rateLimit(LIMITS.leadIp, ip);
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      return json(
-        429,
-        { ok: false, error: "Trop de demandes. Réessayez plus tard." },
-        { "Retry-After": String(error.retryAfterSeconds) },
-      );
-    }
-    throw error;
-  }
-
-  const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) return json(413, { ok: false, error: "Requête trop volumineuse." });
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    return json(400, GENERIC_INVALID);
-  }
+  const input = await readPublicJson(request, { limit: LIMITS.leadIp, rateLimit: deps.rateLimit });
+  if (!input.ok) return input.response;
+  const { ip, raw } = input;
 
   // Honeypot: bots fill every field. Answer as if it worked, store nothing.
-  const honeypot = (raw as { website?: unknown } | null)?.website;
-  if (typeof honeypot === "string" && honeypot.trim() !== "") return json(200, { ok: true });
+  if (isHoneypotFilled(raw)) return json(200, { ok: true });
 
   const parsed = leadSchema.safeParse(raw);
   if (!parsed.success) return json(400, GENERIC_INVALID);

@@ -7,6 +7,8 @@ export const QUEUES = {
   followupsDailyDigest: "followups.daily-digest",
   invoicesMarkOverdue: "invoices.mark-overdue",
   invoicesPaymentReminders: "invoices.payment-reminders",
+  sequencesDispatch: "sequences.dispatch",
+  newsletterPurgeUnconfirmed: "newsletter.purge-unconfirmed",
 } as const;
 
 const url = z.url({ protocol: /^https?$/ });
@@ -39,6 +41,14 @@ export const templateSchemas = {
     returning: z.boolean(),
     url,
   }),
+  // Personalised, already sanitized body (spec, 6.7). Sent from the marketing address, with List-Unsubscribe.
+  marketing: z.object({
+    subject: text(200),
+    bodyHtml: text(200_000),
+    unsubscribeUrl: url,
+    /** Open-tracking pixel (signed URL). */
+    pixelUrl: url.optional(),
+  }),
   "daily-digest": z.object({
     /** Calendar day in the display timezone, `YYYY-MM-DD`. */
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -68,7 +78,18 @@ export const emailJobSchema = z.discriminatedUnion("template", [
   job("payment-reminder"),
   job("new-lead"),
   job("daily-digest"),
+  // A marketing email also carries the enrolment it belongs to, for tracking and stop rules.
+  z.object({
+    template: z.literal("marketing"),
+    to: address,
+    data: templateSchemas.marketing,
+    enrollmentId: z.string().min(1).max(64).optional(),
+  }),
 ]);
+
+/** Templates sent from the marketing address and subject to the suppression list. */
+export const MARKETING_TEMPLATES: readonly TemplateName[] = ["marketing"];
+export const isMarketingTemplate = (template: TemplateName): boolean => MARKETING_TEMPLATES.includes(template);
 
 export type EmailJob = z.infer<typeof emailJobSchema>;
 

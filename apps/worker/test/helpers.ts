@@ -13,7 +13,8 @@ export const db = (): PrismaClient => (prisma ??= createPrismaClient(TEST_DATABA
 export async function resetDatabase(): Promise<void> {
   await db().$executeRawUnsafe(
     `TRUNCATE TABLE "User", "Session", "Account", "Verification", "TwoFactor", "Client", "Prospect",
-      "Notification", "AuditLog", "Interaction", "FollowUp", "Setting", "InvoiceCounter" CASCADE`,
+      "Notification", "AuditLog", "Interaction", "FollowUp", "Setting", "InvoiceCounter",
+      "EmailEvent", "Suppression", "NewsletterSubscriber", "SequenceEnrollment", "SequenceStep", "EmailSequence" CASCADE`,
   );
 }
 
@@ -56,6 +57,8 @@ export function makeDeps(overrides: Partial<WorkerDeps> = {}) {
     queue,
     env: {
       EMAIL_FROM_TRANSACTIONAL: "Cabinet <no-reply@example.com>",
+      EMAIL_FROM_MARKETING: "Cabinet News <news@example.com>",
+      TRACKING_HMAC_SECRET: "t".repeat(40),
       ADMIN_NOTIFICATION_EMAIL: "admin@example.com",
       APP_URL: "https://app.example.com",
       TZ_DISPLAY: "Africa/Abidjan",

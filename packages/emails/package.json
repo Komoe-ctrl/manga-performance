@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./jobs": "./src/jobs.ts"
+    "./jobs": "./src/jobs.ts",
+    "./sequence-templates": "./src/sequence-templates.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

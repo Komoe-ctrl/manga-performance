@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { services } from "@/lib/content/site";
 import { publishedPosts } from "@/lib/services";
 
@@ -7,6 +8,8 @@ const BASE = "https://www.manga-performance.example";
 const PATHS = ["", "/a-propos", "/services", "/references", "/blog", "/demo", "/contact"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Built on request, not at build time: it lists published articles, which live in the database.
+  await connection();
   const posts = await publishedPosts();
   return [
     ...PATHS,

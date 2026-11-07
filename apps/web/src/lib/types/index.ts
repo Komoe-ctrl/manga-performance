@@ -136,6 +136,8 @@ export interface BlogPost {
   excerpt: string;
   category: "controle_de_gestion" | "data" | "audit";
   content: string;
+  /** TipTap document (source of truth, set when the article comes from the database). */
+  contentJson?: unknown;
   coverImage?: string;
   status: "brouillon" | "publie";
   publishedAt?: string;

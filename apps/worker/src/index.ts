@@ -8,6 +8,7 @@ import { runDailyDigest } from "./jobs/daily-digest";
 import { handleEmailSend } from "./jobs/email-send";
 import { handleFanout } from "./jobs/fanout";
 import { runMarkOverdue, runPaymentReminders } from "./jobs/invoices";
+import { runPurgeUnconfirmed, runSequenceDispatch } from "./jobs/sequences";
 
 // The repository-level .env is the single source of configuration.
 try {
@@ -47,12 +48,20 @@ await boss.work(QUEUES.invoicesMarkOverdue, async () => {
 await boss.work(QUEUES.invoicesPaymentReminders, async () => {
   await runPaymentReminders(deps);
 });
+await boss.work(QUEUES.sequencesDispatch, async () => {
+  await runSequenceDispatch(deps);
+});
+await boss.work(QUEUES.newsletterPurgeUnconfirmed, async () => {
+  await runPurgeUnconfirmed(deps);
+});
 
-// Daily schedules, in the cabinet timezone (spec, section 7).
+// Schedules, in the cabinet timezone (spec, section 7).
 const schedules: [string, string][] = [
   [QUEUES.invoicesMarkOverdue, "0 6 * * *"],
   [QUEUES.followupsDailyDigest, "0 7 * * *"],
   [QUEUES.invoicesPaymentReminders, "0 9 * * *"],
+  [QUEUES.sequencesDispatch, "*/15 * * * *"],
+  [QUEUES.newsletterPurgeUnconfirmed, "0 3 * * *"],
 ];
 for (const [name, cron] of schedules) await boss.schedule(name, cron, {}, { tz: env.TZ_DISPLAY });
 

@@ -17,7 +17,8 @@
     "db:generate": "pnpm --filter @manga/db generate",
     "db:migrate": "pnpm --filter @manga/db migrate:dev",
     "db:deploy": "pnpm --filter @manga/db migrate:deploy",
-    "db:seed": "pnpm --filter @manga/db seed"
+    "db:seed": "pnpm --filter @manga/db seed",
+    "storage:setup": "pnpm --filter @manga/web storage:setup"
   },
   "devDependencies": {
     "eslint": "^9",
@@ -25,4 +26,3 @@
     "typescript": "^5"
   }
 }
-

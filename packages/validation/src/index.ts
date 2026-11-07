@@ -225,3 +225,54 @@ export const notificationsQuerySchema = z.object({
   cursor: z.string().min(1).max(64).optional(),
   limit: z.number().int().min(1).max(100).optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Marketing: blog, newsletter, sequences.
+// ---------------------------------------------------------------------------
+
+export const blogCategories = ["controle_de_gestion", "data", "audit"] as const;
+
+export const blogPostInputSchema = z.object({
+  title: text(200).min(1),
+  excerpt: text(500),
+  category: z.enum(blogCategories),
+  /** TipTap JSON: the source of truth. The HTML is generated and sanitized by the server. */
+  contentJson: z.record(z.string(), z.unknown()),
+  status: z.enum(["brouillon", "publie"]),
+  /** Key of a cover uploaded under `public/blog/`. */
+  coverKey: z.string().max(300).optional(),
+  metaTitle: optionalText(120),
+  metaDescription: optionalText(300),
+});
+
+export type BlogPostInput = z.input<typeof blogPostInputSchema>;
+
+export const newsletterSubscribeSchema = z.strictObject({
+  email: z.string().trim().max(254).pipe(z.email()).transform((value) => value.toLowerCase()),
+  consent: z.literal(true),
+  turnstileToken: z.string().max(2048).optional(),
+  website: z.string().max(200).optional(),
+});
+
+export const sequenceTriggers = ["inscription_newsletter", "manuel"] as const;
+
+export const sequenceStepSchema = z.object({
+  order: z.number().int().min(1).max(50),
+  delayDays: z.number().int().min(0).max(365),
+  subject: text(200).min(1),
+  body: z.string().max(20_000).min(1),
+});
+
+export const sequenceInputSchema = z.object({
+  name: text(120).min(1),
+  trigger: z.enum(sequenceTriggers),
+  active: z.boolean(),
+  steps: z.array(sequenceStepSchema).min(1).max(10),
+});
+
+export type SequenceInput = z.input<typeof sequenceInputSchema>;
+
+export const marketingSettingsSchema = z.object({
+  /** Emails per day, to warm the sending domain up (spec, 6.7: start at 50). */
+  dailyCap: z.number().int().min(0).max(100_000),
+});

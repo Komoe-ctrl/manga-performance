@@ -1,6 +1,6 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource react */
-import { Link, Text } from "@react-email/components";
+import { Img, Link, Text } from "@react-email/components";
 import type { ReactElement } from "react";
 import type { EmailJob } from "./jobs";
 import {
@@ -136,6 +136,18 @@ function DailyDigest({ data, cabinet }: { data: Data<"daily-digest">; cabinet: C
   );
 }
 
+function Marketing({ data, cabinet }: { data: Data<"marketing">; cabinet: Cabinet }) {
+  return (
+    <Layout preview={data.subject} cabinet={cabinet}>
+      <div style={{ fontSize: 15, lineHeight: "24px" }} dangerouslySetInnerHTML={{ __html: data.bodyHtml }} />
+      <Small>
+        Vous recevez cet email de la part de {cabinet.name}. <Link href={data.unsubscribeUrl} style={{ color: COLORS.muted }}>Se désinscrire</Link>
+      </Small>
+      {data.pixelUrl && <Img src={data.pixelUrl} width="1" height="1" alt="" />}
+    </Layout>
+  );
+}
+
 const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
 
 /** Subject and body for each template (all French, spec section 8). */
@@ -158,6 +170,8 @@ export function buildEmail(job: EmailJob, cabinet: Cabinet): BuiltEmail {
         subject: job.data.returning ? `Nouveau message de ${job.data.contactName}` : `Nouveau prospect : ${job.data.companyName}`,
         element: <NewLead data={job.data} cabinet={cabinet} />,
       };
+    case "marketing":
+      return { subject: job.data.subject, element: <Marketing data={job.data} cabinet={cabinet} /> };
     case "daily-digest":
       return {
         subject: `Relances du jour : ${plural(job.data.today.length, "à faire", "à faire")}, ${plural(job.data.overdue.length, "en retard", "en retard")}`,

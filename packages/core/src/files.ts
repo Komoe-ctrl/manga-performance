@@ -109,3 +109,18 @@ export function attachmentDisposition(filename: string): string {
   const ascii = clean.replace(/[^\x20-\x7e]/g, "_").replace(/\\/g, "_");
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(clean)}`;
 }
+
+/** Blog covers live under the only public prefix of the bucket (spec, 6.8). */
+export const PUBLIC_BLOG_PREFIX = "public/blog/";
+
+/** Public files are images only: nothing that a browser could execute. */
+export const PUBLIC_IMAGE_KINDS: readonly FileKind[] = ["png", "jpg"];
+
+export function newPublicBlogKey(extension: string): string {
+  return `${PUBLIC_BLOG_PREFIX}${randomBytes(18).toString("base64url")}.${extension}`;
+}
+
+/** True for `public/blog/{name}`: one level, no escape. */
+export function isBlogCoverKey(key: string): boolean {
+  return key.startsWith(PUBLIC_BLOG_PREFIX) && !key.includes("..") && !key.slice(PUBLIC_BLOG_PREFIX.length).includes("/") && key.length > PUBLIC_BLOG_PREFIX.length;
+}

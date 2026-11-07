@@ -5,6 +5,8 @@ import type { EmailProvider } from "@manga/emails";
 
 export interface WorkerEnv {
   EMAIL_FROM_TRANSACTIONAL: string;
+  EMAIL_FROM_MARKETING: string;
+  TRACKING_HMAC_SECRET: string;
   ADMIN_NOTIFICATION_EMAIL: string;
   APP_URL: string;
   TZ_DISPLAY: string;

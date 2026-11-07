@@ -31,10 +31,11 @@ export type CreateProspectData = z.input<typeof createProspectSchema>;
 export type SettingsData = z.output<typeof settingsSchema>;
 
 export interface IngestLead {
-  source: "site_formulaire" | "chatbot" | "demo";
+  source: "site_formulaire" | "chatbot" | "demo" | "newsletter";
   /** Human wording used in the interaction note: "le formulaire de contact"… */
   sourceLabel: string;
-  name: string;
+  /** Absent for a newsletter signup: only an email is known. */
+  name?: string;
   email?: string;
   phone?: string;
   company?: string;
@@ -126,14 +127,15 @@ export function createCrmService({ prisma, flows, now = () => new Date() }: CrmD
       data: { status: to, ...(to === "CLIENT" ? { convertedAt: at } : {}) },
     });
 
+    // Whatever the new status, the consultant has taken over: marketing sequences stop.
+    await tx.sequenceEnrollment.updateMany({
+      where: { prospectId: prospect.id, status: "ACTIVE" },
+      data: { status: "STOPPED", nextSendAt: null },
+    });
     if (closesProspect(to)) {
       await tx.followUp.updateMany({
         where: { prospectId: prospect.id, doneAt: null, cancelledAt: null },
         data: { cancelledAt: at },
-      });
-      await tx.sequenceEnrollment.updateMany({
-        where: { prospectId: prospect.id, status: "ACTIVE" },
-        data: { status: "STOPPED", nextSendAt: null },
       });
     }
 
@@ -306,8 +308,12 @@ export function createCrmService({ prisma, flows, now = () => new Date() }: CrmD
       if (lead.source === "chatbot" && !email && !phone) {
         throw new CrmError("INVALID", "Un email ou un téléphone valide est requis.");
       }
+      if (lead.source === "newsletter" && !email) {
+        throw new CrmError("INVALID", "Un email est requis.");
+      }
 
-      const companyName = lead.company || lead.name;
+      // A newsletter subscriber has no company yet: the address identifies the prospect.
+      const companyName = lead.company || lead.name || email!;
       const companyNameNorm = normalizeCompanyName(companyName);
       const at = now();
       const consentSource = `lead:${lead.source}`;
@@ -328,7 +334,7 @@ export function createCrmService({ prisma, flows, now = () => new Date() }: CrmD
             data: { consentAt: at, consentSource },
           });
         });
-        return { prospectId: existing.id, created: false, companyName, contactName: lead.name };
+        return { prospectId: existing.id, created: false, companyName, contactName: lead.name ?? "" };
       }
 
       const rules = (await settings.get()).followUps;
@@ -342,7 +348,7 @@ export function createCrmService({ prisma, flows, now = () => new Date() }: CrmD
             phone,
             sector: lead.sector || "Non précisé",
             need: lead.need ? toDbNeed(lead.need) : undefined,
-            source: lead.source.toUpperCase() as "SITE_FORMULAIRE" | "CHATBOT" | "DEMO",
+            source: lead.source.toUpperCase() as "SITE_FORMULAIRE" | "CHATBOT" | "DEMO" | "NEWSLETTER",
             notes: lead.message,
             consentAt: at,
             consentSource,
@@ -364,7 +370,7 @@ export function createCrmService({ prisma, flows, now = () => new Date() }: CrmD
         }
         return created.id;
       });
-      return { prospectId, created: true, companyName, contactName: lead.name };
+      return { prospectId, created: true, companyName, contactName: lead.name ?? "" };
     },
 
     /**

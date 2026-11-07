@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./queue": "./src/queue.ts",
-    "./billing-jobs": "./src/billing-jobs.ts"
+    "./billing-jobs": "./src/billing-jobs.ts",
+    "./marketing": "./src/marketing.ts"
   },
   "scripts": {
     "generate": "prisma generate",

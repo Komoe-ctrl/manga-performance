@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { subscribeNewsletter } from "@/lib/services";
+import { USE_DB, subscribeNewsletter } from "@/lib/services";
+import { LeadGuardFields, useLeadGuard } from "./lead-guard";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 
@@ -14,6 +15,7 @@ type Values = z.infer<typeof schema>;
 
 export function NewsletterForm() {
   const [done, setDone] = useState(false);
+  const guard = useLeadGuard();
   const {
     register,
     handleSubmit,
@@ -23,7 +25,9 @@ export function NewsletterForm() {
   if (done) {
     return (
       <p role="status" className="text-sm">
-        Merci ! Un email de confirmation vous a été envoyé (double opt-in simulé).
+        {USE_DB
+          ? "Merci ! Un email de confirmation vous a été envoyé : cliquez sur le lien pour finaliser votre inscription."
+          : "Merci ! Un email de confirmation vous a été envoyé (double opt-in simulé)."}
       </p>
     );
   }
@@ -32,11 +36,18 @@ export function NewsletterForm() {
     <form
       noValidate
       onSubmit={handleSubmit(async ({ email }) => {
-        await subscribeNewsletter(email);
+        try {
+          await subscribeNewsletter(email, guard.read());
+        } catch (error) {
+          guard.reset();
+          toast.error(error instanceof Error ? error.message : "Inscription impossible, réessayez.");
+          return;
+        }
+        guard.reset();
         toast.success("Inscription enregistrée");
         setDone(true);
       })}
-      className="flex flex-wrap items-end gap-3"
+      className="relative flex flex-wrap items-end gap-3"
     >
       <div className="min-w-60 flex-1">
         <Field label="Votre email" htmlFor="newsletter-email" error={errors.email?.message}>
@@ -49,9 +60,13 @@ export function NewsletterForm() {
           />
         </Field>
       </div>
+      <LeadGuardFields guard={guard} />
       <Button type="submit" variant="accent" disabled={isSubmitting}>
         S&apos;inscrire
       </Button>
+      <p className="basis-full text-xs opacity-80">
+        En vous inscrivant, vous acceptez de recevoir notre newsletter. Désinscription en un clic à tout moment.
+      </p>
     </form>
   );
 }
