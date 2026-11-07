@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { invoiceTotals, listClients, listInvoices, publishDeliverable, setClientAccess } from "@/lib/services";
+import { USE_DB, invoiceTotals, listClients, listInvoices, publishDeliverable, setClientAccess } from "@/lib/services";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { ErrorState, LoadingState, MoneyAmount } from "@/components/shared";
@@ -23,6 +23,8 @@ function PublishDialog({ client, onClose, onDone }: { client: Row | null; onClos
   const ref = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState("");
   const [fileType, setFileType] = useState<"pdf" | "xlsx">("pdf");
+  const [file, setFile] = useState<File | undefined>();
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     const d = ref.current;
@@ -39,10 +41,19 @@ function PublishDialog({ client, onClose, onDone }: { client: Row | null; onClos
         onSubmit={async (e) => {
           e.preventDefault();
           if (!client || !title.trim()) return;
-          // Upload simulé : taille aléatoire, aucun fichier réel.
-          await publishDeliverable({ clientId: client.id, title: title.trim(), fileType, sizeKb: 120 + Math.floor(Math.random() * 600) });
+          setPublishing(true);
+          try {
+            // Mode maquette : taille aléatoire, aucun fichier réel. Mode base : le fichier est envoyé au stockage privé.
+            await publishDeliverable({ clientId: client.id, title: title.trim(), fileType, sizeKb: 120 + Math.floor(Math.random() * 600), file });
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Publication impossible, réessayez.");
+            return;
+          } finally {
+            setPublishing(false);
+          }
           toast.success("Livrable publié dans l'espace client");
           setTitle("");
+          setFile(undefined);
           onDone();
           onClose();
         }}
@@ -50,16 +61,24 @@ function PublishDialog({ client, onClose, onDone }: { client: Row | null; onClos
         <Field label="Titre *" htmlFor="pub-name">
           <Input id="pub-name" value={title} onChange={(e) => setTitle(e.target.value)} required />
         </Field>
-        <Field label="Type de fichier" htmlFor="pub-type">
-          <Select id="pub-type" value={fileType} onChange={(e) => setFileType(e.target.value as "pdf" | "xlsx")}>
-            <option value="pdf">PDF</option>
-            <option value="xlsx">Excel (XLSX)</option>
-          </Select>
-        </Field>
-        <p className="text-xs text-muted-foreground">Téléversement simulé : aucun fichier n&apos;est réellement envoyé.</p>
+        {USE_DB ? (
+          <Field label="Fichier * (PDF, Excel, Word, PNG ou JPG, 25 Mo max)" htmlFor="pub-file">
+            <Input id="pub-file" type="file" accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg" required onChange={(e) => setFile(e.target.files?.[0])} />
+          </Field>
+        ) : (
+          <>
+            <Field label="Type de fichier" htmlFor="pub-type">
+              <Select id="pub-type" value={fileType} onChange={(e) => setFileType(e.target.value as "pdf" | "xlsx")}>
+                <option value="pdf">PDF</option>
+                <option value="xlsx">Excel (XLSX)</option>
+              </Select>
+            </Field>
+            <p className="text-xs text-muted-foreground">Téléversement simulé : aucun fichier n&apos;est réellement envoyé.</p>
+          </>
+        )}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-          <Button type="submit">Publier</Button>
+          <Button type="submit" disabled={publishing}>Publier</Button>
         </div>
       </form>
     </dialog>

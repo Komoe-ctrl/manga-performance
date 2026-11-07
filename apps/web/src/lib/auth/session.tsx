@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Session } from "@/lib/types";
 import { USE_DB } from "@/lib/services/data-source";
+import { resolveClientSession } from "@/lib/services/auth";
 import { authClient, fetchCurrentUser } from "./auth-client";
 
 interface SessionContextValue {
@@ -30,10 +31,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       let cancelled = false;
       fetchCurrentUser()
         .catch(() => null)
-        .then((user) => {
+        .then(async (user) => {
+          let next: Session = null;
+          if (user?.role === "ADMIN" && user.twoFactorEnabled) next = { role: "consultant" };
+          else if (user?.role === "CLIENT") {
+            // The screens use the prospect id as client id: ask the server for the session's own.
+            const client = await resolveClientSession();
+            if (client.status === "ok") next = { role: "client", clientId: client.clientId };
+          }
           if (cancelled) return;
-          const isAdmin = user?.role === "ADMIN" && user.twoFactorEnabled;
-          setSession(isAdmin ? { role: "consultant" } : null);
+          setSession(next);
           setReady(true);
         });
       return () => {

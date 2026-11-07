@@ -56,6 +56,12 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ ...testKey, NODE_ENV: "production" })).toThrow(/TURNSTILE_SECRET_KEY: Cloudflare test key/);
   });
 
+  it("rejects the development passwords of the compose file in production only", () => {
+    const dev = { ...valid, DATABASE_URL: "postgresql://manga:manga_dev_password@localhost:5434/manga" };
+    expect(() => parseEnv(dev)).not.toThrow();
+    expect(() => parseEnv({ ...dev, NODE_ENV: "production" })).toThrow(/DATABASE_URL: placeholder/);
+  });
+
   it("rejects placeholder values in production only", () => {
     const placeholder = { ...valid, BREVO_API_KEY: "change-me" };
     expect(() => parseEnv(placeholder)).not.toThrow();

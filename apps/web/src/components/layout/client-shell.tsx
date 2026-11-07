@@ -7,7 +7,7 @@ import { Bell, FileText, LogOut, MessageSquare } from "lucide-react";
 import { clientNav } from "@/lib/nav";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
-import { getProspect, listNotifications } from "@/lib/services";
+import { getClientCompany, listNotifications } from "@/lib/services";
 import { cn } from "@/lib/utils/cn";
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
@@ -15,7 +15,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const clientId = session?.role === "client" ? session.clientId : null;
-  const client = useAsync(() => (clientId ? getProspect(clientId) : Promise.resolve(null)));
+  const client = useAsync(() => (clientId ? getClientCompany(clientId) : Promise.resolve(null)));
   const notifications = useAsync(() => (clientId ? listNotifications(clientId) : Promise.resolve([])), [clientId, pathname]);
   const unread = notifications.status === "success" ? notifications.data.length : 0;
 

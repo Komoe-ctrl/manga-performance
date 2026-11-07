@@ -318,15 +318,19 @@ model DeliverableDownload {
 }
 
 model Message {
-  id            String    @id @default(cuid(2))
-  clientId      String
-  client        Client    @relation(fields: [clientId], references: [id])
-  authorId      String
-  fromRole      Role
-  body          String
-  attachmentKey String?
-  readAt        DateTime? @db.Timestamptz(3)
-  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  id             String    @id @default(cuid(2))
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id])
+  authorId       String
+  fromRole       Role
+  body           String
+  attachmentKey  String?
+  /// Original file name, shown in the thread and used for the download.
+  attachmentName String?
+  attachmentMime String?
+  attachmentSize Int?
+  readAt         DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
 
   @@index([clientId, createdAt])
 }

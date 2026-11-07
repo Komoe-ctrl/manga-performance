@@ -114,7 +114,7 @@ export interface Deliverable {
   id: string;
   clientId: string;
   title: string;
-  fileType: "pdf" | "xlsx";
+  fileType: "pdf" | "xlsx" | "docx" | "png" | "jpg";
   sizeKb: number;
   publishedAt: string;
   isNew: boolean;

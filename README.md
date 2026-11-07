@@ -75,3 +75,20 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   intégration à l'API de la DGI : `ManualFneProvider` garde simplement le numéro saisi.
 - Worker : `invoices.mark-overdue` (06:00), `followups.daily-digest` (07:00), `invoices.payment-reminders`
   (09:00, relances à J+3, J+10 et J+20 après l'échéance, 3 au maximum, journalisées).
+
+## Espace client (étape 7)
+
+- Stockage compatible S3 (bucket **privé**), MinIO en local : `pnpm db:up` démarre PostgreSQL et MinIO
+  (API sur le port 9100, console sur 9101). Les fichiers n'en sortent que par des URL présignées.
+- Envoi en deux temps : `requestUpload` contrôle nom, type et taille (25 Mo max ; PDF, XLSX, DOCX, PNG, JPG)
+  et renvoie une URL PUT dont la signature **inclut la taille et le type exacts** ; une fois le fichier
+  envoyé, le serveur le relit (taille, signature réelle du fichier, SHA-256) et le supprime s'il ne
+  correspond pas à son extension. Clés : `clients/{clientId}/{aléatoire}.{ext}`.
+- Téléchargement : `GET /api/deliverables/:id/download` et `GET /api/messages/:id/attachment` vérifient
+  les droits, journalisent, puis redirigent vers une URL présignée de 5 minutes (`attachment`). Le
+  fichier d'un autre client est indiscernable d'un fichier inexistant (404).
+- Livrables, messages (l'email de notification ne contient jamais le message) et notifications
+  (liste paginée, marquer comme lu, compteur) sont filtrés par le `clientId` de la session, jamais par
+  celui du navigateur.
+- Avec un fournisseur réel (OVH, R2), il faudra configurer le CORS du bucket pour autoriser le `PUT` depuis
+  l'adresse du site (voir le runbook, étape 11).

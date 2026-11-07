@@ -10,6 +10,8 @@ try {
 }
 
 const isDev = process.env.NODE_ENV !== "production";
+// Browsers upload files straight to private storage with presigned URLs (spec, section 5).
+const s3Origin = process.env.S3_ENDPOINT ? new URL(process.env.S3_ENDPOINT).origin : "";
 
 // Content-Security-Policy (spec, section 5). Next.js inlines its bootstrap scripts, so
 // `script-src` keeps 'unsafe-inline' until nonces are adopted (they would force every
@@ -21,7 +23,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' https://challenges.cloudflare.com${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self' https://challenges.cloudflare.com${s3Origin ? ` ${s3Origin}` : ""}${isDev ? " ws: wss:" : ""}`,
   "frame-src https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",

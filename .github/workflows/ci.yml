@@ -29,7 +29,16 @@ jobs:
     env:
       DATABASE_URL: postgresql://manga:manga_ci_password@localhost:5432/manga_test
       TEST_DATABASE_URL: postgresql://manga:manga_ci_password@localhost:5432/manga_test
+      # The storage tests must run in CI, not be skipped.
+      REQUIRE_S3: "1"
     steps:
+      - name: Start MinIO (S3-compatible storage for the integration tests)
+        run: |
+          docker run -d --name minio -p 9100:9000 \
+            -e MINIO_ROOT_USER=manga -e MINIO_ROOT_PASSWORD=manga_dev_password \
+            -e MINIO_DEFAULT_BUCKETS=manga-test \
+            bitnamilegacy/minio:latest
+          for i in $(seq 1 30); do curl -fsS http://localhost:9100/minio/health/live && break; sleep 2; done
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4

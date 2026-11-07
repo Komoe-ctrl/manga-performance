@@ -193,3 +193,35 @@ export const recordPaymentSchema = z.object({
 export const cancelInvoiceSchema = z.object({ id, reason: text(500).min(1) });
 
 export type CreateInvoiceInput = z.input<typeof createInvoiceInputSchema>;
+
+// ---------------------------------------------------------------------------
+// Client space: uploads, deliverables, messages, notifications.
+// ---------------------------------------------------------------------------
+
+export const uploadRequestSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+  mimeType: z.string().max(150),
+  sizeBytes: z.number().int().positive().max(100 * 1024 * 1024),
+});
+
+/** `key` comes from a previous upload request; the server re-checks it belongs to the client. */
+const attachmentSchema = z.object({ key: z.string().min(1).max(300), filename: z.string().trim().min(1).max(255) });
+
+export const publishDeliverableSchema = z.object({
+  clientId: id,
+  title: z.string().trim().min(1).max(200),
+  key: z.string().min(1).max(300),
+});
+
+export const sendMessageSchema = z.object({
+  body: z.string().trim().min(1).max(5000),
+  attachment: attachmentSchema.optional(),
+});
+
+export const sendAdminMessageSchema = sendMessageSchema.extend({ clientId: id });
+
+export const notificationsQuerySchema = z.object({
+  unreadOnly: z.boolean().optional(),
+  cursor: z.string().min(1).max(64).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+});

@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Download, FileImage, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
-import { listDeliverables, markDeliverableSeen } from "@/lib/services";
+import { USE_DB, downloadDeliverable, listDeliverables, markDeliverableSeen } from "@/lib/services";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { DateLabel, EmptyState, ErrorState, LoadingState } from "@/components/shared";
 
-type Filter = "all" | "pdf" | "xlsx";
+type Filter = "all" | "pdf" | "xlsx" | "other";
+
+const ICONS = { pdf: FileText, xlsx: FileSpreadsheet, docx: FileText, png: FileImage, jpg: FileImage } as const;
 
 export function DeliverablesView() {
   const { session } = useSession();
@@ -22,13 +24,13 @@ export function DeliverablesView() {
   if (items.status === "error") return <ErrorState message="Livrables indisponibles." onRetry={items.reload} />;
 
   const shown = [...items.data]
-    .filter((d) => filter === "all" || d.fileType === filter)
+    .filter((d) => filter === "all" || (filter === "other" ? d.fileType !== "pdf" && d.fileType !== "xlsx" : d.fileType === filter))
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
   return (
     <div className="space-y-4">
       <div role="group" aria-label="Filtrer par type" className="flex gap-2">
-        {([["all", "Tous"], ["pdf", "PDF"], ["xlsx", "Excel"]] as const).map(([v, label]) => (
+        {([["all", "Tous"], ["pdf", "PDF"], ["xlsx", "Excel"], ["other", "Autres"]] as const).map(([v, label]) => (
           <button
             key={v}
             aria-pressed={filter === v}
@@ -48,7 +50,7 @@ export function DeliverablesView() {
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
           {shown.map((d) => {
-            const Icon = d.fileType === "pdf" ? FileText : FileSpreadsheet;
+            const Icon = ICONS[d.fileType];
             return (
               <li key={d.id} className="flex items-start gap-3 rounded-lg border border-border p-4">
                 <Icon className="mt-1 h-6 w-6 shrink-0 text-primary" aria-hidden />
@@ -65,7 +67,8 @@ export function DeliverablesView() {
                     variant="outline"
                     className="mt-3"
                     onClick={async () => {
-                      toast.info("Téléchargement disponible dans la version finale");
+                      if (USE_DB) downloadDeliverable(d.id);
+                      else toast.info("Téléchargement disponible dans la version finale");
                       if (d.isNew) {
                         await markDeliverableSeen(d.id);
                         items.reload();

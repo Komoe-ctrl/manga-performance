@@ -8,3 +8,4 @@ export * from "./normalize";
 export * from "./password";
 export * from "./tokens";
 export * from "./invoice";
+export * from "./files";

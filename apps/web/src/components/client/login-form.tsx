@@ -6,18 +6,24 @@ import { useRouter } from "next/navigation";
 import { Check, Lock, Mail, Search } from "lucide-react";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
-import { authenticateClient, listClients } from "@/lib/services";
+import { USE_DB, authenticateClient, listClients, resolveClientSession, signInClient, verifyTwoFactorCode } from "@/lib/services";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 
 const DEMO_PASSWORD = "demo1234";
 
-/** Connexion simulée : email d'un client avec accès actif + mot de passe de 4 caractères minimum. */
+/**
+ * `DATA_SOURCE=mock` : connexion simulée (email d'un client avec accès actif + mot de passe de 4 caractères minimum).
+ * `DATA_SOURCE=db` : Better Auth ; le code de l'application d'authentification n'est demandé que si le client l'a activé.
+ */
 export function ClientLoginForm() {
   const { signIn } = useSession();
   const router = useRouter();
-  const clients = useAsync(listClients);
+  // The demo picker lists clients through an admin-only action: not used with a real database.
+  const clients = useAsync(() => (USE_DB ? Promise.resolve([]) : listClients()));
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"password" | "code">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [query, setQuery] = useState("");
@@ -38,8 +44,27 @@ export function ClientLoginForm() {
         onSubmit={async (e) => {
           e.preventDefault();
           setError(null);
+          if (step === "code") {
+            if (!/^\d{6}$/.test(code.trim())) return setError("Saisissez le code à 6 chiffres.");
+            setPending(true);
+            const verified = await verifyTwoFactorCode(code);
+            const session = verified.ok ? await resolveClientSession() : null;
+            setPending(false);
+            if (!verified.ok) return setError(verified.message);
+            if (session?.status !== "ok") return setError(session?.message ?? "Connexion impossible.");
+            signIn({ role: "client", clientId: session.clientId });
+            return router.push("/espace-client");
+          }
           if (!email.trim() || !password) return setError("Renseignez votre email et votre mot de passe.");
           setPending(true);
+          if (USE_DB) {
+            const result = await signInClient(email, password);
+            setPending(false);
+            if (result.status === "error") return setError(result.message);
+            if (result.status === "two_factor") return setStep("code");
+            signIn({ role: "client", clientId: result.clientId });
+            return router.push("/espace-client");
+          }
           const res = await authenticateClient(email, password);
           setPending(false);
           if (!res.ok) return setError(res.reason);
@@ -47,6 +72,12 @@ export function ClientLoginForm() {
           router.push("/espace-client");
         }}
       >
+        {step === "code" ? (
+          <Field label="Code de l'application d'authentification" htmlFor="login-code">
+            <Input id="login-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+          </Field>
+        ) : (
+          <>
         <Field label="Email" htmlFor="login-email">
           <div className="relative">
             <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
@@ -59,6 +90,8 @@ export function ClientLoginForm() {
             <Input id="login-password" type="password" autoComplete="current-password" className="pl-9" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
         </Field>
+          </>
+        )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={pending}>Se connecter</Button>
         <p className="text-center text-sm">
@@ -66,6 +99,7 @@ export function ClientLoginForm() {
         </p>
       </form>
 
+      {!USE_DB && (
       <section aria-labelledby="demo-title" className="rounded-xl border border-dashed border-border p-4">
         <h2 id="demo-title" className="text-sm font-semibold text-primary">Maquette : pré-remplir avec un client</h2>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -106,6 +140,7 @@ export function ClientLoginForm() {
           })}
         </ul>
       </section>
+      )}
     </div>
   );
 }

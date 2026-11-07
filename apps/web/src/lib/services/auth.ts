@@ -1,5 +1,6 @@
 import { authClient, fetchCurrentUser } from "@/lib/auth/auth-client";
 import * as accountActions from "@/server/actions/auth";
+import { getMyCompanyAction } from "@/server/actions/client-space";
 import { USE_DB } from "./data-source";
 
 export type AdminSignInResult =
@@ -70,6 +71,32 @@ export async function startTwoFactorEnrolment(
 }
 
 export const confirmTwoFactorEnrolment = verifyTwoFactorCode;
+
+export type ClientSignInResult =
+  | { status: "ok"; clientId: string }
+  | { status: "two_factor" }
+  | { status: "error"; message: string };
+
+/** Prospect id of the signed-in client (what the client-space screens use as their client id). */
+export async function resolveClientSession(): Promise<{ status: "ok"; clientId: string } | { status: "error"; message: string }> {
+  const company = await getMyCompanyAction();
+  if (!company.ok) {
+    await authClient.signOut();
+    return { status: "error", message: "Cet espace est réservé aux clients." };
+  }
+  return { status: "ok", clientId: company.data.prospectId };
+}
+
+/** Client sign-in (db mode). Two-factor is optional for clients: asked only if they enabled it. */
+export async function signInClient(email: string, password: string): Promise<ClientSignInResult> {
+  const { data, error } = await authClient.signIn.email({ email, password });
+  if (error) {
+    const specific = error.status === 429 || error.status === 403;
+    return { status: "error", message: specific && error.message ? error.message : WRONG_CREDENTIALS };
+  }
+  if ((data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) return { status: "two_factor" };
+  return resolveClientSession();
+}
 
 export async function signOut(): Promise<void> {
   if (USE_DB) await authClient.signOut();
