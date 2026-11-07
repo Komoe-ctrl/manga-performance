@@ -1,5 +1,6 @@
 import { createLogger } from "@manga/core";
 import { Prisma, type PrismaClient } from "@manga/db";
+import { hashedSuppressionKey } from "@manga/db/marketing";
 import { DomainError } from "../domain-error";
 import { recordAudit } from "../repositories/audit";
 import type { ObjectStorage } from "../storage/object-storage";
@@ -127,8 +128,9 @@ export function createPrivacyService({ prisma, storage, now = () => new Date() }
     /**
      * Irreversible. Personal fields are erased or replaced, the portal access is destroyed,
      * messages and their attachments are removed. Kept: invoices and payments (accounting
-     * obligation) with the client company's legal name, address and tax id, and the
-     * suppression-list entry, so that someone who asked not to be mailed is never mailed again.
+     * obligation) with the client company's legal name, address and tax id, and, if the person
+     * had unsubscribed or bounced, a SHA-256 of their address on the suppression list (never the
+     * address itself), so that they are never mailed again.
      */
     async anonymizeContact(prospectId: string, actorId: string) {
       const prospect = await prisma.prospect.findUnique({
@@ -175,9 +177,18 @@ export function createPrivacyService({ prisma, storage, now = () => new Date() }
 
         let events = 0;
         let subscribers = 0;
+        let suppressionHashed = false;
         if (email) {
           events = (await tx.emailEvent.updateMany({ where: { email }, data: { email: placeholderEmail(prospectId), meta: Prisma.DbNull } })).count;
           subscribers = (await tx.newsletterSubscriber.deleteMany({ where: { email } })).count;
+          // Someone who asked not to be mailed stays excluded, but only as a hash of the address.
+          const listed = await tx.suppression.findUnique({ where: { email } });
+          if (listed) {
+            const key = hashedSuppressionKey(email);
+            await tx.suppression.upsert({ where: { email: key }, create: { email: key, reason: listed.reason, createdAt: listed.createdAt }, update: {} });
+            await tx.suppression.delete({ where: { email } });
+            suppressionHashed = true;
+          }
         }
         const scraped = await tx.scrapeResult.updateMany({
           where: { OR: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])] },
@@ -212,7 +223,7 @@ export function createPrivacyService({ prisma, storage, now = () => new Date() }
           entity: "Prospect",
           entityId: prospectId,
           // Counts only: nothing identifying goes into the journal.
-          diff: { interactions: interactions.count, emailEvents: events, newsletterSubscriptions: subscribers, scrapeResults: scraped.count, messages, portalUsers: userIds.length },
+          diff: { interactions: interactions.count, emailEvents: events, newsletterSubscriptions: subscribers, suppressionHashed, scrapeResults: scraped.count, messages, portalUsers: userIds.length },
         });
         return { interactions: interactions.count, messages, portalUsers: userIds.length };
       });

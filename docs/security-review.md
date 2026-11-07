@@ -48,8 +48,10 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
 
 ## Points à valider ou à surveiller
 
-1. **Liste d'exclusion et anonymisation** : l'email d'une personne désinscrite est conservé après anonymisation pour ne
-   jamais lui réécrire. Décision juridique à confirmer par le client.
+1. **Liste d'exclusion et anonymisation** : après anonymisation, une personne désinscrite reste exclue sous la forme
+   d'une empreinte SHA-256 de son adresse (jamais l'adresse). C'est une pseudonymisation, pas un effacement total :
+   une adresse connue peut être comparée à l'empreinte. À faire confirmer par le client (base légale : ne pas
+   recontacter quelqu'un qui l'a demandé).
 2. **Scraper** : la conformité (sources, cadre légal de la collecte et de la prospection) reste à la charge du client ;
    aucune source réelle n'est livrée, seulement un spider de démonstration.
 3. **Turnstile en e2e** : les tests de bout en bout utilisent les clés de test Cloudflare et exigent un accès Internet.

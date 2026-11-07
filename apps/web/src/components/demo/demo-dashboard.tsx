@@ -3,8 +3,6 @@
 import { useMemo, useState } from "react";
 import { format, addDays, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Download, FileSpreadsheet } from "lucide-react";
-import { toast } from "sonner";
 import {
   Bar,
   BarChart,
@@ -22,6 +20,7 @@ import { getDemoDashboard } from "@/lib/services";
 import { aggregate, byHotel, monthlySeries, periods, variances, variation, type Filters, type Granularity } from "@/lib/demo/compute";
 import { formatFCFA } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { ExportButtons } from "@/components/shared/export-buttons";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { ErrorState, LoadingState } from "@/components/shared";
@@ -32,7 +31,6 @@ const GOLD = "#F5B700";
 
 const monthLabel = (m: string) => format(parseISO(`${m}-01`), "MMM yy", { locale: fr });
 const millions = (v: number) => `${Math.round(v / 1_000_000)} M`;
-const notAvailable = () => toast.info("Disponible dans la version finale");
 
 function Kpi({ label, value, delta, unit = "%", hint }: { label: string; value: string; delta?: number; unit?: string; hint?: string }) {
   return (
@@ -117,8 +115,7 @@ export function DemoDashboard() {
           </Select>
         </label>
         <div className="ml-auto flex gap-2">
-          <Button variant="outline" onClick={notAvailable}><Download className="h-4 w-4" aria-hidden /> PDF</Button>
-          <Button variant="outline" onClick={notAvailable}><FileSpreadsheet className="h-4 w-4" aria-hidden /> Excel</Button>
+          <ExportButtons kind="demo" filters={{ ...filters }} />
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { hashedSuppressionKey, isSuppressed } from "@manga/db/marketing";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as actions from "@/server/actions/privacy";
 import { createInvoiceService } from "@/server/billing/invoice-service";
@@ -147,10 +148,17 @@ describe("anonymization", () => {
     expect(await db().emailEvent.count()).toBe(1);
   });
 
-  it("keeps the suppression-list entry so the person is never mailed again", async () => {
+  it("keeps the person excluded, as a hash of the address and never the address itself", async () => {
     const { admin, prospect } = await fullContact();
     await privacy().anonymizeContact(prospect.id, admin.id);
-    expect(await db().suppression.count({ where: { email: "awa@lagune.example" } })).toBe(1);
+    expect(await db().suppression.count({ where: { email: "awa@lagune.example" } })).toBe(0);
+    const rows = await db().suppression.findMany();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ email: hashedSuppressionKey("Awa@Lagune.example"), reason: "UNSUBSCRIBED" });
+    expect(JSON.stringify(rows)).not.toContain("lagune");
+    // The marketing guard still refuses this address, whatever its case.
+    expect(await isSuppressed(db(), "AWA@lagune.example")).toBe("UNSUBSCRIBED");
+    expect(await isSuppressed(db(), "someone-else@example.com")).toBeNull();
   });
 
   it("is journaled with counts only", async () => {
