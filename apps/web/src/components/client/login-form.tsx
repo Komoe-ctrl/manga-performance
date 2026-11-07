@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Lock, Mail, Search } from "lucide-react";
+import { Check, Eye, EyeOff, Lock, Mail, Search } from "lucide-react";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
 import { USE_DB, authenticateClient, listClients, resolveClientSession, signInClient, verifyTwoFactorCode } from "@/lib/services";
@@ -26,6 +26,7 @@ export function ClientLoginForm() {
   const [step, setStep] = useState<"password" | "code">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -81,19 +82,28 @@ export function ClientLoginForm() {
         <Field label="Email" htmlFor="login-email">
           <div className="relative">
             <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
-            <Input id="login-email" type="email" autoComplete="username" className="pl-9" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="login-email" type="email" autoComplete="username" autoFocus className="pl-9" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
         </Field>
         <Field label="Mot de passe" htmlFor="login-password">
           <div className="relative">
             <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
-            <Input id="login-password" type="password" autoComplete="current-password" className="pl-9" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input id="login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" className="pl-9 pr-10" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              aria-pressed={showPassword}
+              className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+            </button>
           </div>
         </Field>
           </>
         )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <Button type="submit" size="lg" className="w-full" disabled={pending}>Se connecter</Button>
+        <Button type="submit" size="lg" className="w-full" disabled={pending}>{pending ? "Connexion…" : step === "code" ? "Valider le code" : "Se connecter"}</Button>
         <p className="text-center text-sm">
           <Link href="/espace-client/mot-de-passe-oublie" className="text-muted-foreground underline hover:text-primary">Mot de passe oublié ?</Link>
         </p>

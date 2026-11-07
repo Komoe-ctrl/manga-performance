@@ -145,8 +145,14 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   arrêtées ; abonnement newsletter supprimé ; événements email et résultats de scraping dépersonnalisés ;
   accès à l'espace client détruit (sessions, mot de passe, 2FA, notifications) ; messages vidés et pièces jointes
   supprimées du stockage. **Conservés** : les factures et paiements avec la raison sociale, l'adresse et le NCC
-  de l'entreprise (obligation comptable), et l'entrée de la liste d'exclusion (pour ne jamais ré-écrire à quelqu'un
-  qui a demandé à ne plus l'être — à valider avec le client). Le journal d'audit ne contient que des compteurs.
+  de l'entreprise (obligation comptable), et, si la personne s'était désinscrite ou avait rebondi, une **empreinte SHA-256**
+  de son adresse sur la liste d'exclusion (jamais l'adresse elle-même) : elle ne reçoit plus jamais d'email marketing.
+  Le journal d'audit ne contient que des compteurs.
+
+- **Exports de la démo** (`GET /api/exports/demo`, Excel et PDF) : publics car la page l'est, ils ne servent que le jeu
+  de données fictif et les mêmes formules que l'écran (hôtel, produit, période). Limités à 20 par heure et par IP.
+- **Données d'exemple en développement** : `pnpm db:seed:dev` crée 6 prospects, un client et 2 factures numérotées sans
+  trou. Refusé en production, refusé hors base locale, et refusé si la base contient déjà des prospects ou des factures.
 
 ## Production, e2e et sécurité (étape 11)
 
@@ -157,6 +163,6 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   (`restore.sh`). Voir **`docs/runbook.md`** (installation, mise à jour, restauration, incidents, rotation des secrets).
 - **Tests e2e (Playwright)** : `pnpm db:up` puis `pnpm e2e`. Base jetable `manga_e2e`, serveur Next et worker réels :
   formulaire de contact → prospect en admin ; conversion → invitation → connexion client → téléchargement d'un
-  livrable ; facture créée → émise → payée. Nécessite Internet (clés de test Turnstile).
+  livrable ; facture créée → émise → payée. Ne nécessite pas Internet : la vérification Turnstile est simulée par un petit serveur local.
 - **Revue de sécurité** : `docs/security-review.md`. Un test statique (`guard-coverage.test.ts`) échoue si un endpoint
   est ajouté sans garde d'autorisation.

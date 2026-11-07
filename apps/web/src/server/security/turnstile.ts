@@ -1,4 +1,7 @@
-const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const CLOUDFLARE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+/** Tests may point this at a local stub; the override is ignored in production. */
+const VERIFY_URL = process.env.NODE_ENV !== "production" && process.env.TURNSTILE_VERIFY_URL ? process.env.TURNSTILE_VERIFY_URL : CLOUDFLARE_VERIFY_URL;
 
 export interface TurnstileOptions {
   secret: string;

@@ -28,7 +28,8 @@ export const appEnv = {
   S3_BUCKET: process.env.TEST_S3_BUCKET ?? "manga-test",
   S3_ACCESS_KEY: process.env.TEST_S3_ACCESS_KEY ?? "manga",
   S3_SECRET_KEY: process.env.TEST_S3_SECRET_KEY ?? "manga_dev_password",
-  // Cloudflare's always-pass test keys: the only part of the run that needs Internet access.
+  // The Turnstile check is answered by a local stub (e2e/support/turnstile-stub.mjs): no Internet needed.
+  TURNSTILE_VERIFY_URL: "http://127.0.0.1:3101/siteverify",
   TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
   INTERNAL_API_TOKEN: long("f"),

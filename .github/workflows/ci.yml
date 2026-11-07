@@ -108,7 +108,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
       - run: pnpm --filter @manga/web exec playwright install --with-deps chromium
-      # Needs Internet access: the contact form uses Cloudflare's Turnstile test keys.
+      # No Internet needed: Turnstile is answered by a local stub (apps/web/e2e/support/turnstile-stub.mjs).
       - run: pnpm e2e
       - uses: actions/upload-artifact@v4
         if: failure()

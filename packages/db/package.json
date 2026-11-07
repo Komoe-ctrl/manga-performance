@@ -15,7 +15,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "seed": "tsx prisma/seed.ts",
-    "typecheck": "prisma generate && tsc --noEmit"
+    "typecheck": "prisma generate && tsc --noEmit",
+    "seed:dev": "tsx prisma/seed-dev.ts"
   },
   "dependencies": {
     "@manga/core": "workspace:*",
