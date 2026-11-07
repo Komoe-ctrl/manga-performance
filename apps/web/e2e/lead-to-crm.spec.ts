@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import pg from "pg";
+import { DATABASE_URL } from "./support/env";
 
 /** Scenario 1 (spec, section 10): a visitor writes through the contact form, the consultant sees the prospect. */
 test("a contact-form message becomes a prospect visible in the back-office", async ({ browser, page }) => {
@@ -36,4 +38,27 @@ test("a contact-form message becomes a prospect visible in the back-office", asy
   await row.getByRole("link", { name: "Koffi Konan E2E" }).click();
   await expect(page.getByText("koffi.e2e@example.com")).toBeVisible();
   await expect(page.getByText("+2250701020304")).toBeVisible();
+});
+
+/** Regression: visually hidden labels inside the scrolling columns once stretched the page far below the board. */
+test("the kanban board does not leave a blank page below it", async ({ page }) => {
+  // Enough cards in one column for it to scroll on its own.
+  const db = new pg.Client({ connectionString: DATABASE_URL });
+  await db.connect();
+  for (let i = 0; i < 14; i++) {
+    await db.query(
+      `INSERT INTO "Prospect" (id, "companyName", "companyNameNorm", sector, source, status, "updatedAt") VALUES ($1, $2, $3, 'Commerce', 'MANUEL', 'NOUVEAU', now())`,
+      [`e2e-kanban-${i}`, `Carte ${i}`, `carte ${i}`],
+    );
+  }
+  await db.end();
+
+  await page.goto("/admin/prospects");
+  await page.getByRole("button", { name: "Kanban" }).click();
+  await expect(page.getByRole("region", { name: "Nouveau" })).toBeVisible();
+  const { document: documentHeight, layout } = await page.evaluate(() => ({
+    document: document.documentElement.scrollHeight,
+    layout: Math.round(document.querySelector("main")!.getBoundingClientRect().bottom + window.scrollY),
+  }));
+  expect(documentHeight - layout).toBeLessThan(80);
 });

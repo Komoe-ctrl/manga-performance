@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { LayoutGrid, Plus, Table2 } from "lucide-react";
+import { CheckSquare, LayoutGrid, Plus, Search, Table2, X } from "lucide-react";
 import { useAsync } from "@/lib/hooks/use-async";
 import { listProspects } from "@/lib/services";
 import { NEED_LABELS, SECTORS, SIZE_LABELS, SOURCE_LABELS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
@@ -82,6 +82,8 @@ export function ProspectsView() {
 
   const set = (k: keyof Filters) => (v: string) => setFilters((f) => ({ ...f, [k]: v }));
 
+  const activeCount = Object.values(filters).filter(Boolean).length;
+
   const rows = useMemo(() => {
     if (prospects.status !== "success") return [];
     const q = filters.q.trim().toLowerCase();
@@ -119,23 +121,42 @@ export function ProspectsView() {
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-3 lg:grid-cols-6">
-        <label className="text-xs sm:col-span-3 lg:col-span-6">
-          <span className="mb-1 block font-medium">Recherche</span>
-          <Input type="search" placeholder="Entreprise, contact, email, ville…" value={filters.q} onChange={(e) => set("q")(e.target.value)} />
-        </label>
+      <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="relative min-w-60 flex-1">
+            <span className="sr-only">Recherche</span>
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
+            <Input type="search" aria-label="Recherche" placeholder="Entreprise, contact, email, ville…" className="pl-9" value={filters.q} onChange={(e) => set("q")(e.target.value)} />
+          </label>
+          <p role="status" className="text-sm text-muted-foreground">
+            {prospects.status === "success" ? (
+              <>
+                <strong className="font-semibold text-primary">{rows.length}</strong>
+                {activeCount > 0 || rows.length !== prospects.data.length ? ` sur ${prospects.data.length}` : ""} prospect{rows.length > 1 ? "s" : ""}
+              </>
+            ) : (
+              "Chargement…"
+            )}
+          </p>
+          {activeCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setFilters(EMPTY)}>
+              <X className="h-4 w-4" aria-hidden /> Effacer les filtres ({activeCount})
+            </Button>
+          )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <FilterSelect label="Statut" value={filters.status} onChange={set("status")} options={STATUS_ORDER.map((s) => [s, STATUS_LABELS[s]])} />
         <FilterSelect label="Secteur" value={filters.sector} onChange={set("sector")} options={SECTORS.map((s) => [s, s])} />
         <FilterSelect label="Taille" value={filters.size} onChange={set("size")} options={Object.entries(SIZE_LABELS)} />
         <FilterSelect label="Besoin" value={filters.need} onChange={set("need")} options={Object.entries(NEED_LABELS)} />
         <FilterSelect label="Source" value={filters.source} onChange={set("source")} options={Object.entries(SOURCE_LABELS)} />
-        <div className="flex items-end">
-          <Button variant="ghost" size="sm" onClick={() => setFilters(EMPTY)}>Réinitialiser</Button>
         </div>
       </div>
 
       {selected.length > 0 && view === "table" && (
-        <p role="status" className="text-sm">{selected.length} prospect(s) sélectionné(s)</p>
+        <p role="status" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground">
+          <CheckSquare className="h-4 w-4" aria-hidden /> {selected.length} prospect{selected.length > 1 ? "s" : ""} sélectionné{selected.length > 1 ? "s" : ""}
+        </p>
       )}
 
       {prospects.status === "loading" && <LoadingState />}

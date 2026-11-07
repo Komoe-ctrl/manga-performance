@@ -110,8 +110,11 @@ export function ClientLoginForm() {
       </form>
 
       {!USE_DB && (
-      <section aria-labelledby="demo-title" className="rounded-xl border border-dashed border-border p-4">
-        <h2 id="demo-title" className="text-sm font-semibold text-primary">Maquette : pré-remplir avec un client</h2>
+      <details className="group rounded-xl border border-dashed border-border p-4">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-primary list-none [&::-webkit-details-marker]:hidden">
+          <span aria-hidden className="mr-1 inline-block transition-transform group-open:rotate-90">›</span>
+          Mode démonstration : pré-remplir avec un client
+        </summary>
         <p className="mt-1 text-xs text-muted-foreground">
           Tapez le nom d&apos;une entreprise, cliquez dessus : l&apos;email et le mot de passe de démonstration se remplissent.
         </p>
@@ -119,7 +122,7 @@ export function ClientLoginForm() {
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
           <Input type="search" aria-label="Rechercher une entreprise" placeholder="Rechercher une entreprise…" className="pl-9" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-        <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto" aria-live="polite">
+        <ul className="relative mt-2 max-h-48 space-y-1 overflow-y-auto" aria-live="polite">
           {clients.status === "loading" && <li className="p-2 text-xs text-muted-foreground">Chargement…</li>}
           {clients.status === "success" && matches.length === 0 && <li className="p-2 text-xs text-muted-foreground">Aucune entreprise trouvée.</li>}
           {matches.map((c) => {
@@ -149,7 +152,7 @@ export function ClientLoginForm() {
             );
           })}
         </ul>
-      </section>
+      </details>
       )}
     </div>
   );

@@ -18,6 +18,8 @@ import {
 import { useAsync } from "@/lib/hooks/use-async";
 import { getDemoDashboard } from "@/lib/services";
 import { aggregate, byHotel, monthlySeries, periods, variances, variation, type Filters, type Granularity } from "@/lib/demo/compute";
+import { SIGNIFICANT_GAP_PCT, actionPlan, budgetVsActual, buildInsights, costMix, hotelSummary, productMix } from "@/lib/demo/insights";
+import { COST_POSTS, DEMO_PRODUCTS } from "@/lib/mock/demo-dashboard";
 import { formatFCFA } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { ExportButtons } from "@/components/shared/export-buttons";
@@ -25,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { ErrorState, LoadingState } from "@/components/shared";
 import { LeadModal } from "./lead-modal";
+import { ActionPlan, BudgetChart, CostMixChart, HotelTable, InsightsPanel, Methodology, ProductMixChart } from "./demo-sections";
 
 const NAVY = "#1A2B4A";
 const GOLD = "#F5B700";
@@ -58,12 +61,25 @@ export function DemoDashboard() {
     const p = periods(d.months, filters.granularity);
     const cur = aggregate(d, filters, p.current);
     const prev = aggregate(d, filters, p.previous);
+    const gaps = variances(d, filters, p.current);
+    const summary = hotelSummary(d, filters.productId, p.current);
+    const payroll = gaps.find((g) => g.id === "personnel")?.cpra ?? 0;
     return {
       cur,
       prev,
       series: monthlySeries(d, filters),
       hotels: byHotel(d, filters.productId, p.current),
-      gaps: variances(d, filters, p.current),
+      gaps,
+      summary,
+      mix: costMix(d, filters, p.current, COST_POSTS),
+      products: productMix(d, filters.hotelId, p.current, DEMO_PRODUCTS),
+      budget: budgetVsActual(gaps),
+      insights: buildInsights({ cur, prev, gaps, hotels: summary, scopeIsAllHotels: filters.hotelId === "all" }),
+      actions: actionPlan(gaps),
+      result: cur.revenue - cur.charges,
+      prevResult: prev.revenue - prev.charges,
+      payrollRatio: cur.revenue ? (payroll / cur.revenue) * 100 : 0,
+      significantGaps: gaps.filter((g) => g.gapPct > SIGNIFICANT_GAP_PCT).length,
       lastMonth: p.current[p.current.length - 1],
       firstMonth: p.current[0],
     };
@@ -140,9 +156,21 @@ export function DemoDashboard() {
           unit="pt"
         />
       </section>
+      <section aria-label="Résultat et ratios" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Kpi label="Résultat de la période" value={formatFCFA(view.result)} delta={variation(view.result, view.prevResult)} />
+        <Kpi label="Charges / CA" value={`${(cur.revenue ? (cur.charges / cur.revenue) * 100 : 0).toFixed(1)} %`} hint="Plus ce ratio est bas, meilleure est la marge." />
+        <Kpi label="Masse salariale / CA" value={`${view.payrollRatio.toFixed(1)} %`} hint="Premier poste de charges : à comparer au budget." />
+        <Kpi
+          label="Postes en écart significatif"
+          value={`${view.significantGaps} / ${view.gaps.length}`}
+          hint={`Seuil : ${SIGNIFICANT_GAP_PCT} % au-dessus du prévisionnel.`}
+        />
+      </section>
       <p className="-mt-4 text-xs text-muted-foreground">
         Taux de couverture des charges : {cur.coverageRate.toFixed(0)} % (formule provisoire, à confirmer).
       </p>
+
+      <InsightsPanel insights={view.insights} />
 
       <section aria-label="Graphiques" className="grid gap-6 lg:grid-cols-2">
         <figure className="rounded-lg border border-border p-4 lg:col-span-2">
@@ -193,7 +221,13 @@ export function DemoDashboard() {
             </ResponsiveContainer>
           </div>
         </figure>
+
+        <CostMixChart data={view.mix} />
+        <ProductMixChart data={view.products} />
+        <BudgetChart data={view.budget} />
       </section>
+
+      <HotelTable rows={view.summary} />
 
       <section aria-label="Analyse des écarts">
         <h2 className="mb-1 text-lg font-bold text-primary">Analyse des écarts</h2>
@@ -201,7 +235,7 @@ export function DemoDashboard() {
         <p className="mb-3 text-xs text-muted-foreground">
           CPro (prévisionnel) / CPra (pratiqué) — libellés provisoires, définitions à confirmer.
         </p>
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="relative overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted text-left">
               <tr>
@@ -230,6 +264,9 @@ export function DemoDashboard() {
           </table>
         </div>
       </section>
+
+      <ActionPlan items={view.actions} />
+      <Methodology />
 
       <div className="rounded-lg bg-primary p-6 text-center text-primary-foreground">
         <p className="font-semibold">Un tableau de bord comme celui-ci, pour votre entreprise ?</p>

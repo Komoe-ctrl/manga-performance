@@ -93,7 +93,7 @@ export function DataTable<T extends object>({
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="relative overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead className="bg-muted text-left">
@@ -143,7 +143,7 @@ export function DataTable<T extends object>({
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((row) => (
-              <tr key={row.id} className={row.getIsSelected() ? "bg-accent/10" : undefined}>
+              <tr key={row.id} className={row.getIsSelected() ? "bg-accent/10" : "transition-colors hover:bg-muted/50"}>
                 {selectable && (
                   <td className="px-3 py-2">
                     <input

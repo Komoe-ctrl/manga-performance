@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { Calendar, FileText, Mail, Phone, StickyNote, Users } from "lucide-react";
+import { ArrowLeft, Calendar, Download, EyeOff, FileText, Mail, MessageCircle, Phone, ShieldCheck, StickyNote, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import {
@@ -22,7 +22,7 @@ import {
 import { NEED_LABELS, SOURCE_LABELS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { InteractionType } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { DateLabel, EmptyState, ErrorState, LoadingState, MoneyAmount, PageHeader, StatusBadge } from "@/components/shared";
 
@@ -163,7 +163,9 @@ function ProspectInvoices({ clientId }: { clientId: string }) {
 /** Personal data rights: export everything held about the contact, or anonymize them for good. */
 function PrivacyActions({ prospectId, companyName, anonymized, onDone }: { prospectId: string; companyName: string; anonymized: boolean; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
-  if (anonymized) return <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">Anonymisé</span>;
+  if (anonymized) {
+    return <p className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">Ce contact a été anonymisé : ses données personnelles ont été effacées.</p>;
+  }
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -177,7 +179,12 @@ function PrivacyActions({ prospectId, companyName, anonymized, onDone }: { prosp
   }
 
   return (
-    <div className="flex gap-2">
+    <section aria-labelledby="privacy-title" className="rounded-lg border border-border p-4">
+      <h2 id="privacy-title" className="flex items-center gap-2 font-semibold text-primary"><ShieldCheck className="h-4 w-4" aria-hidden /> Données personnelles</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Droit d&apos;accès et d&apos;effacement (loi 2013-450). L&apos;export reprend tout ce qui est conservé sur ce contact ; l&apos;anonymisation est définitive, les factures sont conservées.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
       <Button
         variant="outline"
         size="sm"
@@ -190,10 +197,10 @@ function PrivacyActions({ prospectId, companyName, anonymized, onDone }: { prosp
           })
         }
       >
-        Exporter les données
+        <Download className="h-4 w-4" aria-hidden /> Exporter les données
       </Button>
       <Button
-        variant="outline"
+        variant="danger"
         size="sm"
         disabled={busy}
         onClick={() =>
@@ -210,9 +217,10 @@ Cette action est irréversible : nom, email, téléphone, notes et messages sont
           })
         }
       >
-        Anonymiser
+        <EyeOff className="h-4 w-4" aria-hidden /> Anonymiser
       </Button>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -234,12 +242,27 @@ export function ProspectDetail({ params }: { params: Promise<{ id: string }> }) 
 
   return (
     <div className="space-y-6">
+      <Link href="/admin/prospects" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"><ArrowLeft className="h-4 w-4" aria-hidden /> Retour aux prospects</Link>
       <PageHeader
         title={p.companyName}
         description={`${p.contactName} · ${p.sector} · ${p.city}`}
         actions={
           <div className="flex flex-wrap items-center gap-3">
-            <PrivacyActions prospectId={p.id} companyName={p.companyName} anonymized={p.companyName === "Contact anonymisé"} onDone={prospect.reload} />
+            {p.phone && (
+              <a href={`tel:${p.phone.replace(/s/g, "")}`} className={buttonVariants({ variant: "soft", size: "sm" })}>
+                <Phone className="h-4 w-4" aria-hidden /> Appeler
+              </a>
+            )}
+            {p.email && (
+              <a href={`mailto:${p.email}`} className={buttonVariants({ variant: "soft", size: "sm" })}>
+                <Mail className="h-4 w-4" aria-hidden /> Écrire
+              </a>
+            )}
+            {p.phone && (
+              <a href={`https://wa.me/${p.phone.replace(/D/g, "")}`} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "success", size: "sm" })}>
+                <MessageCircle className="h-4 w-4" aria-hidden /> WhatsApp
+              </a>
+            )}
             <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">{SOURCE_LABELS[p.source]}</span>
             <label className="text-sm">
               <span className="sr-only">Statut</span>
@@ -259,8 +282,8 @@ export function ProspectDetail({ params }: { params: Promise<{ id: string }> }) 
         }
       />
       <dl className="grid gap-3 rounded-lg border border-border p-4 text-sm sm:grid-cols-3">
-        <div><dt className="text-muted-foreground">Email</dt><dd>{p.email ?? "—"}</dd></div>
-        <div><dt className="text-muted-foreground">Téléphone</dt><dd>{p.phone ?? "—"}</dd></div>
+        <div><dt className="text-muted-foreground">Email</dt><dd>{p.email ? <a href={`mailto:${p.email}`} className="hover:underline">{p.email}</a> : "—"}</dd></div>
+        <div><dt className="text-muted-foreground">Téléphone</dt><dd>{p.phone ? <a href={`tel:${p.phone.replace(/s/g, "")}`} className="hover:underline">{p.phone}</a> : "—"}</dd></div>
         <div><dt className="text-muted-foreground">Besoin</dt><dd>{NEED_LABELS[p.need]}</dd></div>
         <div><dt className="text-muted-foreground">Valeur estimée</dt><dd>{p.estimatedValue ? <MoneyAmount value={p.estimatedValue} /> : "—"}</dd></div>
         <div><dt className="text-muted-foreground">Créé le</dt><dd><DateLabel value={p.createdAt} /></dd></div>
@@ -287,6 +310,8 @@ export function ProspectDetail({ params }: { params: Promise<{ id: string }> }) 
           {tab === "factures" && p.status === "client" && <ProspectInvoices clientId={p.id} />}
         </div>
       </div>
+
+      <PrivacyActions prospectId={p.id} companyName={p.companyName} anonymized={p.companyName === "Contact anonymisé"} onDone={prospect.reload} />
     </div>
   );
 }

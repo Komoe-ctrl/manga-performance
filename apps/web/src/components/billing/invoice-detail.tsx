@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { Check, Download, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { downloadInvoicePdf, getInvoiceDetail, remindInvoice, updateInvoice } from "@/lib/services";
@@ -34,26 +34,26 @@ export function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
             <StatusBadge status={invoice.status} />
             {canRemind && (
               <Button
-                variant="outline"
+                variant="soft"
                 onClick={async () => {
                   await remindInvoice(invoice.id);
                   toast.success("Relance envoyée (simulation)");
                   detail.reload();
                 }}
               >
-                Relancer
+                <Send className="h-4 w-4" aria-hidden /> Relancer
               </Button>
             )}
             {invoice.status !== "payee" && invoice.status !== "annulee" && invoice.status !== "brouillon" && (
               <Button
-                variant="outline"
+                variant="success"
                 onClick={async () => {
                   await updateInvoice(invoice.id, { status: "payee" }, "Marquée comme payée");
                   toast.success("Facture marquée comme payée");
                   detail.reload();
                 }}
               >
-                Marquer payée
+                <Check className="h-4 w-4" aria-hidden /> Marquer payée
               </Button>
             )}
             <Button
