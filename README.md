@@ -147,3 +147,16 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   supprimées du stockage. **Conservés** : les factures et paiements avec la raison sociale, l'adresse et le NCC
   de l'entreprise (obligation comptable), et l'entrée de la liste d'exclusion (pour ne jamais ré-écrire à quelqu'un
   qui a demandé à ne plus l'être — à valider avec le client). Le journal d'audit ne contient que des compteurs.
+
+## Production, e2e et sécurité (étape 11)
+
+- **Déploiement** : `infra/docker-compose.yml` (caddy, web, worker, scraper, postgres, backup). Seul Caddy publie les
+  ports 80 et 443, et il répond 404 à `/api/internal/*` depuis Internet. Variables : `infra/.env.production.example`.
+  Migrations appliquées au démarrage de `web`. `GET /api/health` : base + worker (battement toutes les 30 s).
+- **Sauvegardes** : `pg_dump` quotidien chiffré vers le stockage objet, rétention 30 jours, restauration testée
+  (`restore.sh`). Voir **`docs/runbook.md`** (installation, mise à jour, restauration, incidents, rotation des secrets).
+- **Tests e2e (Playwright)** : `pnpm db:up` puis `pnpm e2e`. Base jetable `manga_e2e`, serveur Next et worker réels :
+  formulaire de contact → prospect en admin ; conversion → invitation → connexion client → téléchargement d'un
+  livrable ; facture créée → émise → payée. Nécessite Internet (clés de test Turnstile).
+- **Revue de sécurité** : `docs/security-review.md`. Un test statique (`guard-coverage.test.ts`) échoue si un endpoint
+  est ajouté sans garde d'autorisation.

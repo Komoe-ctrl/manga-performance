@@ -49,3 +49,10 @@ __pycache__/
 
 # development mailbox (emails are written to disk instead of being sent)
 .dev-mailbox/
+
+# playwright
+apps/web/e2e/.state/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/.next-e2e/
+!.env.production.example

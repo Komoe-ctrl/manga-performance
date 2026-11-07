@@ -65,11 +65,27 @@ const schedules: [string, string][] = [
 ];
 for (const [name, cron] of schedules) await boss.schedule(name, cron, {}, { tz: env.TZ_DISPLAY });
 
+// Heartbeat read by `/api/health`: proves the worker is alive and talking to the database.
+async function beat() {
+  try {
+    await prisma.setting.upsert({
+      where: { key: "worker.heartbeat" },
+      create: { key: "worker.heartbeat", value: { at: new Date().toISOString() } },
+      update: { value: { at: new Date().toISOString() } },
+    });
+  } catch (error) {
+    logger.error({ errorName: error instanceof Error ? error.name : "unknown" }, "heartbeat failed");
+  }
+}
+await beat();
+const heartbeat = setInterval(() => void beat(), 30_000);
+
 let stopping = false;
 async function shutdown(signal: string) {
   if (stopping) return;
   stopping = true;
   logger.info({ signal }, "worker stopping");
+  clearInterval(heartbeat);
   await queue.stop();
   await prisma.$disconnect();
   process.exit(0);

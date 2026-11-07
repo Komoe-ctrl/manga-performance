@@ -47,6 +47,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The e2e run builds in its own folder so it never fights a dev server for `.next`.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   /* config options here */
   experimental: {
     agentFeedback: true,

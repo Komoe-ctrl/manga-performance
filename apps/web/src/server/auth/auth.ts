@@ -65,6 +65,8 @@ export function createAuth({ prisma, env }: AuthDeps) {
     },
 
     advanced: {
+      // Explicit rather than inferred: session cookies are `Secure` in production.
+      useSecureCookies: process.env.NODE_ENV === "production",
       // Ids come from Prisma (`@default(cuid(2))`), as for every other table.
       database: { generateId: false },
       ipAddress: { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] },

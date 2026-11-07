@@ -27,7 +27,8 @@ export const envSchema = z.object({
   S3_ACCESS_KEY: nonEmpty,
   S3_SECRET_KEY: nonEmpty,
   /** Where public/blog/* is served from. Defaults to the endpoint and bucket. */
-  S3_PUBLIC_URL: z.url().optional(),
+  // Docker Compose passes unset variables as empty strings: empty means "not set".
+  S3_PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.url().optional()),
 
   TURNSTILE_SECRET_KEY: nonEmpty,
   INTERNAL_API_TOKEN: secret,

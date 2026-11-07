@@ -32,6 +32,12 @@ describe("parseEnv", () => {
     expect(env.TZ_DISPLAY).toBe("Africa/Abidjan");
   });
 
+  it("treats an empty optional variable (as Docker Compose passes it) as unset", () => {
+    expect(parseEnv({ ...valid, S3_PUBLIC_URL: "" }).S3_PUBLIC_URL).toBeUndefined();
+    expect(parseEnv({ ...valid, S3_PUBLIC_URL: "https://cdn.example.com" }).S3_PUBLIC_URL).toBe("https://cdn.example.com");
+    expect(() => parseEnv({ ...valid, S3_PUBLIC_URL: "not a url" })).toThrow(EnvError);
+  });
+
   it("fails when a variable is missing and names it without leaking values", () => {
     const rest = Object.fromEntries(Object.entries(valid).filter(([key]) => key !== "DATABASE_URL"));
     try {

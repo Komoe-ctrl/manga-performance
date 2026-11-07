@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { getInvoiceDetail, remindInvoice, updateInvoice } from "@/lib/services";
+import { downloadInvoicePdf, getInvoiceDetail, remindInvoice, updateInvoice } from "@/lib/services";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { DateLabel, EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "@/components/shared";
@@ -56,7 +56,15 @@ export function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
                 Marquer payée
               </Button>
             )}
-            <Button onClick={() => toast.info("Export PDF disponible dans la version finale")}>
+            <Button
+              onClick={async () => {
+                try {
+                  if (!(await downloadInvoicePdf(invoice.id))) toast.info("Export PDF disponible avec la base de données (DATA_SOURCE=db)");
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Le PDF n'a pas pu être généré.");
+                }
+              }}
+            >
               <Download className="h-4 w-4" aria-hidden /> PDF
             </Button>
           </div>

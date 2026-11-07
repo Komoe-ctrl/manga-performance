@@ -1,0 +1,26 @@
+# Public entry point. Caddy obtains and renews the TLS certificate by itself.
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Scraper API: reachable only from inside the Docker network (the scraper calls the web
+	# container directly). From the Internet it simply does not exist.
+	@internal path /api/internal/*
+	respond @internal 404
+
+	request_body {
+		max_size 12MB
+	}
+
+	# Caddy overwrites X-Forwarded-For with the real client address (no trusted proxy is
+	# configured), so the rate limits of the app cannot be dodged with a forged header.
+	reverse_proxy web:3000
+}

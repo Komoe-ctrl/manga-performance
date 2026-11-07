@@ -42,3 +42,13 @@ export async function downloadExport(
   saveBlob(await response.blob(), name);
   return true;
 }
+
+/** Invoice PDF, generated on demand by `GET /api/invoices/:id/pdf`. `false` in mock mode. */
+export async function downloadInvoicePdf(invoiceId: string): Promise<boolean> {
+  if (!USE_DB) return false;
+  const response = await fetch(`/api/invoices/${encodeURIComponent(invoiceId)}/pdf`, { credentials: "same-origin" });
+  if (!response.ok) throw new ServiceError("Le PDF n'a pas pu être généré.", String(response.status));
+  const name = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") ?? "")?.[1] ?? "facture.pdf";
+  saveBlob(await response.blob(), name);
+  return true;
+}
