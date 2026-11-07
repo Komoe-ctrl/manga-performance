@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { USE_DB, invoiceTotals, listClients, listInvoices, publishDeliverable, setClientAccess } from "@/lib/services";
@@ -141,7 +142,7 @@ export function ClientsView() {
     {
       id: "actions",
       header: "Actions",
-      cell: (r) => <Button size="sm" variant="outline" onClick={() => setPublishing(r)}>Publier un livrable</Button>,
+      cell: (r) => <Button size="sm" variant="soft" onClick={() => setPublishing(r)}><Upload className="h-4 w-4" aria-hidden /> Publier un livrable</Button>,
     },
   ];
 

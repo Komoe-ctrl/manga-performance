@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Search } from "lucide-react";
 import { useAsync } from "@/lib/hooks/use-async";
 import { listSubscribers } from "@/lib/services";
 import type { NewsletterSubscriber } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
+import { Input } from "@/components/ui/field";
 import { ExportButtons } from "@/components/shared/export-buttons";
 import { DateLabel, ErrorState, KpiCard, LoadingState } from "@/components/shared";
 import { DataTable, type Column } from "@/components/shared/data-table";
@@ -34,12 +36,13 @@ const columns: Column<NewsletterSubscriber>[] = [
 export function NewsletterAdmin() {
   const subs = useAsync(listSubscribers);
   const [filter, setFilter] = useState<State | "all">("all");
+  const [query, setQuery] = useState("");
 
   if (subs.status === "loading") return <LoadingState />;
   if (subs.status === "error") return <ErrorState message="Abonnés indisponibles." onRetry={subs.reload} />;
 
   const count = (s: State) => subs.data.filter((x) => stateOf(x) === s).length;
-  const rows = subs.data.filter((s) => filter === "all" || stateOf(s) === filter);
+  const rows = subs.data.filter((s) => (filter === "all" || stateOf(s) === filter) && (!query.trim() || s.email.toLowerCase().includes(query.trim().toLowerCase())));
 
   return (
     <div className="space-y-4">
@@ -60,6 +63,10 @@ export function NewsletterAdmin() {
               {v === "all" ? "Tous" : LABELS[v][0]}
             </button>
           ))}
+        </div>
+        <div className="relative w-full max-w-56">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
+          <Input type="search" aria-label="Rechercher un email" placeholder="Rechercher un email…" className="pl-9" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="ml-auto flex gap-2">
           <ExportButtons kind="subscribers" filters={{ status: filter === "all" ? undefined : filter }} />

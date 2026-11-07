@@ -10,7 +10,7 @@ import { CITIES, SECTORS, SIZE_LABELS } from "@/lib/constants";
 import type { CompanySize, ScrapeJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
-import { DateLabel, ErrorState, LoadingState } from "@/components/shared";
+import { DateLabel, ErrorState, LoadingState, StatusBadge } from "@/components/shared";
 import { DataTable, type Column } from "@/components/shared/data-table";
 
 export const SOURCE_LABELS: Record<ScrapeJob["source"], string> = {
@@ -18,7 +18,6 @@ export const SOURCE_LABELS: Record<ScrapeJob["source"], string> = {
   appels_offres: "Sites d'appels d'offres",
   site_web: "Sites web d'entreprises",
 };
-const STATUS_LABELS: Record<ScrapeJob["status"], string> = { en_cours: "En cours", termine: "Terminé", echec: "Échec" };
 
 export function ComplianceNote() {
   return (
@@ -81,9 +80,9 @@ const columns: Column<ScrapeJob>[] = [
     header: "Filtres",
     cell: (j) => [j.filters.sector, j.filters.city, j.filters.size && SIZE_LABELS[j.filters.size]].filter(Boolean).join(" · ") || "Aucun",
   },
-  { id: "status", header: "Statut", sortValue: (j) => j.status, cell: (j) => STATUS_LABELS[j.status] },
+  { id: "status", header: "Statut", sortValue: (j) => j.status, cell: (j) => <StatusBadge status={j.status} /> },
   { id: "startedAt", header: "Lancé le", sortValue: (j) => j.startedAt, cell: (j) => <DateLabel value={j.startedAt} /> },
-  { id: "results", header: "Résultats", sortValue: (j) => j.resultsCount, cell: (j) => (j.status === "termine" ? j.resultsCount : "—") },
+  { id: "results", header: "Résultats", sortValue: (j) => j.resultsCount, cell: (j) => (j.status === "termine" ? <Link href={`/admin/scraper/${j.id}`} className="font-medium text-primary hover:underline">{j.resultsCount} résultat{j.resultsCount > 1 ? "s" : ""} →</Link> : "—") },
 ];
 
 export function ScraperHome() {

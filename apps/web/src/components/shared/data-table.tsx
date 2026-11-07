@@ -143,7 +143,7 @@ export function DataTable<T extends object>({
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((row) => (
-              <tr key={row.id} className={row.getIsSelected() ? "bg-accent/10" : undefined}>
+              <tr key={row.id} className={row.getIsSelected() ? "bg-accent/10" : "transition-colors hover:bg-muted/50"}>
                 {selectable && (
                   <td className="px-3 py-2">
                     <input

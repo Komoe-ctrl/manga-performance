@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { invoiceTotals, listInvoices, listProspects, remindInvoice } from "@/lib/services";
@@ -73,14 +74,14 @@ export function InvoicesList() {
         r.status === "en_attente" || r.status === "en_retard" ? (
           <Button
             size="sm"
-            variant="outline"
+            variant="soft"
             onClick={async () => {
               await remindInvoice(r.id);
               toast.success(`Relance envoyée à ${r.clientName} (simulation)`);
               data.reload();
             }}
           >
-            Relancer
+            <Send className="h-4 w-4" aria-hidden /> Relancer
           </Button>
         ) : null,
     },

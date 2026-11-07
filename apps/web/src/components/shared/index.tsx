@@ -51,6 +51,9 @@ const STATUS_MAP: Record<string, { label: string; tone: keyof typeof TONES }> = 
   en_retard: { label: "En retard", tone: "danger" },
   annulee: { label: "Annulée", tone: "neutral" },
   publie: { label: "Publié", tone: "success" },
+  termine: { label: "Terminé", tone: "success" },
+  en_cours: { label: "En cours", tone: "warning" },
+  echec: { label: "Échec", tone: "danger" },
 };
 
 export function StatusBadge({ status }: { status: string }) {

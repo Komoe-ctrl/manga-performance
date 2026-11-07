@@ -3,7 +3,7 @@
 import { use, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { createSequence, getSequence, listProspects, listSequences, updateSequence } from "@/lib/services";
@@ -124,6 +124,9 @@ function SequenceForm({ initial, samples }: { initial: EmailSequence; samples: P
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      <Link href="/admin/sequences" className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-primary lg:col-span-2">
+        <ArrowLeft className="h-4 w-4" aria-hidden /> Retour aux séquences
+      </Link>
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nom *" htmlFor="seq-title">
@@ -156,8 +159,8 @@ function SequenceForm({ initial, samples }: { initial: EmailSequence; samples: P
                 <h3 className="font-semibold text-primary">Étape {i + 1}</h3>
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="sm"
+                  variant="danger"
+                  size="icon"
                   aria-label={`Supprimer l'étape ${i + 1}`}
                   disabled={seq.steps.length === 1}
                   onClick={() => setSeq((s) => ({ ...s, steps: s.steps.filter((_, k) => k !== i) }))}
@@ -184,11 +187,11 @@ function SequenceForm({ initial, samples }: { initial: EmailSequence; samples: P
             </li>
           ))}
         </ol>
-        <div className="flex flex-wrap gap-2">
+        <div className="sticky bottom-0 z-10 -mx-2 flex flex-wrap items-center gap-2 border-t border-border bg-background/95 px-2 py-3 backdrop-blur">
           <Button type="button" variant="outline" onClick={() => setSeq((s) => ({ ...s, steps: [...s.steps, { order: s.steps.length + 1, delayDays: 3, subject: "", body: "" }] }))}>
             <Plus className="h-4 w-4" aria-hidden /> Ajouter une étape
           </Button>
-          <Button type="button" variant="accent" disabled={saving} onClick={save}>Enregistrer</Button>
+          <Button type="button" variant="accent" loading={saving} onClick={save} className="ml-auto">{saving ? "Enregistrement…" : "Enregistrer la séquence"}</Button>
         </div>
       </div>
 
