@@ -8,6 +8,7 @@ import { invoiceTotals, listInvoices, listProspects, remindInvoice } from "@/lib
 import type { Invoice, InvoiceStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { ExportButtons } from "@/components/shared/export-buttons";
 import { DateLabel, ErrorState, KpiCard, LoadingState, MoneyAmount, StatusBadge } from "@/components/shared";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { formatFCFA } from "@/lib/utils/format";
@@ -112,6 +113,9 @@ export function InvoicesList() {
         <Button variant="ghost" size="sm" onClick={() => { setStatus(""); setFrom(""); setTo(""); }}>
           Réinitialiser
         </Button>
+        <div className="ml-auto flex gap-2">
+          <ExportButtons kind="invoices" filters={{ status, from, to }} />
+        </div>
       </div>
 
       <DataTable data={rows} columns={columns} getRowId={(r) => r.id} caption="Liste des factures" emptyMessage="Aucune facture ne correspond aux filtres." />

@@ -8,6 +8,7 @@ import { useAsync } from "@/lib/hooks/use-async";
 import { getScrapeJob, importScrapeResults, listScrapeResults } from "@/lib/services";
 import type { ScrapeResult } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { ExportButtons } from "@/components/shared/export-buttons";
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/shared";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { ComplianceNote, SOURCE_LABELS } from "./scraper-home";
@@ -76,7 +77,7 @@ export function JobResults({ params }: { params: Promise<{ jobId: string }> }) {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => exportCsv(results)}><Download className="h-4 w-4" aria-hidden /> CSV</Button>
-            <Button variant="outline" onClick={() => toast.info("Export Excel disponible dans la version finale")}><Download className="h-4 w-4" aria-hidden /> Excel</Button>
+            <ExportButtons kind="scrape-results" filters={{ jobId }} />
             <Button
               variant="accent"
               disabled={selected.length === 0 || importing}

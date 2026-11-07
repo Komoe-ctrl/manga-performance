@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, LayoutGrid, Plus, Table2 } from "lucide-react";
-import { toast } from "sonner";
+import { LayoutGrid, Plus, Table2 } from "lucide-react";
 import { useAsync } from "@/lib/hooks/use-async";
 import { listProspects } from "@/lib/services";
 import { NEED_LABELS, SECTORS, SIZE_LABELS, SOURCE_LABELS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
@@ -11,19 +10,20 @@ import type { Prospect } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { ExportButtons } from "@/components/shared/export-buttons";
 import { DateLabel, ErrorState, LoadingState, StatusBadge } from "@/components/shared";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Kanban } from "./kanban";
 import { ProspectPanel } from "./prospect-panel";
 
-interface Filters {
+type Filters = {
   q: string;
   status: string;
   sector: string;
   size: string;
   need: string;
   source: string;
-}
+};
 const EMPTY: Filters = { q: "", status: "", sector: "", size: "", need: "", source: "" };
 
 const columns: Column<Prospect>[] = [
@@ -112,12 +112,7 @@ export function ProspectsView() {
           ))}
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => toast.info("Export Excel disponible dans la version finale")}>
-            <Download className="h-4 w-4" aria-hidden /> Excel
-          </Button>
-          <Button variant="outline" onClick={() => toast.info("Export PDF disponible dans la version finale")}>
-            <Download className="h-4 w-4" aria-hidden /> PDF
-          </Button>
+          <ExportButtons kind="prospects" filters={{ ...filters }} />
           <Button onClick={() => setPanelOpen(true)}>
             <Plus className="h-4 w-4" aria-hidden /> Nouveau prospect
           </Button>

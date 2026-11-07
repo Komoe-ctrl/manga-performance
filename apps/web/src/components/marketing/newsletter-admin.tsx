@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
-import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { listSubscribers } from "@/lib/services";
 import type { NewsletterSubscriber } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { Button } from "@/components/ui/button";
+import { ExportButtons } from "@/components/shared/export-buttons";
 import { DateLabel, ErrorState, KpiCard, LoadingState } from "@/components/shared";
 import { DataTable, type Column } from "@/components/shared/data-table";
 
@@ -63,9 +61,9 @@ export function NewsletterAdmin() {
             </button>
           ))}
         </div>
-        <Button variant="outline" className="ml-auto" onClick={() => toast.info("Export disponible dans la version finale")}>
-          <Download className="h-4 w-4" aria-hidden /> Exporter
-        </Button>
+        <div className="ml-auto flex gap-2">
+          <ExportButtons kind="subscribers" filters={{ status: filter === "all" ? undefined : filter }} />
+        </div>
       </div>
       <DataTable data={rows} columns={columns} getRowId={(s) => s.id} caption="Abonnés à la newsletter" emptyMessage="Aucun abonné dans ce statut." />
     </div>

@@ -127,3 +127,23 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   puis `python -m scraper` (boucle) ou `python -m scraper --once`. Tests : `python -m pytest`.
 - Seul un spider de démonstration existe ; les vraies sources sont ajoutées une à une après validation du client
   (conformité à la charge du client).
+
+## Exports et données personnelles (étape 10)
+
+- **Exports Excel / PDF** : `GET /api/exports/{prospects|invoices|subscribers|scrape-results}?format=xlsx|pdf&<filtres>`.
+  Le Route Handler appelle `requireAdmin()`, **réapplique les filtres côté serveur** (mêmes règles que les écrans),
+  renvoie le fichier en flux continu et écrit une ligne `export.generated` dans `AuditLog` (type, format, filtres,
+  nombre de lignes). Excel (`exceljs`) : en-têtes figées, filtre automatique, onglet « Filtres », toutes les
+  valeurs sont des cellules texte (jamais de formule, donc pas d'injection `=…`). PDF (`@react-pdf/renderer`,
+  paysage, charte navy/or). Limites : 20 000 lignes, 2 000 pour le PDF (au-delà : affiner les filtres ou Excel).
+  Les dates sont affichées en Africa/Abidjan. En mode `mock`, les boutons gardent leur message d'information.
+- **Export RGPD d'un contact** (fiche prospect → « Exporter les données ») : JSON complet (fiche, historique,
+  relances, séquences, événements email, newsletter, liste d'exclusion, résultats de scraping, espace client,
+  factures, messages). Ni mots de passe, ni jetons, ni adresse IP.
+- **Anonymisation** (fiche prospect → « Anonymiser », confirmation explicite, **irréversible**) : nom, contact,
+  email, téléphone, ville, notes, consentement effacés ; historique et notes de relance remplacés ; séquences
+  arrêtées ; abonnement newsletter supprimé ; événements email et résultats de scraping dépersonnalisés ;
+  accès à l'espace client détruit (sessions, mot de passe, 2FA, notifications) ; messages vidés et pièces jointes
+  supprimées du stockage. **Conservés** : les factures et paiements avec la raison sociale, l'adresse et le NCC
+  de l'entreprise (obligation comptable), et l'entrée de la liste d'exclusion (pour ne jamais ré-écrire à quelqu'un
+  qui a demandé à ne plus l'être — à valider avec le client). Le journal d'audit ne contient que des compteurs.

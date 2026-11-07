@@ -13,7 +13,10 @@ import {
   invoiceTotals,
   listFollowUps,
   listInteractions,
+  anonymizeContact,
+  exportContactData,
   listInvoices,
+  saveBlob,
   updateProspectStatus,
 } from "@/lib/services";
 import { NEED_LABELS, SOURCE_LABELS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
@@ -157,6 +160,62 @@ function ProspectInvoices({ clientId }: { clientId: string }) {
   );
 }
 
+/** Personal data rights: export everything held about the contact, or anonymize them for good. */
+function PrivacyActions({ prospectId, companyName, anonymized, onDone }: { prospectId: string; companyName: string; anonymized: boolean; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  if (anonymized) return <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">Anonymisé</span>;
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    try {
+      await action();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={busy}
+        onClick={() =>
+          run(async () => {
+            const data = await exportContactData(prospectId);
+            saveBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `donnees-contact-${prospectId}.json`);
+            toast.success("Export des données du contact téléchargé");
+          })
+        }
+      >
+        Exporter les données
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={busy}
+        onClick={() =>
+          run(async () => {
+            const ok = window.confirm(
+              `Anonymiser « ${companyName} » ?
+
+Cette action est irréversible : nom, email, téléphone, notes et messages sont effacés. Les factures sont conservées (obligation comptable).`,
+            );
+            if (!ok) return;
+            const { invoicesKept } = await anonymizeContact(prospectId);
+            toast.success(`Contact anonymisé${invoicesKept ? ` — ${invoicesKept} facture(s) conservée(s)` : ""}`);
+            onDone();
+          })
+        }
+      >
+        Anonymiser
+      </Button>
+    </div>
+  );
+}
+
 export function ProspectDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const prospect = useAsync(() => getProspect(id));
@@ -179,7 +238,8 @@ export function ProspectDetail({ params }: { params: Promise<{ id: string }> }) 
         title={p.companyName}
         description={`${p.contactName} · ${p.sector} · ${p.city}`}
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <PrivacyActions prospectId={p.id} companyName={p.companyName} anonymized={p.companyName === "Contact anonymisé"} onDone={prospect.reload} />
             <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">{SOURCE_LABELS[p.source]}</span>
             <label className="text-sm">
               <span className="sr-only">Statut</span>
