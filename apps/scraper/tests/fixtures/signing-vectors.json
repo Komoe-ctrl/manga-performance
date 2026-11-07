@@ -1,0 +1,32 @@
+[
+  {
+    "name": "GET without body",
+    "secret": "ssssssssssssssssssssssssssssssssssssssss",
+    "timestamp": 1794042000,
+    "nonce": "0123456789abcdef",
+    "method": "GET",
+    "path": "/api/internal/scrape-jobs/next",
+    "body": "",
+    "signature": "f483e09c397c991ba63c591ec90d3b5cc1596c28c9297ddc46330bf2add7c65e"
+  },
+  {
+    "name": "POST with JSON body",
+    "secret": "ssssssssssssssssssssssssssssssssssssssss",
+    "timestamp": 1794042060,
+    "nonce": "fedcba9876543210",
+    "method": "POST",
+    "path": "/api/internal/scrape-jobs/abc123/results",
+    "body": "{\"results\":[{\"companyName\":\"Société Lagune\",\"sourceUrl\":\"http://127.0.0.1:8765/directory/1\"}]}",
+    "signature": "58f061f38fbc07c28f943c2ee3b5e60210c2a1eb8866aaef12a2a98dc71c85c8"
+  },
+  {
+    "name": "PATCH with query string and accents",
+    "secret": "another-secret-value-0123456789abcdef",
+    "timestamp": 1794042120,
+    "nonce": "aaaaaaaaaaaaaaaa",
+    "method": "PATCH",
+    "path": "/api/internal/scrape-jobs/abc123?x=é",
+    "body": "{\"status\":\"DONE\"}",
+    "signature": "c7623b46ac3af7efe01869ef02ac5be393bf6b1b9460e9c65d9086a7f15bb103"
+  }
+]

@@ -444,7 +444,10 @@ model ScrapeJob {
   resultsCount Int            @default(0)
   error        String?
   createdBy    String
+  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
   results      ScrapeResult[]
+
+  @@index([status, createdAt])
 }
 
 model ScrapeResult {

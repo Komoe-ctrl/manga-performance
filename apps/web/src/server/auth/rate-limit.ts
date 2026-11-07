@@ -26,6 +26,8 @@ export const LIMITS = {
   tokenIp: { name: "token-ip", points: 20, durationSeconds: 60 * 60 },
   /** Public forms: 5 per hour per IP (spec, section 5). */
   leadIp: { name: "lead-ip", points: 5, durationSeconds: 60 * 60 },
+  /** Each signed internal request may be seen once: a replayed signature is refused (10 minutes > the 5 minute window). */
+  internalReplay: { name: "internal-replay", points: 1, durationSeconds: 10 * 60 },
   newsletterIp: { name: "newsletter-ip", points: 5, durationSeconds: 60 * 60 },
   /** Stops someone being mail-bombed with confirmation emails. */
   newsletterEmail: { name: "newsletter-email", points: 3, durationSeconds: 60 * 60 },

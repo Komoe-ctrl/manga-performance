@@ -109,3 +109,21 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   sont refusées à l'enregistrement. `pnpm db:seed` crée les 3 séquences modèles, inactives.
 - **Suivi et webhooks** : pixel d'ouverture `/api/t/o/:id`, clics `/api/t/c/:id` (identifiants signés HMAC),
   webhook fournisseur `/api/webhooks/email` (signature vérifiée). Voir `docs/deliverability.md`.
+
+## Scraper (étape 9)
+
+- **Flux** : l'admin crée une collecte (`/admin/scraper`) → job `QUEUED` ; le service Python (`apps/scraper`) le
+  réclame (`GET /api/internal/scrape-jobs/next`, atomique `SKIP LOCKED`), envoie les résultats par lots de 100 max
+  (`POST …/:id/results`) et clôt le job (`PATCH …/:id`). Les résultats sont dédoublonnés à l'arrivée (email,
+  téléphone, nom proche) contre le même job **et** le CRM ; l'import en prospect (source « scraper ») reste une
+  action manuelle de l'admin, sans séquence email automatique.
+- **API interne** : `X-Internal-Token` + signature HMAC-SHA256 de `timestamp.nonce.MÉTHODE.chemin.sha256(corps)`,
+  fenêtre de ±300 s, rejeu refusé. Les vecteurs de test sont partagés TS/Python. En production, Caddy doit en
+  plus restreindre `/api/internal/*` au réseau Docker (étape 11).
+- **Règles de collecte** appliquées dans le code (`apps/scraper/scraper/policy.py`) : robots.txt respecté, 2 à 5 s
+  entre requêtes, User-Agent identifiable, liste blanche de domaines (vide = rien n'est collecté), LinkedIn
+  toujours interdit, aucun contournement : au premier 403/429/CAPTCHA, arrêt et job en échec.
+- **Lancer** (voir `apps/scraper/README.md`) : `cd apps/scraper && python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"`,
+  puis `python -m scraper` (boucle) ou `python -m scraper --once`. Tests : `python -m pytest`.
+- Seul un spider de démonstration existe ; les vraies sources sont ajoutées une à une après validation du client
+  (conformité à la charge du client).

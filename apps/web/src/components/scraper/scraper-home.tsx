@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Info, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { createScrapeJob, listScrapeJobs, SCRAPE_DURATION_MS } from "@/lib/services";
+import { USE_DB, createScrapeJob, getScrapeJob, listScrapeJobs, SCRAPE_DURATION_MS } from "@/lib/services";
 import { CITIES, SECTORS, SIZE_LABELS } from "@/lib/constants";
 import type { CompanySize, ScrapeJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,17 @@ export function ComplianceNote() {
 function RunningJob({ job, onDone }: { job: ScrapeJob; onDone: () => void }) {
   const [progress, setProgress] = useState(0);
   useEffect(() => {
+    if (USE_DB) {
+      // A real job: the duration is unknown, so ask the server until the scraper has closed it.
+      const timer = setInterval(async () => {
+        const current = await getScrapeJob(job.id).catch(() => null);
+        if (current && current.status !== "en_cours") {
+          clearInterval(timer);
+          onDone();
+        }
+      }, 3000);
+      return () => clearInterval(timer);
+    }
     const start = new Date(job.startedAt).getTime();
     const timer = setInterval(() => {
       const p = Math.min(100, ((Date.now() - start) / SCRAPE_DURATION_MS) * 100);
@@ -45,14 +56,15 @@ function RunningJob({ job, onDone }: { job: ScrapeJob; onDone: () => void }) {
       }
     }, 200);
     return () => clearInterval(timer);
-  }, [job.startedAt, onDone]);
+  }, [job.id, job.startedAt, onDone]);
 
   return (
     <div role="status" className="rounded-lg border border-border p-4">
       <p className="text-sm font-medium">Collecte en cours : {SOURCE_LABELS[job.source]}</p>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100}>
-        <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={USE_DB ? undefined : Math.round(progress)} aria-valuemin={0} aria-valuemax={100}>
+        <div className={USE_DB ? "h-full w-full animate-pulse bg-accent" : "h-full bg-accent transition-all"} style={USE_DB ? undefined : { width: `${progress}%` }} />
       </div>
+      {USE_DB && <p className="mt-2 text-xs text-muted-foreground">Le service de collecte traite la demande (poliment : environ une page toutes les 3 secondes).</p>}
     </div>
   );
 }
@@ -99,7 +111,7 @@ export function ScraperHome() {
             size: (size || undefined) as CompanySize | undefined,
           });
           setLaunching(false);
-          toast.success("Collecte lancée (simulation)");
+          toast.success(USE_DB ? "Collecte mise en file d'attente" : "Collecte lancée (simulation)");
           reload();
         }}
       >

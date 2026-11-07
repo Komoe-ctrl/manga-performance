@@ -276,3 +276,49 @@ export const marketingSettingsSchema = z.object({
   /** Emails per day, to warm the sending domain up (spec, 6.7: start at 50). */
   dailyCap: z.number().int().min(0).max(100_000),
 });
+
+// ---------------------------------------------------------------------------
+// Scraper: admin requests and the internal API (spec, 6.10).
+// ---------------------------------------------------------------------------
+
+export const scrapeSources = ["annuaire", "appels_offres", "site_web"] as const;
+
+export const createScrapeJobSchema = z.strictObject({
+  source: z.enum(scrapeSources),
+  filters: z.strictObject({
+    sector: optionalText(80),
+    city: optionalText(80),
+    size: z.enum(companySizes).optional(),
+  }),
+});
+
+const httpUrl = z
+  .string()
+  .max(2000)
+  .pipe(z.url({ protocol: /^https?$/ }));
+
+/** One company found by the scraper. Everything is untrusted and validated again here. */
+export const scrapeResultItemSchema = z.object({
+  companyName: text(200).min(1),
+  sector: optionalText(80),
+  city: optionalText(80),
+  address: optionalText(300),
+  phone: optionalText(40),
+  email: optionalText(254),
+  sourceUrl: httpUrl,
+  collectedAt: z.iso.datetime({ offset: true }),
+});
+
+export const MAX_RESULTS_PER_BATCH = 100;
+export const MAX_RESULTS_PER_JOB = 5000;
+
+export const scrapeBatchSchema = z.strictObject({
+  results: z.array(z.unknown()).min(1).max(MAX_RESULTS_PER_BATCH),
+});
+
+export const scrapeFinishSchema = z.strictObject({
+  status: z.enum(["DONE", "FAILED"]),
+  error: z.string().max(1000).optional(),
+});
+
+export type ScrapeResultItem = z.output<typeof scrapeResultItemSchema>;

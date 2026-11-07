@@ -1,14 +1,19 @@
 import type { ScrapeJob, ScrapeResult } from "@/lib/types";
 import { SECTORS } from "@/lib/constants";
+import * as scraper from "@/server/actions/scraper";
+import { USE_DB, unwrap } from "./data-source";
 import { db, latency, nextId } from "./store";
 
 export const SCRAPE_DURATION_MS = 4000;
 
-export const listScrapeJobs = () => latency(() => [...db.scrapeJobs]);
-export const getScrapeJob = (id: string) =>
-  latency(() => db.scrapeJobs.find((j) => j.id === id) ?? null);
-export const listScrapeResults = (jobId: string) =>
-  latency(() => db.scrapeResults.filter((r) => r.jobId === jobId));
+export const listScrapeJobs = (): Promise<ScrapeJob[]> =>
+  USE_DB ? unwrap(scraper.listScrapeJobsAction()) : latency(() => [...db.scrapeJobs]);
+
+export const getScrapeJob = (id: string): Promise<ScrapeJob | null> =>
+  USE_DB ? unwrap(scraper.getScrapeJobAction(id)) : latency(() => db.scrapeJobs.find((j) => j.id === id) ?? null);
+
+export const listScrapeResults = (jobId: string): Promise<ScrapeResult[]> =>
+  USE_DB ? unwrap(scraper.listScrapeResultsAction(jobId)) : latency(() => db.scrapeResults.filter((r) => r.jobId === jobId));
 
 const pick = <T,>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)];
 
@@ -32,8 +37,8 @@ function generateResults(job: ScrapeJob): ScrapeResult[] {
   });
 }
 
-/** Lance un job simulé : il passe à « terminé » après SCRAPE_DURATION_MS, même si l'écran est quitté. */
-export const createScrapeJob = (source: ScrapeJob["source"], filters: ScrapeJob["filters"]) =>
+/** Mock: a simulated job that becomes "terminé" after SCRAPE_DURATION_MS, even if the screen is left. */
+const simulateJob = (source: ScrapeJob["source"], filters: ScrapeJob["filters"]) =>
   latency(() => {
     const job: ScrapeJob = {
       id: nextId("job"),
@@ -53,8 +58,15 @@ export const createScrapeJob = (source: ScrapeJob["source"], filters: ScrapeJob[
     return job;
   });
 
-/** Importe les résultats dans le CRM (source « scraper ») ; ignore doublons et déjà importés. */
-export const importScrapeResults = (ids: string[]) =>
+/**
+ * `DATA_SOURCE=db`: queues a real job; the Python service picks it up, collects politely and
+ * pushes the results. `mock`: the simulation above.
+ */
+export const createScrapeJob = (source: ScrapeJob["source"], filters: ScrapeJob["filters"]): Promise<ScrapeJob> =>
+  USE_DB ? unwrap(scraper.createScrapeJobAction({ source, filters })) : simulateJob(source, filters);
+
+/** Mock: imports into the in-memory CRM (source « scraper »), skipping duplicates and already imported ones. */
+const simulateImport = (ids: string[]) =>
   latency(() => {
     let imported = 0;
     let skipped = 0;
@@ -84,3 +96,10 @@ export const importScrapeResults = (ids: string[]) =>
     }
     return { imported, skipped };
   });
+
+/**
+ * Imports the selected results into the CRM (source « scraper »); duplicates and results
+ * already imported are skipped. No email sequence is started.
+ */
+export const importScrapeResults = (ids: string[]): Promise<{ imported: number; skipped: number }> =>
+  USE_DB ? unwrap(scraper.importScrapeResultsAction(ids)) : simulateImport(ids);
