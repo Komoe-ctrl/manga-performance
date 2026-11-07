@@ -32,6 +32,7 @@ const PUBLIC_RUNNER = /\brunPublic\(/; // published blog content only
 const PUBLIC_ROUTES: Record<string, string> = {
   "app/api/auth/[...all]/route.ts": "Better Auth: login, lockout, rate limit",
   "app/api/health/route.ts": "minimal up/down answer",
+  "app/api/exports/demo/route.ts": "fictitious dataset only + rate limit per IP",
   "app/api/leads/route.ts": "Turnstile + honeypot + rate limit",
   "app/api/newsletter/subscribe/route.ts": "Turnstile + honeypot + rate limit",
   "app/api/newsletter/confirm/route.ts": "single-use hashed token",

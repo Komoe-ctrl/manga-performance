@@ -1,6 +1,6 @@
 import { ServiceError, USE_DB } from "./data-source";
 
-export type ExportKind = "prospects" | "invoices" | "subscribers" | "scrape-results";
+export type ExportKind = "prospects" | "invoices" | "subscribers" | "scrape-results" | "demo";
 export type ExportFormat = "xlsx" | "pdf";
 
 /** Saves a Blob through a temporary link (works for every browser, no popup). */
