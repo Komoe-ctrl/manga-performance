@@ -34,7 +34,7 @@ test("a converted prospect is invited, signs in and downloads a deliverable", as
 
   await portal.goto("/espace-client/connexion");
   await portal.getByLabel("Email").fill(EMAIL);
-  await portal.getByLabel("Mot de passe").fill(PASSWORD_FOR_CLIENT);
+  await portal.getByLabel("Mot de passe", { exact: true }).fill(PASSWORD_FOR_CLIENT);
   await portal.getByRole("button", { name: "Se connecter" }).click();
   await expect(portal).toHaveURL(/\/espace-client$/);
 
@@ -43,6 +43,16 @@ test("a converted prospect is invited, signs in and downloads a deliverable", as
   const [download] = await Promise.all([portal.waitForEvent("download"), portal.getByRole("button", { name: "Télécharger" }).first().click()]);
   expect(download.suggestedFilename()).toMatch(/\.pdf$/);
   expect(readFileSync(await download.path())).toEqual(REPORT);
+
+  // A wrongly chosen attachment can be removed before sending, and a forbidden type is refused on the spot.
+  await portal.goto("/espace-client/messages");
+  await portal.locator("input[type=file]").setInputFiles({ name: "mauvais-fichier.pdf", mimeType: "application/pdf", buffer: REPORT });
+  await expect(portal.getByTestId("attachment-chip")).toContainText("mauvais-fichier.pdf");
+  await portal.getByRole("button", { name: /Retirer la pièce jointe/ }).click();
+  await expect(portal.getByTestId("attachment-chip")).toHaveCount(0);
+  await portal.locator("input[type=file]").setInputFiles({ name: "programme.exe", mimeType: "application/octet-stream", buffer: Buffer.alloc(8) });
+  await expect(portal.getByText("Format non accepté")).toBeVisible();
+  await expect(portal.getByTestId("attachment-chip")).toHaveCount(0);
 
   // The client has no way into the back-office.
   const forbidden = await portal.request.get("/api/exports/prospects");

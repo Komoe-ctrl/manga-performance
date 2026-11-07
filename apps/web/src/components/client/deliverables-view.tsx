@@ -23,13 +23,14 @@ export function DeliverablesView() {
   if (items.status === "loading") return <LoadingState />;
   if (items.status === "error") return <ErrorState message="Livrables indisponibles." onRetry={items.reload} />;
 
-  const shown = [...items.data]
-    .filter((d) => filter === "all" || (filter === "other" ? d.fileType !== "pdf" && d.fileType !== "xlsx" : d.fileType === filter))
-    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  const matches = (d: (typeof items.data)[number], f: Filter) =>
+    f === "all" || (f === "other" ? d.fileType !== "pdf" && d.fileType !== "xlsx" : d.fileType === f);
+  const count = (f: Filter) => items.data.filter((d) => matches(d, f)).length;
+  const shown = [...items.data].filter((d) => matches(d, filter)).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
   return (
     <div className="space-y-4">
-      <div role="group" aria-label="Filtrer par type" className="flex gap-2">
+      <div role="group" aria-label="Filtrer par type" className="flex flex-wrap gap-2">
         {([["all", "Tous"], ["pdf", "PDF"], ["xlsx", "Excel"], ["other", "Autres"]] as const).map(([v, label]) => (
           <button
             key={v}
@@ -40,13 +41,13 @@ export function DeliverablesView() {
               filter === v ? "border-accent bg-accent text-accent-foreground" : "border-border hover:bg-muted",
             )}
           >
-            {label}
+            {label} <span className="text-xs text-muted-foreground">({count(v)})</span>
           </button>
         ))}
       </div>
 
       {shown.length === 0 ? (
-        <EmptyState message="Aucun livrable pour le moment." />
+        <EmptyState message={filter === "all" ? "Aucun livrable pour le moment. Vous serez prévenu par email dès qu'un document est publié." : "Aucun livrable de ce type."} />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
           {shown.map((d) => {

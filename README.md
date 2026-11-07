@@ -163,6 +163,6 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
   (`restore.sh`). Voir **`docs/runbook.md`** (installation, mise à jour, restauration, incidents, rotation des secrets).
 - **Tests e2e (Playwright)** : `pnpm db:up` puis `pnpm e2e`. Base jetable `manga_e2e`, serveur Next et worker réels :
   formulaire de contact → prospect en admin ; conversion → invitation → connexion client → téléchargement d'un
-  livrable ; facture créée → émise → payée. Nécessite Internet (clés de test Turnstile).
+  livrable ; facture créée → émise → payée. Ne nécessite pas Internet : la vérification Turnstile est simulée par un petit serveur local.
 - **Revue de sécurité** : `docs/security-review.md`. Un test statique (`guard-coverage.test.ts`) échoue si un endpoint
   est ajouté sans garde d'autorisation.

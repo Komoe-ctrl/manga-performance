@@ -26,6 +26,7 @@ export default defineConfig({
     },
   ],
   webServer: [
+    { command: "node e2e/support/turnstile-stub.mjs", port: 3101, reuseExistingServer: false },
     {
       command: `npx next dev --port ${E2E_PORT}`,
       url: BASE_URL,

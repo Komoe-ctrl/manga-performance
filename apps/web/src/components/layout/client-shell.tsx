@@ -33,7 +33,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <span className="font-heading font-extrabold">MANGA PERFORMANCE</span>
           <div className="flex items-center gap-4 text-sm">
-            <span>{client.status === "success" ? client.data?.companyName : "…"}</span>
+            <span className="max-w-[40vw] truncate sm:max-w-xs">{client.status === "success" ? client.data?.companyName : "…"}</span>
             <button
               onClick={() => {
                 signOut();
@@ -45,14 +45,14 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </div>
-        <nav aria-label="Navigation espace client" className="mx-auto flex max-w-5xl gap-1 px-4">
+        <nav aria-label="Navigation espace client" className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
           {clientNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               aria-current={pathname === item.href ? "page" : undefined}
               className={cn(
-                "nav-link flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors",
+                "nav-link flex shrink-0 items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 pathname === item.href ? "bg-background text-primary" : "text-slate-200 hover:bg-white/10 hover:text-white",
               )}
             >

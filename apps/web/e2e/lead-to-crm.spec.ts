@@ -4,6 +4,13 @@ import { expect, test } from "@playwright/test";
 test("a contact-form message becomes a prospect visible in the back-office", async ({ browser, page }) => {
   const visitor = await browser.newContext({ storageState: { cookies: [], origins: [] }, locale: "fr-FR" });
   const site = await visitor.newPage();
+  // The Turnstile widget is replaced by one that hands out a token at once (the server-side check is stubbed too).
+  await site.route("**/turnstile/v0/api.js*", (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: "window.turnstile={render:(el,o)=>{setTimeout(()=>o.callback(\"e2e-token\"),50);return \"w1\"},reset(){},remove(){}};",
+    }),
+  );
   await site.goto("/contact");
 
   await site.getByLabel("Nom *").fill("Koffi Konan E2E");

@@ -54,6 +54,6 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
    recontacter quelqu'un qui l'a demandé).
 2. **Scraper** : la conformité (sources, cadre légal de la collecte et de la prospection) reste à la charge du client ;
    aucune source réelle n'est livrée, seulement un spider de démonstration.
-3. **Turnstile en e2e** : les tests de bout en bout utilisent les clés de test Cloudflare et exigent un accès Internet.
+3. **Turnstile en e2e** : les tests de bout en bout simulent la vérification Turnstile avec un serveur local (la variable `TURNSTILE_VERIFY_URL` n'est jamais prise en compte en production), donc sans accès Internet.
 4. **Recette sur le VPS** : sauvegarde/restauration, certificat HTTPS, en-tête HSTS et blocage de `/api/internal/*`
    depuis l'extérieur sont à vérifier une fois sur le serveur réel (non testables en local).
