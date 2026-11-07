@@ -235,7 +235,7 @@ export function DemoDashboard() {
         <p className="mb-3 text-xs text-muted-foreground">
           CPro (prévisionnel) / CPra (pratiqué) — libellés provisoires, définitions à confirmer.
         </p>
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="relative overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted text-left">
               <tr>

@@ -45,7 +45,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </div>
-        <nav aria-label="Navigation espace client" className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
+        <nav aria-label="Navigation espace client" className="relative mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4">
           {clientNav.map((item) => (
             <Link
               key={item.href}

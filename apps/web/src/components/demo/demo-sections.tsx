@@ -122,7 +122,7 @@ export function HotelTable({ rows }: { rows: { id: string; hotel: string; ca: nu
     <section aria-labelledby="hotels-title">
       <h2 id="hotels-title" className="mb-1 text-lg font-bold text-primary">Synthèse par établissement</h2>
       <p className="mb-3 text-xs text-muted-foreground">Classement par marge brute sur la période. L&apos;écart au prévisionnel compare les charges pratiquées au budget.</p>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="relative overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <caption className="sr-only">Résultat, marge et écart au prévisionnel par établissement</caption>
           <thead className="bg-muted text-left">

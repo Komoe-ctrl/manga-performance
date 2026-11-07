@@ -93,7 +93,7 @@ export function DataTable<T extends object>({
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="relative overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead className="bg-muted text-left">

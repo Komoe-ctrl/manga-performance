@@ -122,7 +122,7 @@ export function ClientLoginForm() {
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
           <Input type="search" aria-label="Rechercher une entreprise" placeholder="Rechercher une entreprise…" className="pl-9" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-        <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto" aria-live="polite">
+        <ul className="relative mt-2 max-h-48 space-y-1 overflow-y-auto" aria-live="polite">
           {clients.status === "loading" && <li className="p-2 text-xs text-muted-foreground">Chargement…</li>}
           {clients.status === "success" && matches.length === 0 && <li className="p-2 text-xs text-muted-foreground">Aucune entreprise trouvée.</li>}
           {matches.map((c) => {
