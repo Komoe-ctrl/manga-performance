@@ -93,6 +93,6 @@ export function variances(
   return src.costPosts.map((p) => {
     const cpro = records.reduce((s, r) => s + r.costs[p.id].planned, 0);
     const cpra = records.reduce((s, r) => s + r.costs[p.id].actual, 0);
-    return { post: p.name, cpro, cpra, gap: cpra - cpro, gapPct: cpro ? ((cpra - cpro) / cpro) * 100 : 0 };
+    return { id: p.id, post: p.name, cpro, cpra, gap: cpra - cpro, gapPct: cpro ? ((cpra - cpro) / cpro) * 100 : 0 };
   });
 }

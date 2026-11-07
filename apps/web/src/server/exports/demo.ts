@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { aggregate, monthlySeries, periods, variances, type Granularity } from "@/lib/demo/compute";
+import { actionPlan, buildInsights, hotelSummary } from "@/lib/demo/insights";
 import { COST_POSTS, DEMO_HOTELS, DEMO_MONTHS, DEMO_PRODUCTS, demoDashboard } from "@/lib/mock/demo-dashboard";
 import { ExportError, type ExportTable } from "./types";
 
@@ -37,6 +38,10 @@ export function buildDemoExport(filters: z.output<typeof filterSchema>): ExportT
 
   const monthly = monthlySeries(source, filters);
   const gaps = variances({ ...source, costPosts: COST_POSTS }, filters, period);
+  const previous = aggregate(source, filters, periods(source.months, filters.granularity).previous);
+  const summary = hotelSummary({ ...source, hotels: DEMO_HOTELS }, filters.productId, period);
+  const insights = buildInsights({ cur: current, prev: previous, gaps, hotels: summary, scopeIsAllHotels: filters.hotelId === "all" });
+  const actions = actionPlan(gaps);
 
   return {
     slug: "demo-dashboard",
@@ -48,6 +53,8 @@ export function buildDemoExport(filters: z.output<typeof filterSchema>): ExportT
       `Période : ${GRANULARITY_LABELS[filters.granularity]}`,
       `Sur la période : marge brute ${percent(current.marginRate)}, CA ${Math.round(current.revenue)} FCFA, charges ${Math.round(current.charges)} FCFA`,
       ...gaps.map((g) => `Écart ${g.post} : ${Math.round(g.gap)} FCFA (${percent(g.gapPct)})`),
+      ...insights.map((i) => `Lecture : ${i.title}. ${i.detail}`),
+      ...actions.map((a) => `Action ${a.priority} (${a.post}) : ${a.action}`),
     ],
     columns: [
       { header: "Mois", width: 2 },

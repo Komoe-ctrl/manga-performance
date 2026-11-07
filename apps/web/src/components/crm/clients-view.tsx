@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { USE_DB, invoiceTotals, listClients, listInvoices, publishDeliverable, setClientAccess } from "@/lib/services";
+import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { ErrorState, LoadingState, MoneyAmount } from "@/components/shared";
@@ -117,14 +118,21 @@ export function ClientsView() {
       sortValue: (r) => Number(r.accessActive),
       cell: (r) => (
         <button
+          type="button"
+          role="switch"
+          aria-checked={r.accessActive}
+          aria-label={`Accès à l'espace client de ${r.companyName}`}
           onClick={async () => {
             await setClientAccess(r.id, !r.accessActive);
             toast.success(r.accessActive ? "Accès désactivé" : "Accès activé");
             data.reload();
           }}
-          className={r.accessActive ? "font-medium text-success underline" : "text-muted-foreground underline"}
+          className="group inline-flex items-center gap-2 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
-          {r.accessActive ? "Actif" : "Inactif"}
+          <span className={cn("relative h-5 w-9 rounded-full transition-colors", r.accessActive ? "bg-success" : "bg-slate-300")} aria-hidden>
+            <span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all", r.accessActive ? "left-[18px]" : "left-0.5")} />
+          </span>
+          <span className={cn("text-sm", r.accessActive ? "font-medium text-success" : "text-muted-foreground")}>{r.accessActive ? "Actif" : "Inactif"}</span>
         </button>
       ),
     },

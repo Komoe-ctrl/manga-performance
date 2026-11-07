@@ -8,6 +8,7 @@ import { useAsync } from "@/lib/hooks/use-async";
 import { listFollowUps, listInvoices, listProspects, invoiceTotals } from "@/lib/services";
 import { REFERENCE_DATE, SOURCE_LABELS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import { formatFCFA } from "@/lib/utils/format";
+import { AlertCircle, ArrowRight, BellRing, UserPlus } from "lucide-react";
 import { DateLabel, ErrorState, KpiCard, LoadingState, StatusBadge } from "@/components/shared";
 
 const NAVY = "#1A2B4A";
@@ -55,10 +56,41 @@ export function AdminDashboard() {
   const dueToday = followUps
     .filter((f) => !f.done && (isSameDay(parseISO(f.dueAt), today) || parseISO(f.dueAt) < today))
     .slice(0, 6);
+  const overdueInvoices = invoices.filter((i) => i.status === "en_retard");
+  const newProspects = prospects.filter((p) => p.status === "nouveau").length;
+  const todo = [
+    { href: "/admin/relances", icon: BellRing, count: dueToday.length, label: "relance(s) à faire", hint: "Rappels prévus aujourd'hui ou en retard", urgent: dueToday.length > 0 },
+    { href: "/admin/factures", icon: AlertCircle, count: overdueInvoices.length, label: "facture(s) en retard", hint: overdue ? `${formatFCFA(overdue)} à recouvrer` : "Rien à recouvrer", urgent: overdueInvoices.length > 0 },
+    { href: "/admin/prospects", icon: UserPlus, count: newProspects, label: "nouveau(x) prospect(s)", hint: "À qualifier et à contacter", urgent: false },
+  ];
   const latest = [...prospects].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
 
   return (
     <div className="space-y-8">
+      <section aria-labelledby="todo-title">
+        <h2 id="todo-title" className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">À traiter aujourd&apos;hui</h2>
+        <ul className="grid gap-3 md:grid-cols-3">
+          {todo.map(({ href, icon: Icon, count, label, hint, urgent }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                className={`group flex items-center gap-4 rounded-lg border p-4 transition-all hover:-translate-y-px hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${urgent ? "border-accent bg-accent/10" : "border-border"}`}
+              >
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${urgent ? "bg-accent text-accent-foreground" : "bg-muted text-primary"}`}>
+                  <Icon className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-2xl font-bold leading-none text-primary">{count}</span>
+                  <span className="block text-sm font-medium">{label}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{hint}</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section aria-label="Indicateurs" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Leads du mois" value={String(leadsThisMonth)} />
         <KpiCard label="Taux de conversion" value={`${conversion.toFixed(1)} %`} hint="Clients / prospects" />
