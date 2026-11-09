@@ -12,7 +12,7 @@ export function WhatsAppFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Nous écrire sur WhatsApp"
-      className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg"
+      className="fixed bottom-3 right-3 z-50 flex h-11 w-11 items-center sm:bottom-4 sm:right-4 sm:h-12 sm:w-12 justify-center rounded-full bg-accent text-accent-foreground shadow-lg"
     >
       <MessageCircle aria-hidden />
     </a>

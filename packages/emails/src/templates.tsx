@@ -100,7 +100,7 @@ function NewLead({ data, cabinet }: { data: Data<"new-lead">; cabinet: Cabinet }
     <Layout preview={data.returning ? "Un contact existant vous a réécrit" : "Nouveau prospect"} cabinet={cabinet}>
       <Title>{data.returning ? "Un contact existant vous a réécrit" : "Nouveau prospect"}</Title>
       <P>
-        <strong>{data.contactName}</strong> ({data.companyName}) vous a contacté via {data.sourceLabel}.
+        <strong>{data.contactName}</strong>{data.companyName && data.companyName !== data.contactName ? ` (${data.companyName})` : ""} vous a contacté via {data.sourceLabel}.
         {data.returning ? " Une note a été ajoutée à sa fiche." : ""}
       </P>
       <Cta href={data.url}>Ouvrir la fiche</Cta>

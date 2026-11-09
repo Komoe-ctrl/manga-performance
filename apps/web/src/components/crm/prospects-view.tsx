@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckSquare, LayoutGrid, Plus, Search, Table2, X } from "lucide-react";
+import { CheckSquare, LayoutGrid, Plus, Search, SlidersHorizontal, Table2, X } from "lucide-react";
 import { useAsync } from "@/lib/hooks/use-async";
 import { listProspects } from "@/lib/services";
 import { NEED_LABELS, SECTORS, SIZE_LABELS, SOURCE_LABELS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
@@ -79,6 +79,7 @@ export function ProspectsView() {
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [selected, setSelected] = useState<string[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const set = (k: keyof Filters) => (v: string) => setFilters((f) => ({ ...f, [k]: v }));
 
@@ -144,7 +145,10 @@ export function ProspectsView() {
             </Button>
           )}
         </div>
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Button variant="soft" size="sm" className="sm:hidden" aria-expanded={showFilters} onClick={() => setShowFilters((v) => !v)}>
+          <SlidersHorizontal className="h-4 w-4" aria-hidden /> Filtres{activeCount > 0 ? ` (${activeCount})` : ""}
+        </Button>
+        <div className={cn("grid-cols-2 gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-5", showFilters ? "grid" : "hidden")}>
         <FilterSelect label="Statut" value={filters.status} onChange={set("status")} options={STATUS_ORDER.map((s) => [s, STATUS_LABELS[s]])} />
         <FilterSelect label="Secteur" value={filters.sector} onChange={set("sector")} options={SECTORS.map((s) => [s, s])} />
         <FilterSelect label="Taille" value={filters.size} onChange={set("size")} options={Object.entries(SIZE_LABELS)} />

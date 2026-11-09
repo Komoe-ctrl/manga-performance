@@ -14,7 +14,7 @@ export function NotificationsView() {
 
   if (items.status === "loading") return <LoadingState />;
   if (items.status === "error") return <ErrorState message="Notifications indisponibles." onRetry={items.reload} />;
-  if (items.data.length === 0) return <EmptyState message="Aucune nouvelle notification." />;
+  if (items.data.length === 0) return <EmptyState message="Aucune nouvelle notification. Vous serez prévenu ici, et par email, dès qu'un livrable ou un message arrive." />;
 
   return (
     <ul className="divide-y divide-border rounded-lg border border-border">

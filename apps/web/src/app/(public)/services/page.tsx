@@ -18,10 +18,10 @@ export default function Page() {
       <Section>
         <div className="grid gap-4 md:grid-cols-2">
           {services.map((s) => (
-            <Link key={s.slug} href={`/services/${s.slug}`} className="card-lift group rounded-xl border border-border p-6">
+            <Link key={s.slug} href={`/services/${s.slug}`} className="card-lift group flex flex-col rounded-xl border border-border p-6">
               <h2 className="text-xl font-bold text-primary">{s.title}</h2>
               <p className="mt-2 text-muted-foreground">{s.short}</p>
-              <span className="mt-4 inline-block"><MoreLabel>Voir le détail</MoreLabel></span>
+              <span className="mt-auto inline-block pt-4"><MoreLabel>Voir le détail</MoreLabel></span>
             </Link>
           ))}
         </div>
