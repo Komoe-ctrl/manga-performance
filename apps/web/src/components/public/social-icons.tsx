@@ -3,7 +3,7 @@ import { socialLinks } from "@/lib/content/site";
 const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
 /** Lucide n'a plus d'icônes de marques : tracés simples dessinés ici. */
-const ICONS: Record<(typeof socialLinks)[number]["label"], React.ReactNode> = {
+const ICONS: Record<string, React.ReactNode> = {
   LinkedIn: (
     <>
       <rect x="3" y="3" width="18" height="18" rx="3" {...stroke} />
