@@ -13,11 +13,11 @@ export const contactInfo = {
 
 export const DEFAULT_WHATSAPP_MESSAGE = "Bonjour, je souhaite en savoir plus sur vos services.";
 
-// TODO: remplacer par les liens réels des comptes du cabinet (actuellement : page d'accueil de chaque réseau)
+// Comptes du cabinet fournis par le client. TODO: ajouter LinkedIn quand le client donnera le lien
+// (une icône vers la page d'accueil du réseau n'aide personne : mieux vaut l'omettre).
 export const socialLinks = [
-  { label: "LinkedIn", href: "https://www.linkedin.com/" },
-  { label: "Facebook", href: "https://www.facebook.com/" },
-  { label: "Instagram", href: "https://www.instagram.com/" },
+  { label: "Facebook", href: "https://www.facebook.com/share/19biV5xEvV/" },
+  { label: "Instagram", href: "https://www.instagram.com/lemac70" },
 ] as const;
 
 export interface ServiceContent {
