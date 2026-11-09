@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 # One image for the web app and the worker (same workspace, different command).
 # Build from the repository root:  docker build -f infra/docker/app.Dockerfile -t manga-app .
-FROM node:24-bookworm-slim
+
+# ---- build: full install, Prisma client, Next.js build, then production dependencies only -------
+FROM node:24-bookworm-slim AS build
 
 ENV CI=true \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -11,8 +13,6 @@ RUN npm install -g pnpm@12.18.0 && apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir /app && chown node:node /app
 
-# Everything below runs as the unprivileged user, and files are owned by it from the start:
-# no `chown -R` layer that would duplicate the whole workspace.
 USER node
 WORKDIR /app
 COPY --chown=node:node . .
@@ -29,9 +29,24 @@ RUN DATABASE_URL=postgresql://build:build@localhost:5432/build pnpm db:generate 
        DATABASE_URL=postgresql://build:build@localhost:5432/build \
        pnpm build
 
+# Production dependencies only. prisma (migrations) and tsx (worker) are regular dependencies for that reason.
+RUN pnpm prune --prod && rm -rf apps/web/.next/cache apps/web/e2e apps/web/test apps/scraper docs infra
+
+# ---- runtime: only what is needed to run (a prune in the same stage would not shrink the image) ----
+FROM node:24-bookworm-slim
+
+ENV CI=true \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=production
+RUN npm install -g pnpm@12.18.0 && apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+USER node
+WORKDIR /app
+COPY --from=build --chown=node:node /app /app
 COPY --chown=node:node --chmod=755 infra/docker/web-entrypoint.sh /usr/local/bin/web-entrypoint.sh
 
-ENV NODE_ENV=production
 EXPOSE 3000
 # Default command is the web server; compose overrides it for the worker.
 CMD ["web-entrypoint.sh"]

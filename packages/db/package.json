@@ -24,13 +24,13 @@
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "pg": "^8",
-    "pg-boss": "^12.38.1"
+    "pg-boss": "^12.38.1",
+    "prisma": "7.10.1",
+    "tsx": "^4"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/pg": "^8",
-    "prisma": "7.10.1",
-    "tsx": "^4",
     "typescript": "^5"
   }
 }

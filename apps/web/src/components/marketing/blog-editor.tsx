@@ -4,7 +4,7 @@ import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Heading2, Italic, List, ListOrdered, Redo2, Undo2 } from "lucide-react";
+import { Bold, Eye, FileCheck2, Heading2, ImagePlus, Italic, List, ListOrdered, Redo2, Save, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { createBlogPost, getBlogPostForEdit, updateBlogPost, type BlogDraft } from "@/lib/services";
@@ -13,7 +13,7 @@ import type { BlogPost } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { EmptyState, ErrorState, LoadingState } from "@/components/shared";
+import { EmptyState, ErrorState, LoadingState, StatusBadge } from "@/components/shared";
 
 const EMPTY: BlogDraft = {
   title: "",
@@ -32,6 +32,17 @@ function Counter({ value, max }: { value: number; max: number }) {
     </span>
   );
 }
+
+const slugify = (title: string) =>
+  title
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+const plainText = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/s+/g, " ").trim();
 
 function ToolbarButton({ label, active, onClick, children }: { label: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -52,7 +63,18 @@ function Editor({ initial, id }: { initial: BlogDraft; id?: string }) {
   const [draft, setDraft] = useState<BlogDraft>(initial);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(initial);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
+  const dirty = draft.title !== saved.title || draft.excerpt !== saved.excerpt || draft.category !== saved.category || draft.content !== saved.content || draft.coverImage !== saved.coverImage || JSON.stringify(draft.seo) !== JSON.stringify(saved.seo);
+
+  // Leaving with unsaved work asks for confirmation.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const editor = useEditor({
     extensions: [StarterKit],
@@ -70,6 +92,7 @@ function Editor({ initial, id }: { initial: BlogDraft; id?: string }) {
     if (!preview && d.open) d.close();
   }, [preview]);
 
+  const words = plainText(draft.content).split(" ").filter(Boolean).length;
   const set = <K extends keyof BlogDraft>(k: K, v: BlogDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const setSeo = (k: "metaTitle" | "metaDescription", v: string) => setDraft((d) => ({ ...d, seo: { ...d.seo, [k]: v } }));
 
@@ -90,12 +113,19 @@ function Editor({ initial, id }: { initial: BlogDraft; id?: string }) {
       setSaving(false);
     }
     setDraft(payload);
+    setSaved(payload);
     toast.success(status === "publie" ? "Article publié" : "Brouillon enregistré");
   };
 
   return (
     <div className="grid max-w-5xl gap-6 lg:grid-cols-[1fr_300px]">
       <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <StatusBadge status={draft.status} />
+          <span role="status" className={dirty ? "font-medium text-warning" : "text-muted-foreground"}>
+            {dirty ? "Modifications non enregistrées" : "Tout est enregistré"}
+          </span>
+        </div>
         <Field label="Titre *" htmlFor="post-title">
           <Input id="post-title" value={draft.title} onChange={(e) => set("title", e.target.value)} />
         </Field>
@@ -114,33 +144,58 @@ function Editor({ initial, id }: { initial: BlogDraft; id?: string }) {
             <ToolbarButton label="Rétablir" onClick={() => editor?.chain().focus().redo().run()}><Redo2 className="h-4 w-4" /></ToolbarButton>
           </div>
           <EditorContent editor={editor} />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {words} mot{words > 1 ? "s" : ""} · environ {Math.max(1, Math.round(words / 200))} min de lecture
+          </p>
         </div>
       </div>
 
-      <aside className="space-y-4">
+      <aside className="min-w-0 space-y-4">
         <Field label="Catégorie" htmlFor="post-category">
           <Select id="post-category" value={draft.category} onChange={(e) => set("category", e.target.value as BlogPost["category"])}>
             {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </Select>
         </Field>
         <div className="space-y-2">
-          <label htmlFor="post-cover" className="text-sm font-medium">Image de couverture</label>
+          <p className="text-sm font-medium">Image de couverture</p>
+          {draft.coverImage ? (
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={draft.coverImage} alt="Aperçu de la couverture" className="h-32 w-full rounded-md object-cover" />
+              <Button
+                type="button"
+                variant="danger"
+                size="icon"
+                aria-label="Retirer l'image de couverture"
+                className="absolute right-2 top-2 bg-background/90"
+                onClick={() => {
+                  set("coverImage", undefined);
+                  if (coverInput.current) coverInput.current.value = "";
+                }}
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </Button>
+            </div>
+          ) : (
+            <label htmlFor="post-cover" className="flex h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary focus-within:ring-2 focus-within:ring-accent">
+              <ImagePlus className="h-5 w-5" aria-hidden />
+              Ajouter une image
+              <span className="text-xs">PNG ou JPG</span>
+            </label>
+          )}
           <input
+            ref={coverInput}
             id="post-cover"
             type="file"
-            accept="image/*"
-            className="block w-full text-sm"
+            accept="image/png,image/jpeg"
+            className="sr-only"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) set("coverImage", URL.createObjectURL(file)); // aperçu local, aucun stockage
             }}
           />
-          {draft.coverImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={draft.coverImage} alt="Aperçu de la couverture" className="h-32 w-full rounded-md object-cover" />
-          )}
         </div>
-        <fieldset className="space-y-3 rounded-lg border border-border p-3">
+        <fieldset className="min-w-0 space-y-3 rounded-lg border border-border p-3">
           <legend className="px-1 text-sm font-semibold text-primary">SEO</legend>
           <Field label="Meta title" htmlFor="seo-title">
             <Input id="seo-title" value={draft.seo.metaTitle ?? ""} onChange={(e) => setSeo("metaTitle", e.target.value)} />
@@ -150,11 +205,16 @@ function Editor({ initial, id }: { initial: BlogDraft; id?: string }) {
             <Textarea id="seo-desc" className="min-h-20" value={draft.seo.metaDescription ?? ""} onChange={(e) => setSeo("metaDescription", e.target.value)} />
           </Field>
           <Counter value={draft.seo.metaDescription?.length ?? 0} max={160} />
+          <div className="rounded-md border border-border bg-muted/40 p-3" aria-label="Aperçu dans Google">
+            <p className="truncate text-xs text-success">manga-performance.example › blog › {slugify(draft.title) || "titre-de-l-article"}</p>
+            <p className="truncate text-base font-medium text-[#1a0dab]">{draft.seo.metaTitle || draft.title || "Titre de l'article"}</p>
+            <p className="line-clamp-2 text-xs text-muted-foreground">{draft.seo.metaDescription || draft.excerpt || "La description apparaît ici dans les résultats de recherche."}</p>
+          </div>
         </fieldset>
-        <div className="flex flex-col gap-2">
-          <Button variant="outline" onClick={() => setPreview(true)}>Prévisualiser</Button>
-          <Button variant="outline" disabled={saving} onClick={() => save("brouillon")}>Enregistrer le brouillon</Button>
-          <Button variant="accent" disabled={saving} onClick={() => save("publie")}>Publier</Button>
+        <div className="sticky bottom-0 flex flex-col gap-2 bg-background/95 py-3 backdrop-blur">
+          <Button variant="soft" onClick={() => setPreview(true)}><Eye className="h-4 w-4" aria-hidden /> Prévisualiser</Button>
+          <Button variant="outline" loading={saving} onClick={() => save("brouillon")}><Save className="h-4 w-4" aria-hidden /> Enregistrer le brouillon</Button>
+          <Button variant="accent" loading={saving} onClick={() => save("publie")}><FileCheck2 className="h-4 w-4" aria-hidden /> {draft.status === "publie" ? "Mettre à jour" : "Publier"}</Button>
         </div>
       </aside>
 

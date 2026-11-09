@@ -62,3 +62,28 @@ test("the kanban board does not leave a blank page below it", async ({ page }) =
   }));
   expect(documentHeight - layout).toBeLessThan(80);
 });
+
+test("a card moved with its select lands in the new column", async ({ page }) => {
+  await page.goto("/admin/prospects");
+  await page.getByRole("button", { name: "Kanban" }).click();
+  const card = page.getByRole("region", { name: "Nouveau" }).getByRole("listitem").filter({ hasText: "Carte 0" });
+  await expect(card).toBeVisible();
+  await expect(async () => {
+    await card.getByLabel("Statut de Carte 0").selectOption("en_negociation");
+    await expect(page.getByRole("region", { name: "En négociation" }).getByText("Carte 0")).toBeVisible({ timeout: 4_000 });
+  }).toPass({ timeout: 40_000 });
+});
+
+test("settings tell whether there is something to save", async ({ page }) => {
+  await page.goto("/admin/parametres");
+  const name = page.getByLabel("Nom", { exact: true });
+  await expect(page.getByText("Tout est enregistré")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await expect(async () => {
+    await name.fill("Cabinet E2E");
+    await expect(page.getByText("Modifications non enregistrées")).toBeVisible({ timeout: 4_000 });
+  }).toPass({ timeout: 40_000 });
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Paramètres enregistrés")).toBeVisible();
+  await expect(page.getByText("Tout est enregistré")).toBeVisible();
+});
