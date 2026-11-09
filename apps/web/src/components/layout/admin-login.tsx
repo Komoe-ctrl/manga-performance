@@ -6,6 +6,7 @@ import { Lock, Mail, ShieldCheck } from "lucide-react";
 import { useSession } from "@/lib/auth/session";
 import { USE_DB, signInAdmin, verifyTwoFactorCode } from "@/lib/services";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Field, Input } from "@/components/ui/field";
 
 const DEMO_EMAIL = "consultant@manga-performance.example";
@@ -77,7 +78,7 @@ export function AdminLogin() {
           <Field label="Mot de passe" htmlFor="admin-password">
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
-              <Input id="admin-password" type="password" autoComplete="current-password" className="pl-9" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <PasswordInput id="admin-password" autoComplete="current-password" className="pl-9" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
           </Field>
         </>

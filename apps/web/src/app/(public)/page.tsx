@@ -81,11 +81,11 @@ export default function HomePage() {
       <Section title="Nos services">
         <div className="reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {services.map((s, i) => (
-            <Link key={s.slug} href={`/services/${s.slug}`} className="card-lift group rounded-xl border border-border bg-background p-5">
+            <Link key={s.slug} href={`/services/${s.slug}`} className="card-lift group flex flex-col rounded-xl border border-border bg-background p-5">
               <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">{i + 1}</span>
               <h3 className="font-bold text-primary">{s.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{s.short}</p>
-              <span className="mt-4 inline-block"><MoreLabel>En savoir plus</MoreLabel></span>
+              <span className="mt-auto inline-block pt-4"><MoreLabel>En savoir plus</MoreLabel></span>
             </Link>
           ))}
         </div>

@@ -3,6 +3,7 @@ import { ContactForm } from "@/components/public/contact-form";
 import { PageIntro, Section } from "@/components/public/section";
 import { contactInfo } from "@/lib/content/site";
 import { WhatsAppButton } from "@/components/public/whatsapp";
+import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -30,13 +31,16 @@ export default function Page() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-primary">Prendre rendez-vous</h2>
-              {/* TODO: intégration Calendly réelle (hors périmètre de la maquette) */}
-              <div
-                role="img"
-                aria-label="Emplacement du calendrier de prise de rendez-vous"
-                className="mt-2 flex h-56 items-center justify-center rounded-lg border border-dashed border-border bg-muted text-sm text-muted-foreground"
-              >
-                Calendrier Calendly (intégration à venir)
+              {/* TODO: remplacer par le calendrier Calendly du client quand son lien sera fourni */}
+              <div className="mt-2 space-y-3 rounded-xl border border-border bg-muted/40 p-5">
+                <p className="text-sm text-muted-foreground">
+                  Un échange de 30 minutes, sans engagement, pour faire le point sur votre situation. Choisissez ce qui vous convient :
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <a href={"tel:" + contactInfo.phone.replace(/\s/g, "")} className={buttonVariants({ variant: "primary", size: "sm" })}>Appeler maintenant</a>
+                  <a href={"mailto:" + contactInfo.email + "?subject=Demande%20de%20rendez-vous"} className={buttonVariants({ variant: "outline", size: "sm" })}>Proposer un créneau par email</a>
+                </div>
+                <p className="text-xs text-muted-foreground">{contactInfo.hours}</p>
               </div>
             </div>
           </div>

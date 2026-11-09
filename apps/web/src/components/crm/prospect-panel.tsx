@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { createProspect } from "@/lib/services";
 import { CITIES, NEED_LABELS, SECTORS, SIZE_LABELS, SOURCE_LABELS } from "@/lib/constants";
 import type { CompanySize, Need, ProspectSource } from "@/lib/types";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 
@@ -74,15 +75,21 @@ export function ProspectPanel({
       ref={ref}
       onClose={onClose}
       aria-labelledby="panel-title"
-      className="ml-auto mr-0 h-full max-h-full w-full max-w-md overflow-y-auto p-6 backdrop:bg-black/50"
+      className="ml-auto mr-0 h-full max-h-full w-full max-w-md overflow-y-auto p-0 backdrop:bg-black/50"
     >
-      <h2 id="panel-title" className="text-lg font-bold text-primary">
-        Nouveau prospect
-      </h2>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-6 py-4">
+        <h2 id="panel-title" className="text-lg font-bold text-primary">
+          Nouveau prospect
+        </h2>
+        <Button type="button" variant="ghost" size="icon" aria-label="Fermer" onClick={onClose}>
+          <X className="h-5 w-5" aria-hidden />
+        </Button>
+      </div>
       <form
         noValidate
-        className="mt-4 space-y-3"
+        className="space-y-3 px-6 pb-0 pt-4"
         onSubmit={handleSubmit(async (v) => {
+          try {
           await createProspect({
             companyName: v.companyName,
             contactName: v.contactName,
@@ -100,6 +107,10 @@ export function ProspectPanel({
           reset(defaults);
           onCreated();
           onClose();
+          } catch (error) {
+            // A duplicate, or a server refusal: the form stays open with what was typed.
+            toast.error(error instanceof Error ? error.message : "Création impossible, réessayez.");
+          }
         })}
       >
         <Field label="Entreprise *" htmlFor="np-company" error={errors.companyName?.message}>
@@ -108,34 +119,40 @@ export function ProspectPanel({
         <Field label="Contact *" htmlFor="np-contact" error={errors.contactName?.message}>
           <Input id="np-contact" {...register("contactName")} />
         </Field>
-        <Field label="Email" htmlFor="np-email" error={errors.email?.message}>
-          <Input id="np-email" type="email" {...register("email")} />
-        </Field>
-        <Field label="Téléphone" htmlFor="np-phone">
-          <Input id="np-phone" type="tel" placeholder="+225 07 XX XX XX XX" {...register("phone")} />
-        </Field>
-        <Field label="Secteur *" htmlFor="np-sector" error={errors.sector?.message}>
-          <Select id="np-sector" {...register("sector")}>
-            <option value="">Sélectionnez…</option>
-            {SECTORS.map((s) => <option key={s}>{s}</option>)}
-          </Select>
-        </Field>
-        <Field label="Ville *" htmlFor="np-city" error={errors.city?.message}>
-          <Select id="np-city" {...register("city")}>
-            <option value="">Sélectionnez…</option>
-            {CITIES.map((c) => <option key={c}>{c}</option>)}
-          </Select>
-        </Field>
-        <Field label="Taille" htmlFor="np-size">
-          <Select id="np-size" {...register("size")}>
-            {sizes.map((s) => <option key={s} value={s}>{SIZE_LABELS[s]}</option>)}
-          </Select>
-        </Field>
-        <Field label="Besoin" htmlFor="np-need">
-          <Select id="np-need" {...register("need")}>
-            {needs.map((n) => <option key={n} value={n}>{NEED_LABELS[n]}</option>)}
-          </Select>
-        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Email" htmlFor="np-email" error={errors.email?.message}>
+            <Input id="np-email" type="email" {...register("email")} />
+          </Field>
+          <Field label="Téléphone" htmlFor="np-phone">
+            <Input id="np-phone" type="tel" placeholder="+225 07 XX XX XX XX" {...register("phone")} />
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Secteur *" htmlFor="np-sector" error={errors.sector?.message}>
+            <Select id="np-sector" {...register("sector")}>
+              <option value="">Sélectionnez…</option>
+              {SECTORS.map((s) => <option key={s}>{s}</option>)}
+            </Select>
+          </Field>
+          <Field label="Ville *" htmlFor="np-city" error={errors.city?.message}>
+            <Select id="np-city" {...register("city")}>
+              <option value="">Sélectionnez…</option>
+              {CITIES.map((c) => <option key={c}>{c}</option>)}
+            </Select>
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Taille" htmlFor="np-size">
+            <Select id="np-size" {...register("size")}>
+              {sizes.map((s) => <option key={s} value={s}>{SIZE_LABELS[s]}</option>)}
+            </Select>
+          </Field>
+          <Field label="Besoin" htmlFor="np-need">
+            <Select id="np-need" {...register("need")}>
+              {needs.map((n) => <option key={n} value={n}>{NEED_LABELS[n]}</option>)}
+            </Select>
+          </Field>
+        </div>
         <Field label="Source" htmlFor="np-source">
           <Select id="np-source" {...register("source")}>
             {sources.map((s) => <option key={s} value={s}>{SOURCE_LABELS[s]}</option>)}
@@ -147,9 +164,9 @@ export function ProspectPanel({
         <Field label="Note" htmlFor="np-note">
           <Textarea id="np-note" {...register("ownerNote")} />
         </Field>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-          <Button type="submit" disabled={isSubmitting}>Créer</Button>
+        <div className="sticky bottom-0 -mx-6 flex justify-end gap-2 border-t border-border bg-background px-6 py-4">
+          <Button type="button" variant="ghost" onClick={onClose}>Annuler</Button>
+          <Button type="submit" loading={isSubmitting}>Créer le prospect</Button>
         </div>
       </form>
     </dialog>

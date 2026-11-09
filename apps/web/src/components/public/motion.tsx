@@ -43,11 +43,11 @@ export function HeroVisual() {
           <path d="M0 100 C 40 90, 60 60, 100 70 S 170 30, 210 40 S 270 10, 300 15" fill="none" stroke="#F5B700" strokeWidth="3" strokeLinecap="round" className="draw" />
         </svg>
       </div>
-      <div className="float absolute -left-4 top-8 rounded-xl bg-white px-4 py-3 text-primary shadow-xl sm:-left-10" aria-hidden="true">
+      <div className="float absolute left-2 top-8 rounded-xl bg-white px-4 py-3 text-primary shadow-xl sm:-left-10" aria-hidden="true">
         <p className="text-xs text-muted-foreground">Marge brute</p>
         <p className="text-lg font-bold">25,9 % <span className="text-xs font-medium text-success">▲ 0,7 pt</span></p>
       </div>
-      <div className="float-slow absolute -right-3 top-1/2 rounded-xl bg-accent px-4 py-3 text-accent-foreground shadow-xl sm:-right-8" aria-hidden="true">
+      <div className="float-slow absolute right-2 top-1/2 rounded-xl bg-accent px-4 py-3 text-accent-foreground shadow-xl sm:-right-8" aria-hidden="true">
         <p className="text-xs">Point mort</p>
         <p className="text-lg font-bold">Atteint le 27 sept.</p>
       </div>

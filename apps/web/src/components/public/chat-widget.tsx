@@ -208,7 +208,7 @@ export function ChatWidget() {
         aria-label={open ? "Fermer l'assistant" : "Ouvrir l'assistant"}
         aria-expanded={open}
         className={cn(
-          "fixed bottom-20 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border-2 border-accent bg-white text-primary shadow-lg",
+          "fixed bottom-16 right-3 z-50 flex h-11 w-11 items-center sm:bottom-20 sm:right-4 sm:h-12 sm:w-12 justify-center rounded-full border-2 border-accent bg-white text-primary shadow-lg",
           !open && "pulse-ring",
         )}
       >
@@ -220,7 +220,7 @@ export function ChatWidget() {
           role="dialog"
           aria-label="Assistant MANGA PERFORMANCE"
           onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-          className="rise fixed bottom-36 right-4 z-50 flex max-h-[70vh] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-border bg-background shadow-xl"
+          className="rise fixed bottom-32 right-3 z-50 sm:bottom-36 sm:right-4 flex max-h-[70vh] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-border bg-background shadow-xl"
         >
           <header className="bg-primary px-4 py-3 text-primary-foreground">
             <p className="font-semibold">Assistant MANGA PERFORMANCE</p>

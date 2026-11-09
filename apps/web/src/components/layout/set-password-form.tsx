@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { acceptInvitation, resetPassword } from "@/lib/services";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
 
 /** Sets a password from a single-use link: first activation (invitation) or reset. */
 export function SetPasswordForm({ mode }: { mode: "invitation" | "reset" }) {
@@ -44,10 +45,10 @@ export function SetPasswordForm({ mode }: { mode: "invitation" | "reset" }) {
       }}
     >
       <Field label="Nouveau mot de passe" htmlFor="new-password">
-        <Input id="new-password" type="password" autoComplete="new-password" minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordInput id="new-password" autoComplete="new-password" minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} />
       </Field>
       <Field label="Confirmer le mot de passe" htmlFor="confirm-password">
-        <Input id="confirm-password" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <PasswordInput id="confirm-password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </Field>
       <p className="text-xs text-muted-foreground">10 caractères minimum, pas de mot de passe courant.</p>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}

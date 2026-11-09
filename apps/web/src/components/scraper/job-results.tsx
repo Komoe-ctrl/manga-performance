@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { getScrapeJob, importScrapeResults, listScrapeResults } from "@/lib/services";
 import type { ScrapeResult } from "@/lib/types";
+import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { ExportButtons } from "@/components/shared/export-buttons";
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/shared";
@@ -61,6 +62,7 @@ export function JobResults({ params }: { params: Promise<{ jobId: string }> }) {
   const data = useAsync(async () => ({ job: await getScrapeJob(jobId), results: await listScrapeResults(jobId) }));
   const [selected, setSelected] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
+  const [view, setView] = useState<"all" | "new" | "duplicates" | "imported">("all");
 
   if (data.status === "loading") return <LoadingState />;
   if (data.status === "error") return <ErrorState message="Résultats indisponibles." onRetry={data.reload} />;
@@ -68,6 +70,11 @@ export function JobResults({ params }: { params: Promise<{ jobId: string }> }) {
   if (!job) return <EmptyState message="Job introuvable." />;
 
   const duplicates = results.filter((r) => r.duplicateOf).length;
+  const imported = results.filter((r) => r.importedToCrm).length;
+  const fresh = results.filter((r) => !r.duplicateOf && !r.importedToCrm).length;
+  const shown = results.filter(
+    (r) => view === "all" || (view === "duplicates" ? r.duplicateOf : view === "imported" ? r.importedToCrm : !r.duplicateOf && !r.importedToCrm),
+  );
 
   return (
     <div className="space-y-4">
@@ -80,14 +87,21 @@ export function JobResults({ params }: { params: Promise<{ jobId: string }> }) {
             <ExportButtons kind="scrape-results" filters={{ jobId }} />
             <Button
               variant="accent"
-              disabled={selected.length === 0 || importing}
+              loading={importing}
+              disabled={selected.length === 0}
+              title={selected.length === 0 ? "Cochez d'abord les résultats à importer" : undefined}
               onClick={async () => {
                 setImporting(true);
-                const { imported, skipped } = await importScrapeResults(selected);
-                setImporting(false);
-                toast.success(`${imported} prospect(s) importé(s) dans le CRM${skipped ? ` — ${skipped} ignoré(s) (doublons ou déjà importés)` : ""}`);
-                setSelected([]);
-                data.reload();
+                try {
+                  const { imported, skipped } = await importScrapeResults(selected);
+                  toast.success(`${imported} prospect(s) importé(s) dans le CRM${skipped ? ` — ${skipped} ignoré(s) (doublons ou déjà importés)` : ""}`);
+                  setSelected([]);
+                  data.reload();
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Import impossible, réessayez.");
+                } finally {
+                  setImporting(false);
+                }
               }}
             >
               Importer dans le CRM{selected.length > 0 && ` (${selected.length})`}
@@ -97,10 +111,25 @@ export function JobResults({ params }: { params: Promise<{ jobId: string }> }) {
       />
       <Link href="/admin/scraper" className="text-sm underline">← Retour au scraper</Link>
       <ComplianceNote />
+      <div className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Filtrer les résultats" className="flex flex-wrap gap-2">
+          {([["all", "Tous", results.length], ["new", "Nouveaux", fresh], ["duplicates", "Doublons", duplicates], ["imported", "Importés", imported]] as const).map(([v, label, n]) => (
+            <button
+              key={v}
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+              className={cn("rounded-full border px-3 py-1 text-sm", view === v ? "border-accent bg-accent text-accent-foreground" : "border-border hover:bg-muted")}
+            >
+              {label} <span className="text-xs opacity-70">({n})</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">Cochez les résultats à importer : les doublons et les résultats déjà importés sont ignorés, aucun email n&apos;est envoyé.</p>
+      </div>
       <DataTable
         // key : réinitialise la sélection interne après un import
-        key={results.filter((r) => r.importedToCrm).length}
-        data={results}
+        key={`${imported}-${view}`}
+        data={shown}
         columns={columns}
         getRowId={(r) => r.id}
         selectable
