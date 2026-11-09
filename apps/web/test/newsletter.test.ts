@@ -291,6 +291,8 @@ describe("POST /api/newsletter/subscribe", () => {
 
 describe("GET /api/newsletter/confirm", () => {
   it("redirects to the confirmation page with the outcome", async () => {
+    // The route reads the real clock: subscribe now, or the 48 h link would already have expired.
+    clock = new Date();
     await newsletter().subscribe({ email: "awa@lagune.ci", ip: "1.1.1.1" });
     const token = tokenOf(emails[0]!);
     // The route uses the real service: it reads the same database.

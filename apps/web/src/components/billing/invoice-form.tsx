@@ -45,6 +45,7 @@ export function InvoiceForm() {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -110,13 +111,25 @@ export function InvoiceForm() {
         </Field>
         <Field label="Échéance" htmlFor="dueAt" error={errors.dueAt?.message}>
           <Input id="dueAt" type="date" {...register("dueAt")} />
+          <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Échéances usuelles">
+            {([["À réception", 0], ["30 jours", 30], ["45 jours", 45], ["60 jours", 60]] as const).map(([label, days]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setValue("dueAt", iso(addDays(new Date(watched.issuedAt || ISSUE_DEFAULT), days)), { shouldValidate: true })}
+                className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </Field>
       </div>
 
       <fieldset className="space-y-3">
         <legend className="mb-1 font-semibold text-primary">Prestations</legend>
         {fields.map((f, i) => (
-          <div key={f.id} className="grid items-start gap-2 sm:grid-cols-[1fr_90px_160px_auto]">
+          <div key={f.id} className="grid items-start gap-2 sm:grid-cols-[1fr_90px_160px_140px_auto]">
             <Field label={`Libellé ${i + 1}`} htmlFor={`l-${i}`} error={errors.lines?.[i]?.label?.message}>
               <Input id={`l-${i}`} {...register(`lines.${i}.label`)} />
             </Field>
@@ -138,9 +151,16 @@ export function InvoiceForm() {
                 )}
               />
             </Field>
+            <div className="sm:mt-6">
+              <p className="text-xs text-muted-foreground">Montant HT</p>
+              <p className="flex h-10 items-center font-medium tabular-nums text-primary">
+                {formatFCFA((Number(watched.lines?.[i]?.quantity) || 0) * (Number(watched.lines?.[i]?.unitPrice) || 0))}
+              </p>
+            </div>
             <Button
               type="button"
-              variant="ghost"
+              variant="danger"
+              size="icon"
               className="mt-6"
               aria-label={`Supprimer la ligne ${i + 1}`}
               onClick={() => remove(i)}
@@ -163,10 +183,13 @@ export function InvoiceForm() {
       </dl>
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" disabled={isSubmitting} onClick={submit("brouillon")}>
+        <p className="mr-auto max-w-sm self-center text-xs text-muted-foreground">
+          Émettre attribue le numéro définitif et verrouille la facture. Le brouillon reste modifiable.
+        </p>
+        <Button type="button" variant="outline" loading={isSubmitting} onClick={submit("brouillon")}>
           Enregistrer en brouillon
         </Button>
-        <Button type="submit" variant="accent" disabled={isSubmitting}>Émettre la facture</Button>
+        <Button type="submit" variant="accent" loading={isSubmitting}>Émettre la facture</Button>
       </div>
     </form>
   );
