@@ -5,6 +5,7 @@ import { publicNav } from "@/lib/nav";
 import { tagline } from "@/lib/content/profile";
 import { buttonVariants } from "@/components/ui/button";
 import { PublicNav } from "./mobile-nav";
+import { BrandLockup, LogoFull } from "./logo";
 import { BackToTop } from "@/components/public/back-to-top";
 import { ChatWidget } from "@/components/public/chat-widget";
 import { CopyrightYear } from "@/components/public/copyright";
@@ -25,8 +26,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <div className="scroll-progress" aria-hidden="true" />
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4">
-          <Link href="/" aria-label="MANGA PERFORMANCE — retour à l'accueil" className="shrink-0 whitespace-nowrap font-heading text-lg font-extrabold text-primary transition-transform hover:scale-[1.03] active:scale-95">
-            MANGA <span className="rounded bg-accent px-1.5 text-accent-foreground">PERFORMANCE</span>
+          <Link href="/" aria-label="MANGA PERFORMANCE — retour à l'accueil" className="shrink-0 transition-transform hover:scale-[1.03] active:scale-95">
+            <BrandLockup />
           </Link>
           <PublicNav />
         </div>
@@ -50,10 +51,10 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
 
           <div className="grid gap-10 py-12 text-sm sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.3fr]">
             <div>
-              <p className="font-heading text-xl font-extrabold text-white">
-                MANGA <span className="rounded bg-accent px-1.5 text-accent-foreground">PERFORMANCE</span>
-              </p>
-              <p className="mt-3 max-w-xs leading-relaxed">
+              <div className="w-44">
+                <LogoFull framed />
+              </div>
+              <p className="mt-4 max-w-xs leading-relaxed">
                 {tagline} Cabinet de conseil indépendant à Abidjan.
               </p>
               <SocialLinks />

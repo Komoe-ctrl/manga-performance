@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandLockup } from "./logo";
 import {
   BarChart3,
   BellRing,
@@ -91,9 +92,8 @@ function SideNav({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <Link href="/admin" className="mb-5 block px-3 font-heading text-lg font-extrabold leading-tight text-white">
-      MANGA <span className="rounded bg-accent px-1.5 text-accent-foreground">PERFORMANCE</span>
-      <span className="mt-1 block text-[11px] font-medium uppercase tracking-widest text-slate-500">Back-office</span>
+    <Link href="/admin" aria-label="MANGA PERFORMANCE — tableau de bord" className="mb-5 block px-3">
+      <BrandLockup tone="light" caption="Back-office" />
     </Link>
   );
 }

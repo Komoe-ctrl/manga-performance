@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Bell, FileText, LogOut, MessageSquare } from "lucide-react";
 import { clientNav } from "@/lib/nav";
+import { BrandLockup } from "./logo";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
 import { getClientCompany, listNotifications } from "@/lib/services";
@@ -31,7 +32,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <header className="bg-primary text-primary-foreground">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <span className="font-heading font-extrabold">MANGA PERFORMANCE</span>
+          <BrandLockup tone="light" />
           <div className="flex items-center gap-4 text-sm">
             <span className="max-w-[40vw] truncate sm:max-w-xs">{client.status === "success" ? client.data?.companyName : "…"}</span>
             <button

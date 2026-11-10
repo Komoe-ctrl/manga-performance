@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Lock, Mail, Phone } from "lucide-react";
 import { contactInfo } from "@/lib/content/site";
 import { consultant } from "@/lib/content/profile";
+import { BrandLockup } from "./logo";
 
 /**
  * Habillage commun des pages de connexion : panneau de marque à gauche (avec un aperçu de
@@ -31,8 +32,8 @@ export function AuthShell({
       <aside className="relative hidden overflow-hidden bg-primary p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="hero-grid absolute inset-0" aria-hidden="true" />
         <div className="orb absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-accent/30 blur-3xl" aria-hidden="true" />
-        <Link href="/" className="relative font-heading text-xl font-extrabold">
-          MANGA <span className="rounded bg-accent px-1.5 text-accent-foreground">PERFORMANCE</span>
+        <Link href="/" aria-label="MANGA PERFORMANCE — retour à l'accueil" className="relative w-fit">
+          <BrandLockup tone="light" />
         </Link>
 
         <div className="relative">
