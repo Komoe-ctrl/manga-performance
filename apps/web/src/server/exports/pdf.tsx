@@ -1,5 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { Readable } from "node:stream";
-import { Document, Page, StyleSheet, Text, View, renderToStream } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View, renderToStream } from "@react-pdf/renderer";
 import { formatCell, formatDateTime } from "./format";
 import type { ExportTable } from "./types";
 
@@ -9,8 +11,14 @@ const GOLD = "#f5b700";
 const MUTED = "#475569";
 const BORDER = "#e2e8f0";
 
+// The logo ships in the web app's public folder; without it the header keeps the text brand.
+const LOGO_PATH = join(process.cwd(), "public", "images", "logo-mark.png");
+const logo = existsSync(LOGO_PATH) ? LOGO_PATH : null;
+
 const styles = StyleSheet.create({
   page: { paddingTop: 36, paddingBottom: 44, paddingHorizontal: 32, fontFamily: "Helvetica", fontSize: 8, color: "#1e293b" },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  logo: { width: 22, height: 22 },
   brand: { fontSize: 9, fontFamily: "Helvetica-Bold", color: NAVY },
   goldBar: { width: 40, height: 3, backgroundColor: GOLD, marginTop: 3, marginBottom: 8 },
   title: { fontSize: 16, fontFamily: "Helvetica-Bold", color: NAVY },
@@ -30,7 +38,12 @@ function ExportDocument({ table, generatedAt }: { table: ExportTable; generatedA
   return (
     <Document title={table.title} author="MANGA PERFORMANCE">
       <Page size="A4" orientation="landscape" style={styles.page}>
-        <Text style={styles.brand}>MANGA PERFORMANCE</Text>
+        <View style={styles.brandRow}>
+          {/* react-pdf Image: no alt attribute exists */}
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          {logo && <Image src={logo} style={styles.logo} />}
+          <Text style={styles.brand}>MANGA PERFORMANCE</Text>
+        </View>
         <View style={styles.goldBar} />
         <Text style={styles.title}>{table.title}</Text>
         <Text style={styles.meta}>

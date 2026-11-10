@@ -7,6 +7,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Preview,
   Section,
   Text,
@@ -34,6 +35,9 @@ export const COLORS = { navy: "#1a2b4a", gold: "#f5b700", text: "#1e293b", muted
 
 const fonts = "Helvetica, Arial, sans-serif";
 
+// Absolute URL: mail clients cannot resolve relative paths. No APP_URL, no logo (the name stays).
+const logoUrl = process.env.APP_URL ? `${process.env.APP_URL.replace(/\/$/, "")}/images/logo-mark.png` : null;
+
 export function Layout({
   preview,
   cabinet,
@@ -50,7 +54,16 @@ export function Layout({
       <Body style={{ backgroundColor: "#f1f5f9", margin: 0, padding: "24px 0", fontFamily: fonts, color: COLORS.text }}>
         <Container style={{ maxWidth: 560, margin: "0 auto" }}>
           <Section style={{ backgroundColor: COLORS.navy, padding: "20px 28px", borderRadius: "8px 8px 0 0" }}>
-            <Text style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#ffffff", letterSpacing: 0.5 }}>
+            {logoUrl && (
+              <Img
+                src={logoUrl}
+                width="44"
+                height="44"
+                alt=""
+                style={{ display: "inline-block", verticalAlign: "middle", marginRight: 12, borderRadius: 8, backgroundColor: "#ffffff", padding: 2 }}
+              />
+            )}
+            <Text style={{ margin: 0, display: "inline-block", verticalAlign: "middle", fontSize: 18, fontWeight: 800, color: "#ffffff", letterSpacing: 0.5 }}>
               {cabinet.name}
             </Text>
             <Text style={{ margin: "6px 0 0", height: 3, width: 48, backgroundColor: COLORS.gold, lineHeight: "3px", fontSize: 1 }}>
