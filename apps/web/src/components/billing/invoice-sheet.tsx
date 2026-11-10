@@ -1,6 +1,7 @@
 import type { Invoice, Prospect } from "@/lib/types";
 import { invoiceTotals } from "@/lib/services";
 import { formatDate, formatFCFA } from "@/lib/utils/format";
+import { LogoFull } from "@/components/layout/logo";
 
 /** Aperçu A4 (bleu nuit et doré). Document de gestion, pas une facture fiscale FNE. */
 export function InvoiceSheet({ invoice, client }: { invoice: Invoice; client: Prospect | null }) {
@@ -11,10 +12,15 @@ export function InvoiceSheet({ invoice, client }: { invoice: Invoice; client: Pr
       className="mx-auto aspect-[210/297] w-full max-w-[794px] overflow-hidden border border-border bg-white text-[13px] text-slate-800 shadow-sm"
     >
       <header className="flex items-start justify-between bg-primary px-8 py-6 text-white">
-        <div>
-          <p className="font-heading text-xl font-extrabold">MANGA PERFORMANCE</p>
-          <p className="text-xs text-slate-300">Audit · Data · Contrôle de gestion</p>
-          <p className="mt-2 text-xs text-slate-300">Abidjan, Côte d&apos;Ivoire</p>
+        <div className="flex items-center gap-4">
+          <div className="w-20 shrink-0 rounded-lg bg-white p-1.5">
+            <LogoFull />
+          </div>
+          <div>
+            <p className="font-heading text-xl font-extrabold">MANGA PERFORMANCE</p>
+            <p className="text-xs text-slate-300">Audit · Data · Contrôle de gestion</p>
+            <p className="mt-1 text-xs text-slate-300">Abidjan, Côte d&apos;Ivoire</p>
+          </div>
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-accent">FACTURE</p>

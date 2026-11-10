@@ -26,6 +26,7 @@ const jsonLd = {
   address: { "@type": "PostalAddress", addressLocality: "Abidjan", addressCountry: "CI" },
   telephone: contactInfo.phone,
   image: "/images/consultant.jpg",
+  logo: "/images/logo.png",
   founder: { "@type": "Person", name: consultant.name, jobTitle: consultant.role },
   openingHoursSpecification: [{ "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "08:00", closes: "18:00" }],
   email: contactInfo.email,
