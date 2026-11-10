@@ -1,7 +1,13 @@
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { buildInvoiceView, type InvoiceDocumentData, type InvoiceView } from "./invoice-document";
 
 // Charter: navy and gold (same values as the web app and the emails).
+// The logo ships in the web app's public folder; without it the header keeps the text brand.
+const LOGO_PATH = join(process.cwd(), "public", "images", "logo.png");
+const logo = existsSync(LOGO_PATH) ? LOGO_PATH : null;
+
 const NAVY = "#1a2b4a";
 const GOLD = "#f5b700";
 const MUTED = "#475569";
@@ -10,6 +16,7 @@ const BORDER = "#e2e8f0";
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", fontSize: 10, color: "#1e293b" },
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 28 },
+  logo: { width: 64, height: 56, marginBottom: 8 },
   brand: { fontSize: 16, fontFamily: "Helvetica-Bold", color: NAVY },
   goldBar: { width: 48, height: 3, backgroundColor: GOLD, marginTop: 4, marginBottom: 6 },
   muted: { color: MUTED, lineHeight: 1.4 },
@@ -40,6 +47,8 @@ function InvoicePage({ view }: { view: InvoiceView }) {
 
       <View style={styles.header}>
         <View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
+          {logo && <Image src={logo} style={styles.logo} />}
           <Text style={styles.brand}>{view.cabinet.name}</Text>
           <View style={styles.goldBar} />
           <Text style={styles.muted}>{view.cabinet.address}</Text>
