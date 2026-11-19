@@ -7,6 +7,7 @@ import { BrandLockup } from "./logo";
 import {
   BarChart3,
   BellRing,
+  ClipboardCheck,
   Building2,
   Globe,
   LayoutDashboard,
@@ -33,6 +34,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/admin/prospects": Users,
   "/admin/relances": BellRing,
   "/admin/clients": Building2,
+  "/admin/collecte": ClipboardCheck,
   "/admin/factures": Receipt,
   "/admin/sequences": Mail,
   "/admin/newsletter": Newspaper,

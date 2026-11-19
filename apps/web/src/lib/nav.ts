@@ -25,6 +25,7 @@ export const adminNav: NavItem[] = [
       { label: "Clients", href: "/admin/clients" },
     ],
   },
+  { label: "Collecte", href: "/admin/collecte" },
   { label: "Facturation", href: "/admin/factures" },
   {
     label: "Marketing",
@@ -41,6 +42,7 @@ export const adminNav: NavItem[] = [
 
 export const clientNav: NavItem[] = [
   { label: "Livrables", href: "/espace-client" },
+  { label: "Collecte", href: "/espace-client/collecte" },
   { label: "Messages", href: "/espace-client/messages" },
   { label: "Notifications", href: "/espace-client/notifications" },
 ];

@@ -47,6 +47,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Dev only: lets other machines on the local network (phones, colleagues, a client) load the dev
+  // assets and hydrate the pages. Without it the client-side screens (admin, client space) stay on "Chargement…".
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "172.*.*.*"],
   // The e2e run builds in its own folder so it never fights a dev server for `.next`.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   /* config options here */
