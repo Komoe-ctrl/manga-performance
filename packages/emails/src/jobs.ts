@@ -10,6 +10,10 @@ export const QUEUES = {
   sequencesDispatch: "sequences.dispatch",
   newsletterPurgeUnconfirmed: "newsletter.purge-unconfirmed",
   collectionParseSubmission: "collection.parse-submission",
+  collectionOpenPeriods: "collection.open-periods",
+  collectionMarkLate: "collection.mark-late",
+  collectionReminders: "collection.reminders",
+  collectionWeeklyDigest: "collection.weekly-digest",
 } as const;
 
 /** Payload of `collection.parse-submission`: the submission is read from the database, never from the job. */
@@ -64,6 +68,45 @@ export const templateSchemas = {
     today: z.array(z.object({ company: text(200), rule: text(20), dueAt: isoDate, url })),
     adminUrl: url,
   }),
+  // Collecte de données (avenant n°1, §6 et §7).
+  "collection-reminder": z.object({
+    name: text(120),
+    entityName: text(200),
+    /** Libellé du modèle de collecte. */
+    templateLabel: text(120),
+    periodLabel: text(60),
+    dueAt: isoDate,
+    /** Écart à l échéance : négatif avant, positif après. */
+    offset: z.number().int(),
+    /** La direction du client est en copie (escalade). */
+    escalation: z.boolean(),
+    url,
+  }),
+  "collection-rejected": z.object({
+    name: text(120),
+    entityName: text(200),
+    periodLabel: text(60),
+    errorCount: z.number().int().min(0),
+    /** Les premiers messages d'erreur, pour que le déposant sache quoi corriger. */
+    firstErrors: z.array(text(300)).max(10),
+    url,
+  }),
+  "collection-repeated-rejection": z.object({
+    clientName: text(200),
+    entityName: text(200),
+    periodLabel: text(60),
+    rejections: z.number().int().min(1),
+    adminUrl: url,
+  }),
+  "collection-weekly-digest": z.object({
+    /** Lundi de la semaine récapitulée, `YYYY-MM-DD`. */
+    weekOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    expected: z.number().int().min(0),
+    received: z.number().int().min(0),
+    late: z.array(z.object({ client: text(200), entity: text(200), period: text(60), daysLate: z.number().int().min(0) })).max(100),
+    rejected: z.array(z.object({ client: text(200), entity: text(200), period: text(60) })).max(100),
+    adminUrl: url,
+  }),
 } as const;
 
 export type TemplateName = keyof typeof templateSchemas;
@@ -84,6 +127,10 @@ export const emailJobSchema = z.discriminatedUnion("template", [
   job("payment-reminder"),
   job("new-lead"),
   job("daily-digest"),
+  job("collection-reminder"),
+  job("collection-rejected"),
+  job("collection-repeated-rejection"),
+  job("collection-weekly-digest"),
   // A marketing email also carries the enrolment it belongs to, for tracking and stop rules.
   z.object({
     template: z.literal("marketing"),

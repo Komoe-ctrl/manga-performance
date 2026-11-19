@@ -8,6 +8,7 @@ import { runDailyDigest } from "./jobs/daily-digest";
 import { handleEmailSend } from "./jobs/email-send";
 import { handleFanout } from "./jobs/fanout";
 import { runMarkOverdue, runPaymentReminders } from "./jobs/invoices";
+import { runMarkLate, runOpenPeriods, runReminders, runWeeklyDigest } from "./jobs/collection";
 import { handleParseSubmission } from "./jobs/parse-submission";
 import { runPurgeUnconfirmed, runSequenceDispatch } from "./jobs/sequences";
 import { createS3Reader } from "./storage";
@@ -59,6 +60,18 @@ await boss.work(QUEUES.collectionParseSubmission, { includeMetadata: true }, asy
     await handleParseSubmission({ ...(job.data as { submissionId: string }), finalAttempt: job.retryCount >= job.retryLimit }, { ...deps, storage });
   }
 });
+await boss.work(QUEUES.collectionOpenPeriods, async () => {
+  await runOpenPeriods(deps);
+});
+await boss.work(QUEUES.collectionMarkLate, async () => {
+  await runMarkLate(deps);
+});
+await boss.work(QUEUES.collectionReminders, async () => {
+  await runReminders(deps);
+});
+await boss.work(QUEUES.collectionWeeklyDigest, async () => {
+  await runWeeklyDigest(deps);
+});
 await boss.work(QUEUES.newsletterPurgeUnconfirmed, async () => {
   await runPurgeUnconfirmed(deps);
 });
@@ -70,6 +83,11 @@ const schedules: [string, string][] = [
   [QUEUES.invoicesPaymentReminders, "0 9 * * *"],
   [QUEUES.sequencesDispatch, "*/15 * * * *"],
   [QUEUES.newsletterPurgeUnconfirmed, "0 3 * * *"],
+  [QUEUES.collectionOpenPeriods, "0 5 * * *"],
+  [QUEUES.collectionMarkLate, "0 6 * * *"],
+  // Hourly: the job only acts at the hour set in the reminder rules (default 08:00).
+  [QUEUES.collectionReminders, "0 * * * *"],
+  [QUEUES.collectionWeeklyDigest, "0 7 * * 1"],
 ];
 for (const [name, cron] of schedules) await boss.schedule(name, cron, {}, { tz: env.TZ_DISPLAY });
 

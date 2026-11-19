@@ -36,6 +36,15 @@ const jobs: EmailJob[] = [
       adminUrl: "https://app.example.com/admin/relances",
     },
   },
+  { template: "collection-reminder", to: "awa@lagune.ci", data: { name: "Awa Koné", entityName: "Hôtel Lagune", templateLabel: "Hôtel — KPI mensuels", periodLabel: "octobre 2026", dueAt: day, offset: -2, escalation: false, url } },
+  { template: "collection-reminder", to: "dg@lagune.ci", data: { name: "Moussa Traoré", entityName: "Hôtel Lagune", templateLabel: "Hôtel — KPI mensuels", periodLabel: "octobre 2026", dueAt: day, offset: 5, escalation: true, url } },
+  { template: "collection-rejected", to: "awa@lagune.ci", data: { name: "Awa Koné", entityName: "Hôtel Lagune", periodLabel: "octobre 2026", errorCount: 12, firstErrors: ["Ligne 7, Chambres vendues : 125 est supérieur aux chambres disponibles (120)."], url } },
+  { template: "collection-repeated-rejection", to: "admin@example.com", data: { clientName: "Groupe Lagune", entityName: "Hôtel Lagune", periodLabel: "octobre 2026", rejections: 3, adminUrl: url } },
+  {
+    template: "collection-weekly-digest",
+    to: "admin@example.com",
+    data: { weekOf: "2026-11-16", expected: 10, received: 7, late: [{ client: "Groupe Lagune", entity: "Hôtel Lagune", period: "octobre 2026", daysLate: 4 }], rejected: [{ client: "Baobab BTP", entity: "Chantier Nord", period: "octobre 2026" }], adminUrl: url },
+  },
 ];
 
 describe("templates", () => {
@@ -217,5 +226,45 @@ describe("createEmailProvider", () => {
 
   it("does not pretend to support Resend yet", () => {
     expect(() => createEmailProvider({ NODE_ENV: "development", EMAIL_PROVIDER: "resend", BREVO_API_KEY: "k" }, options)).toThrow(/not implemented/);
+  });
+});
+
+describe("collection emails", () => {
+  const find = (template: string, offset?: number) => jobs.find((j) => j.template === template && (offset === undefined || (j as { data: { offset?: number } }).data.offset === offset))!;
+
+  it("words an advance reminder and a late one differently, and shows the escalation only when asked", async () => {
+    const before = await renderEmail(find("collection-reminder", -2), FALLBACK_CABINET);
+    expect(before.subject).toContain("Dépôt à faire avant le");
+    expect(before.text).toContain("est à déposer avant le");
+    expect(before.text).not.toContain("adressé à la direction");
+
+    const late = await renderEmail(find("collection-reminder", 5), FALLBACK_CABINET);
+    expect(late.subject).toContain("Dépôt en retard");
+    expect(late.text).toContain("pas encore été déposé");
+    expect(late.text).toContain("adressé à la direction");
+  });
+
+  it("lists the first errors of a rejection, with the link to the report", async () => {
+    const email = await renderEmail(find("collection-rejected"), FALLBACK_CABINET);
+    expect(email.text).toContain("12 erreurs");
+    expect(email.text).toContain("Ligne 7, Chambres vendues");
+    expect(email.text).toContain("rapport complet");
+    expect(email.text).toContain(url);
+  });
+
+  it("summarises the week: completeness, late and rejected entities", async () => {
+    const email = await renderEmail(find("collection-weekly-digest"), FALLBACK_CABINET);
+    expect(email.text).toContain("7 dépôts reçus sur 10 attendus (70 %)");
+    expect(email.text).toContain("4 jours de retard");
+    expect(email.text).toContain("Chantier Nord");
+    const quiet = await renderEmail({ template: "collection-weekly-digest", to: "a@b.ci", data: { weekOf: "2026-11-16", expected: 0, received: 0, late: [], rejected: [], adminUrl: url } }, FALLBACK_CABINET);
+    expect(quiet.text).toContain("100 %");
+    const single = await renderEmail({ template: "collection-weekly-digest", to: "a@b.ci", data: { weekOf: "2026-11-16", expected: 1, received: 1, late: [], rejected: [], adminUrl: url } }, FALLBACK_CABINET);
+    expect(single.text).toContain("1 dépôt reçu sur 1 attendu");
+  });
+
+  it("validates the payloads", () => {
+    expect(emailJobSchema.safeParse({ template: "collection-rejected", to: "a@b.ci", data: { name: "A", entityName: "E", periodLabel: "p", errorCount: -1, firstErrors: [], url } }).success).toBe(false);
+    expect(emailJobSchema.safeParse({ template: "collection-weekly-digest", to: "a@b.ci", data: { weekOf: "lundi", expected: 1, received: 1, late: [], rejected: [], adminUrl: url } }).success).toBe(false);
   });
 });
