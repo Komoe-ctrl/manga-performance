@@ -15,7 +15,10 @@
     "./marketing-schedule": "./src/marketing-schedule.ts",
     "./slug": "./src/slug.ts",
     "./roles": "./src/roles.ts",
-    "./kpi/sector": "./src/kpi/sector.ts"
+    "./kpi/sector": "./src/kpi/sector.ts",
+    "./kpi/hotel": "./src/kpi/hotel.ts",
+    "./kpi/consumables": "./src/kpi/consumables.ts",
+    "./collection": "./src/collection/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
