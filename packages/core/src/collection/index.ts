@@ -8,3 +8,5 @@ export * from "./workbook-reader";
 export * from "./workbook-check";
 export * from "./template-xlsx";
 export * from "./calendar";
+export * from "./export";
+export * from "./zip";
