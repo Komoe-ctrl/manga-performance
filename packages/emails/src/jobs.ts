@@ -9,7 +9,13 @@ export const QUEUES = {
   invoicesPaymentReminders: "invoices.payment-reminders",
   sequencesDispatch: "sequences.dispatch",
   newsletterPurgeUnconfirmed: "newsletter.purge-unconfirmed",
+  collectionParseSubmission: "collection.parse-submission",
 } as const;
+
+/** Payload of `collection.parse-submission`: the submission is read from the database, never from the job. */
+export interface ParseSubmissionJob {
+  submissionId: string;
+}
 
 const url = z.url({ protocol: /^https?$/ });
 const text = (max: number) => z.string().max(max);

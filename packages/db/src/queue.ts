@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { QUEUES, type EmailJob, type FanoutJob } from "@manga/emails/jobs";
+import { QUEUES, type EmailJob, type FanoutJob, type ParseSubmissionJob } from "@manga/emails/jobs";
 import { PgBoss } from "pg-boss";
 
 /**
@@ -33,6 +33,8 @@ export const QUEUE_DEFINITIONS: Record<string, QueueDefinition> = {
   [QUEUES.invoicesMarkOverdue]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
   [QUEUES.invoicesPaymentReminders]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 600, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
   [QUEUES.sequencesDispatch]: { retryLimit: 1, retryDelay: 60, retryBackoff: false, expireInSeconds: 600, retentionSeconds: 3600, deleteAfterSeconds: 3600 },
+  /** Reading a workbook is bounded to 30 s (avenant §7): expire a little after. */
+  [QUEUES.collectionParseSubmission]: { retryLimit: 2, retryDelay: 30, retryBackoff: true, expireInSeconds: 120, retentionSeconds: 3 * DAY, deleteAfterSeconds: 3600 },
   [QUEUES.newsletterPurgeUnconfirmed]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
 };
 
@@ -56,6 +58,7 @@ export interface JobQueue {
   boss: PgBoss;
   enqueueEmail(job: EmailJob, options?: EnqueueOptions): Promise<void>;
   enqueueFanout(job: FanoutJob, options?: EnqueueOptions): Promise<void>;
+  enqueueParseSubmission(job: ParseSubmissionJob, options?: EnqueueOptions): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -92,6 +95,7 @@ export async function createJobQueue(
     boss,
     enqueueEmail: (job, opts) => send(QUEUES.emailSend, job, opts),
     enqueueFanout: (job, opts) => send(QUEUES.notificationsFanout, job, opts),
+    enqueueParseSubmission: (job, opts) => send(QUEUES.collectionParseSubmission, job, opts),
     stop: () => boss.stop({ graceful: true, timeout: 10_000 }),
   };
 }

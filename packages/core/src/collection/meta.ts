@@ -1,5 +1,5 @@
-import { signToken, verifyToken } from "@manga/core/signed-tokens";
-import type { Issue } from "@manga/core/collection";
+import { signToken, verifyToken } from "../signed-tokens";
+import type { Issue } from "./types";
 
 /** Nom de la feuille technique masquée, qui porte l'identité du fichier généré. */
 export const META_SHEET = "_meta";

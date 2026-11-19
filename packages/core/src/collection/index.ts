@@ -2,3 +2,8 @@ export * from "./types";
 export * from "./cells";
 export * from "./engine";
 export * from "./templates";
+export * from "./meta";
+export * from "./archive";
+export * from "./workbook-reader";
+export * from "./workbook-check";
+export * from "./template-xlsx";

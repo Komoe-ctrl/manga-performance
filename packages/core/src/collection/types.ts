@@ -124,6 +124,6 @@ export interface ValidationResult {
   warnings: Issue[];
   /** Vrai si le rapport a été tronqué (trop de problèmes). */
   truncated: boolean;
-  /** Lignes normalisées par feuille : vides si le dépôt est rejeté. */
+  /** Lignes normalisées par feuille ; en cas de rejet, au mieux (les cellules invalides sont `null`). */
   rows: Record<string, NormalizedRow[]>;
 }

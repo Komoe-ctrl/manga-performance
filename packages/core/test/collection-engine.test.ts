@@ -65,7 +65,7 @@ describe("column rules", () => {
     const r = run(two, [row(7, { n: "  ", t: "x" }), row(8, { n: 3 })]);
     expect(r.ok).toBe(false);
     expect(r.errors[0]).toMatchObject({ severity: "error", row: 7, column: "n", columnLabel: "Nombre", code: "REQUIRED", message: "Ligne 7, Nombre : valeur requise, la cellule est vide." });
-    expect(r.rows.S).toEqual([]);
+    expect(r.rows.S).toEqual([{ n: null, t: "x" }, { n: 3, t: null }]); // best effort: the invalid cell is null
   });
 
   it("lets an optional value stay empty", () => {
@@ -274,7 +274,7 @@ describe("sheets", () => {
     const r = validateSubmission(two, { A: [row(2, { x: 1 })], B: [row(2, { y: "z" })] }, OCTOBER);
     expect(r.ok).toBe(false);
     expect(r.errors[0]).toMatchObject({ sheet: "B", code: "NOT_A_NUMBER" });
-    expect(r.rows).toEqual({ A: [], B: [] });
+    expect(r.rows).toEqual({ A: [{ x: 1 }], B: [{ y: null }] });
   });
   it("rejects a missing sheet, an empty sheet and a second line on a single-line sheet", () => {
     expect(validateSubmission(two, { A: [row(2, { x: 1 })] }, OCTOBER).errors[0]).toMatchObject({ code: "SHEET_MISSING", sheet: "B", row: null, message: "La feuille « B » est absente du fichier." });

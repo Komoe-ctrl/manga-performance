@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
-import { daysInPeriod, formatDateFr, type ColumnDef, type PeriodContext, type SheetDef, type TemplateDef } from "@manga/core/collection";
-import { META_SHEET, signMeta } from "./template-meta";
+import { daysInPeriod, formatDateFr } from "./cells";
+import { META_SHEET, signMeta } from "./meta";
+import type { ColumnDef, PeriodContext, SheetDef, TemplateDef } from "./types";
 
 const NAVY = "FF1A2B4A";
 const GOLD = "FFF5B700";

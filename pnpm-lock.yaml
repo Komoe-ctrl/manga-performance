@@ -324,6 +324,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1163.0
+        version: 3.1163.0
       '@manga/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -343,6 +346,9 @@ importers:
       '@types/node':
         specifier: ^22
         version: 22.20.5
+      exceljs:
+        specifier: ^4.4.0
+        version: 4.4.0
       typescript:
         specifier: ^5
         version: 5.9.3
@@ -361,6 +367,9 @@ importers:
       '@tiptap/starter-kit':
         specifier: 3.32.0
         version: 3.32.0
+      exceljs:
+        specifier: ^4.4.0
+        version: 4.4.0
       pino:
         specifier: ^10.4.0
         version: 10.4.0
