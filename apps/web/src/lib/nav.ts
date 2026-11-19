@@ -25,6 +25,7 @@ export const adminNav: NavItem[] = [
       { label: "Clients", href: "/admin/clients" },
     ],
   },
+  { label: "Collecte", href: "/admin/collecte" },
   { label: "Facturation", href: "/admin/factures" },
   {
     label: "Marketing",
