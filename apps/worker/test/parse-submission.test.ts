@@ -204,3 +204,82 @@ describe("collection.parse-submission", () => {
     expect((await db().submission.findUniqueOrThrow({ where: { id: s.id } })).status).toBe("ERREUR_TECHNIQUE");
   });
 });
+
+describe("rejection notifications", () => {
+  async function rejectedDeposit(uploadedBy: string, existingRejections = 0) {
+    const { entity, plan } = await seed();
+    const p = await period(plan.id, 10);
+    const reader = new MemoryReader();
+    for (let v = 1; v <= existingRejections; v++) {
+      const old = await submit(reader, p.id, Buffer.from("x"), v);
+      await db().submission.update({ where: { id: old.id }, data: { status: "REJETE" } });
+    }
+    const s = await submit(reader, p.id, await file(entity.id, p, [undefined, 3_000_000, 2_500_000, 2_000_000]), existingRejections + 1);
+    await db().submission.update({ where: { id: s.id }, data: { uploadedBy } });
+    return { s, reader };
+  }
+
+  it("emails the depositor straight away with the first errors and a link", async () => {
+    const user = await db().user.create({ data: { email: "awa@resto.ci", name: "Awa Koné", role: "CLIENT_CONTRIBUTEUR" } });
+    const { s, reader } = await rejectedDeposit(user.id);
+    const { deps, queue } = makeDeps();
+    await handleParseSubmission({ submissionId: s.id }, { ...deps, storage: reader });
+
+    expect(queue.emails).toHaveLength(1);
+    const { job, dedupeKey } = queue.emails[0]!;
+    expect(dedupeKey).toBe(`collection-rejected:${s.id}`);
+    expect(job.to).toBe("awa@resto.ci");
+    expect(job.template === "collection-rejected" && job.data).toMatchObject({ name: "Awa Koné", entityName: "Resto A", periodLabel: "octobre 2026", errorCount: 1, url: "https://app.example.com/espace-client/collecte" });
+    expect(job.template === "collection-rejected" && job.data.firstErrors[0]).toContain("Ligne 2");
+    expect(queue.fanouts).toHaveLength(0);
+  });
+
+  it("does not email a valid deposit, a disabled user, an admin or an unknown depositor", async () => {
+    const { entity, plan } = await seed();
+    const p = await period(plan.id, 10);
+    const reader = new MemoryReader();
+    const valid = await submit(reader, p.id, await file(entity.id, p));
+    const ok = makeDeps();
+    await handleParseSubmission({ submissionId: valid.id }, { ...ok.deps, storage: reader });
+    expect(ok.queue.emails).toHaveLength(0);
+
+    const disabled = await db().user.create({ data: { email: "off@resto.ci", name: "Off", role: "CLIENT_CONTRIBUTEUR", disabledAt: new Date() } });
+    const admin = await db().user.create({ data: { email: "admin@cabinet.ci", name: "Admin", role: "ADMIN" } });
+    for (const uploadedBy of [disabled.id, admin.id, "ghost"]) {
+      const { s, reader: r } = await rejectedDeposit(uploadedBy);
+      const d = makeDeps();
+      await handleParseSubmission({ submissionId: s.id }, { ...d.deps, storage: r });
+      expect(d.queue.emails).toHaveLength(0);
+      await resetDatabase();
+    }
+  });
+
+  it("warns the consultant from the third rejection on the same period", async () => {
+    const user = await db().user.create({ data: { email: "awa@resto.ci", name: "Awa", role: "CLIENT_CONTRIBUTEUR" } });
+    const second = await rejectedDeposit(user.id, 1);
+    const d2 = makeDeps();
+    await handleParseSubmission({ submissionId: second.s.id }, { ...d2.deps, storage: second.reader });
+    expect(d2.queue.fanouts).toHaveLength(0); // 2 rejections
+
+    await resetDatabase();
+    const user3 = await db().user.create({ data: { email: "awa@resto.ci", name: "Awa", role: "CLIENT_CONTRIBUTEUR" } });
+    const third = await rejectedDeposit(user3.id, 2);
+    const d3 = makeDeps();
+    await handleParseSubmission({ submissionId: third.s.id }, { ...d3.deps, storage: third.reader });
+    expect(d3.queue.fanouts).toHaveLength(1);
+    const fanout = d3.queue.fanouts[0]!;
+    expect(fanout.job).toMatchObject({ type: "COLLECTION_REPEATED_REJECTION", audience: "ADMINS" });
+    const email = fanout.job.email!;
+    expect(email.to).toBe("admin@example.com");
+    expect(email.template === "collection-repeated-rejection" && email.data).toMatchObject({ clientName: "Groupe A", entityName: "Resto A", rejections: 3, adminUrl: "https://app.example.com/admin/collecte" });
+  });
+
+  it("keeps the result even if the notification cannot be queued", async () => {
+    const user = await db().user.create({ data: { email: "awa@resto.ci", name: "Awa", role: "CLIENT_CONTRIBUTEUR" } });
+    const { s, reader } = await rejectedDeposit(user.id);
+    const { deps, queue } = makeDeps();
+    const failing = Object.assign(Object.create(queue), { enqueueEmail: async () => { throw new Error("queue down"); } });
+    await expect(handleParseSubmission({ submissionId: s.id }, { ...deps, queue: failing, storage: reader })).resolves.toBeUndefined();
+    expect((await db().submission.findUniqueOrThrow({ where: { id: s.id } })).status).toBe("REJETE");
+  });
+});

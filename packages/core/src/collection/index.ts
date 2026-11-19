@@ -7,3 +7,4 @@ export * from "./archive";
 export * from "./workbook-reader";
 export * from "./workbook-check";
 export * from "./template-xlsx";
+export * from "./calendar";

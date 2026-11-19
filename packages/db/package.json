@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./queue": "./src/queue.ts",
     "./billing-jobs": "./src/billing-jobs.ts",
+    "./collection-jobs": "./src/collection-jobs.ts",
     "./marketing": "./src/marketing.ts"
   },
   "scripts": {

@@ -35,6 +35,10 @@ export const QUEUE_DEFINITIONS: Record<string, QueueDefinition> = {
   [QUEUES.sequencesDispatch]: { retryLimit: 1, retryDelay: 60, retryBackoff: false, expireInSeconds: 600, retentionSeconds: 3600, deleteAfterSeconds: 3600 },
   /** Reading a workbook is bounded to 30 s (avenant §7): expire a little after. */
   [QUEUES.collectionParseSubmission]: { retryLimit: 2, retryDelay: 30, retryBackoff: true, expireInSeconds: 120, retentionSeconds: 3 * DAY, deleteAfterSeconds: 3600 },
+  [QUEUES.collectionOpenPeriods]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
+  [QUEUES.collectionMarkLate]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
+  [QUEUES.collectionReminders]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 600, retentionSeconds: 3600 * 6, deleteAfterSeconds: 3600 },
+  [QUEUES.collectionWeeklyDigest]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
   [QUEUES.newsletterPurgeUnconfirmed]: { retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 300, retentionSeconds: DAY, deleteAfterSeconds: 3600 },
 };
 

@@ -1,5 +1,6 @@
 import { checkWorkbook, getTemplate, type NormalizedRow, type PeriodContext } from "@manga/core/collection";
 import type { Prisma } from "@manga/db";
+import { periodLabelOf } from "@manga/db/collection-jobs";
 import type { WorkerDeps } from "../deps";
 
 /** Lecture d'un objet du bucket privé (le worker ne présigne rien : il lit directement). */
@@ -16,6 +17,49 @@ export interface ParseJob {
 }
 
 const rowCount = (rows: Record<string, NormalizedRow[]>) => Object.values(rows).reduce((sum, list) => sum + list.length, 0);
+
+/** Rejections after which the consultant is warned (avenant §7). */
+export const REPEATED_REJECTIONS = 3;
+
+interface Checked {
+  id: string;
+  periodId: string;
+  uploadedBy: string;
+  period: { periodStart: Date; periodEnd: Date; plan: { entity: { name: string; client: { legalName: string } } } };
+}
+
+/** Immediate email to the depositor with the first errors, and an alert to the consultant from the 3rd rejection. */
+async function notifyRejection(deps: ParseDeps, submission: Checked, errors: { message: string }[]): Promise<void> {
+  const { prisma, queue, env } = deps;
+  const base = env.APP_URL.replace(/\/$/, "");
+  const entity = submission.period.plan.entity;
+  const periodLabel = periodLabelOf(submission.period.periodStart, submission.period.periodEnd);
+
+  const depositor = await prisma.user.findUnique({ where: { id: submission.uploadedBy }, select: { name: true, email: true, disabledAt: true, role: true } });
+  if (depositor && !depositor.disabledAt && depositor.role !== "ADMIN") {
+    await queue.enqueueEmail(
+      {
+        template: "collection-rejected",
+        to: depositor.email,
+        data: { name: depositor.name, entityName: entity.name, periodLabel, errorCount: errors.length, firstErrors: errors.slice(0, 5).map((e) => e.message.slice(0, 300)), url: `${base}/espace-client/collecte` },
+      },
+      { dedupeKey: `collection-rejected:${submission.id}` },
+    );
+  }
+
+  const rejections = await prisma.submission.count({ where: { periodId: submission.periodId, status: "REJETE" } });
+  if (rejections >= REPEATED_REJECTIONS) {
+    await queue.enqueueFanout(
+      {
+        type: "COLLECTION_REPEATED_REJECTION",
+        audience: "ADMINS",
+        payload: { periodId: submission.periodId, entity: entity.name, rejections },
+        email: { template: "collection-repeated-rejection", to: env.ADMIN_NOTIFICATION_EMAIL, data: { clientName: entity.client.legalName, entityName: entity.name, periodLabel, rejections, adminUrl: `${base}/admin/collecte` } },
+      },
+      { dedupeKey: `collection-repeated:${submission.id}` },
+    );
+  }
+}
 
 /**
  * Job `collection.parse-submission` (avenant n°1, §7) : lit le dépôt, le contrôle avec le moteur du
@@ -38,7 +82,8 @@ export async function handleParseSubmission(job: ParseJob, deps: ParseDeps): Pro
       storageKey: true,
       templateId: true,
       periodId: true,
-      period: { select: { id: true, planId: true, periodStart: true, periodEnd: true, dueAt: true, plan: { select: { entityId: true } } } },
+      uploadedBy: true,
+      period: { select: { id: true, planId: true, periodStart: true, periodEnd: true, dueAt: true, plan: { select: { entityId: true, entity: { select: { name: true, client: { select: { legalName: true } } } } } } } },
     },
   });
   if (!submission || submission.status !== "EN_CONTROLE") return;
@@ -98,6 +143,13 @@ export async function handleParseSubmission(job: ParseJob, deps: ParseDeps): Pro
       prisma.collectionPeriod.updateMany({ where: { id: submission.periodId, status: "EN_CONTROLE" }, data: { status } }),
     ]);
     logger.info({ submissionId: submission.id, status, errors: result.errors.length, warnings: result.warnings.length }, "submission checked");
+
+    if (!result.ok) {
+      // The result is saved: a failure to notify must not undo it, nor make the job run again.
+      await notifyRejection(deps, submission, result.errors).catch((error: unknown) =>
+        logger.error({ submissionId: submission.id, errorName: error instanceof Error ? error.name : "unknown" }, "rejection notification failed"),
+      );
+    }
   } catch (error) {
     logger.error({ submissionId: submission.id, errorName: error instanceof Error ? error.name : "unknown" }, "submission check failed");
     if (job.finalAttempt) {
