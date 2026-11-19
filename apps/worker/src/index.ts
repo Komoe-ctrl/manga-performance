@@ -8,7 +8,9 @@ import { runDailyDigest } from "./jobs/daily-digest";
 import { handleEmailSend } from "./jobs/email-send";
 import { handleFanout } from "./jobs/fanout";
 import { runMarkOverdue, runPaymentReminders } from "./jobs/invoices";
+import { handleParseSubmission } from "./jobs/parse-submission";
 import { runPurgeUnconfirmed, runSequenceDispatch } from "./jobs/sequences";
+import { createS3Reader } from "./storage";
 
 // The repository-level .env is the single source of configuration.
 try {
@@ -50,6 +52,12 @@ await boss.work(QUEUES.invoicesPaymentReminders, async () => {
 });
 await boss.work(QUEUES.sequencesDispatch, async () => {
   await runSequenceDispatch(deps);
+});
+const storage = createS3Reader(env);
+await boss.work(QUEUES.collectionParseSubmission, { includeMetadata: true }, async (jobs) => {
+  for (const job of jobs) {
+    await handleParseSubmission({ ...(job.data as { submissionId: string }), finalAttempt: job.retryCount >= job.retryLimit }, { ...deps, storage });
+  }
 });
 await boss.work(QUEUES.newsletterPurgeUnconfirmed, async () => {
   await runPurgeUnconfirmed(deps);

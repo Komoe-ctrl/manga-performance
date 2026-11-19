@@ -58,6 +58,23 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
 - L'analyste est en lecture seule (`assertCanDeposit`). Les affectations sont refusées entre clients et réservées aux
   contributeurs ; création d'entité et changements d'affectation sont journalisés.
 
+## Dépôts de collecte : fichiers Excel hostiles
+
+- Dépôt en deux temps : URL présignée (taille et type signés, 10 Mo au plus, `.xlsx` seulement ; `.xlsm` et `.xls`
+  refusés dès la demande), puis relecture de l'objet (taille, signature, SHA-256) avant de créer le dépôt. La clé
+  vit sous le préfixe du client de l'entité ; une clé d'un autre client est refusée.
+- Le contrôle du contenu est fait par le job `collection.parse-submission`, jamais pendant la requête. Avant toute
+  ouverture, l'archive est inspectée : macros (`vbaProject.bin`, feuilles macro), ancien format OLE, chemins
+  d'entrées suspects, taux de compression anormal, et **décompression réelle sous un budget global de 50 Mo**
+  (les tailles annoncées par l'annuaire du ZIP peuvent être falsifiées). Ensuite : 50 000 lignes et 100 colonnes
+  au plus par feuille, délai de 30 s.
+- La lecture se fait en mémoire (bornée par le budget) et non en flux : le lecteur en flux d'exceljs plante sur les
+  fichiers dont `workbook.xml` suit les feuilles dans l'archive.
+- Une période est « réclamée » par une mise à jour conditionnelle : deux dépôts simultanés ne passent pas tous les
+  deux. Chaque dépôt garde sa version ; le forçage admin exige un commentaire et est journalisé.
+- Limite connue : un fichier qui plante le worker en dehors des garde-fous passe en `ERREUR_TECHNIQUE` après les
+  tentatives, et la période redevient ouvrable.
+
 ## Points à valider ou à surveiller
 
 1. **Liste d'exclusion et anonymisation** : après anonymisation, une personne désinscrite reste exclue sous la forme

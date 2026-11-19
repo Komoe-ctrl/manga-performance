@@ -287,7 +287,8 @@ export function validateSubmission(template: TemplateDef, input: Record<string, 
     errors: report.errors,
     warnings: report.warnings,
     truncated: report.truncated,
-    rows: ok ? rows : Object.fromEntries(template.sheets.map((s) => [s.name, []])),
+    // Best effort even when rejected (invalid cells are null): a forced acceptance keeps what could be read.
+    rows,
   };
 }
 

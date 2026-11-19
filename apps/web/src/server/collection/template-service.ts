@@ -1,9 +1,8 @@
-import { getTemplate } from "@manga/core/collection";
+import { buildTemplateWorkbook, getTemplate } from "@manga/core/collection";
 import { format } from "date-fns";
 import type { PrismaClient } from "@manga/db";
 import { DomainError } from "../domain-error";
 import { assertCanDeposit, assertEntityInScope, type CollectionActor } from "./scope";
-import { buildTemplateWorkbook } from "./template-xlsx";
 
 export function createTemplateService(deps: { prisma: PrismaClient; secret: string }) {
   const { prisma, secret } = deps;
