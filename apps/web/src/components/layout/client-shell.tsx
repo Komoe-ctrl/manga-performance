@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Bell, FileText, LogOut, MessageSquare } from "lucide-react";
+import { Bell, ClipboardCheck, FileText, LogOut, MessageSquare } from "lucide-react";
 import { clientNav } from "@/lib/nav";
 import { BrandLockup } from "./logo";
 import { useSession } from "@/lib/auth/session";
@@ -57,7 +57,9 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
                 pathname === item.href ? "bg-background text-primary" : "text-slate-200 hover:bg-white/10 hover:text-white",
               )}
             >
-              {item.href.endsWith("/messages") ? (
+              {item.href.endsWith("/collecte") ? (
+                <ClipboardCheck className="h-4 w-4" aria-hidden />
+              ) : item.href.endsWith("/messages") ? (
                 <MessageSquare className="h-4 w-4" aria-hidden />
               ) : item.href.endsWith("/notifications") ? (
                 <Bell className="h-4 w-4" aria-hidden />

@@ -73,6 +73,7 @@ const OVERRIDES: Record<string, PeriodStatus> = {
   "cp-8|2026-07": "ACCEPTE_AVEC_RESERVE",
   "cp-3|2026-08": "REJETE",
   "cp-7|2026-09": "REJETE",
+  "cp-1|2026-09": "REJETE",
   "cp-4|2026-09": "EN_RETARD",
   "cp-5|2026-09": "EN_RETARD",
   "cp-8|2026-09": "EN_RETARD",

@@ -42,6 +42,7 @@ export const adminNav: NavItem[] = [
 
 export const clientNav: NavItem[] = [
   { label: "Livrables", href: "/espace-client" },
+  { label: "Collecte", href: "/espace-client/collecte" },
   { label: "Messages", href: "/espace-client/messages" },
   { label: "Notifications", href: "/espace-client/notifications" },
 ];

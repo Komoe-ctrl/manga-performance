@@ -13,7 +13,8 @@
     "./template-vars": "./src/template-vars.ts",
     "./signed-tokens": "./src/signed-tokens.ts",
     "./marketing-schedule": "./src/marketing-schedule.ts",
-    "./slug": "./src/slug.ts"
+    "./slug": "./src/slug.ts",
+    "./kpi/sector": "./src/kpi/sector.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
