@@ -21,12 +21,13 @@ import type {
   SubmissionReport,
   TrackingRow,
 } from "@/lib/types/collection";
-import { ServiceError } from "./data-source";
+import * as actions from "@/server/actions/collection";
+import { ServiceError, USE_DB, unwrap } from "./data-source";
 import { latency } from "./store";
 
 /*
- * Module Collecte, version mock (avenant n°1, étape A1). Le branchement base de données arrive
- * avec l'étape B7 : les signatures ci-dessous sont celles que les Server Actions reprendront.
+ * Module Collecte (avenant n°1). `DATA_SOURCE=mock` : données fictives en mémoire (démo). `db` : les
+ * Server Actions de `server/actions/collection.ts`, qui passent toutes par `entityScope`.
  */
 
 const state = {
@@ -52,7 +53,7 @@ function rowsFor(): TrackingRow[] {
 }
 
 export const getCollectionOverview = (): Promise<CollectionOverview> =>
-  latency(() => ({ clients: collectionClients, months: collectionMonths, rows: rowsFor() }));
+  USE_DB ? unwrap(actions.getCollectionOverviewAction()) : latency(() => ({ clients: collectionClients, months: collectionMonths, rows: rowsFor() }));
 
 export interface PeriodDetail {
   period: CollectionPeriod;
@@ -60,7 +61,7 @@ export interface PeriodDetail {
 }
 
 export const getPeriodDetail = (periodId: string): Promise<PeriodDetail> =>
-  latency(() => {
+  USE_DB ? unwrap(actions.getPeriodDetailAction(periodId)) : latency(() => {
     const period = state.periods.find((p) => p.id === periodId);
     const row = period && rowsFor().find((r) => r.plan.id === period.planId);
     if (!period || !row) throw new ServiceError("Période introuvable.", "NOT_FOUND");
@@ -69,7 +70,7 @@ export const getPeriodDetail = (periodId: string): Promise<PeriodDetail> =>
 
 /** Forçage admin : « accepté avec réserve », commentaire obligatoire (avenant §7). */
 export const forcePeriod = (periodId: string, comment: string): Promise<void> =>
-  latency(() => {
+  USE_DB ? unwrap(actions.forcePeriodAction({ periodId, comment })).then(() => undefined) : latency(() => {
     if (comment.trim().length < 5) throw new ServiceError("Un commentaire est obligatoire pour accepter avec réserve.", "COMMENT_REQUIRED");
     const period = state.periods.find((p) => p.id === periodId);
     const last = period?.submissions.at(-1);
@@ -81,7 +82,7 @@ export const forcePeriod = (periodId: string, comment: string): Promise<void> =>
 
 /** Relance manuelle d'une ou plusieurs périodes (plafond de relances par période). Retourne le nombre de relances envoyées. */
 export const remindPeriods = (periodIds: string[]): Promise<number> =>
-  latency(() => {
+  USE_DB ? unwrap(actions.remindPeriodsAction(periodIds)) : latency(() => {
     let sent = 0;
     for (const id of periodIds) {
       const period = state.periods.find((p) => p.id === id);
@@ -94,10 +95,10 @@ export const remindPeriods = (periodIds: string[]): Promise<number> =>
   });
 
 export const listCollectionEntities = (): Promise<{ entities: CollectionEntity[]; plans: CollectionPlan[]; clients: CollectionClient[] }> =>
-  latency(() => ({ entities: structuredClone(state.entities), plans: structuredClone(state.plans), clients: collectionClients }));
+  USE_DB ? unwrap(actions.listCollectionEntitiesAction()) : latency(() => ({ entities: structuredClone(state.entities), plans: structuredClone(state.plans), clients: collectionClients }));
 
 export const createCollectionEntity = (input: { clientId: string; name: string; sector: Sector }): Promise<CollectionEntity> =>
-  latency(() => {
+  USE_DB ? unwrap(actions.createCollectionEntityAction(input)) : latency(() => {
     const name = input.name.trim();
     if (name.length < 2) throw new ServiceError("Le nom de l'entité est requis.", "VALIDATION");
     if (state.entities.some((e) => e.clientId === input.clientId && e.name.toLowerCase() === name.toLowerCase()))
@@ -107,12 +108,108 @@ export const createCollectionEntity = (input: { clientId: string; name: string; 
     return entity;
   });
 
-export const getReminderRules = () => latency(() => structuredClone(state.reminderRules));
+export const getReminderRules = (): Promise<typeof state.reminderRules> => (USE_DB ? unwrap(actions.getReminderRulesAction()) : latency(() => structuredClone(state.reminderRules)));
 export const saveReminderRules = (rules: typeof state.reminderRules): Promise<void> =>
-  latency(() => {
+  USE_DB ? unwrap(actions.saveReminderRulesAction(rules)).then(() => undefined) : latency(() => {
     if (rules.cap < 1 || rules.cap > 10) throw new ServiceError("Le plafond doit être compris entre 1 et 10.", "VALIDATION");
     state.reminderRules = structuredClone(rules);
   });
+
+export interface CollectionPerson {
+  id: string;
+  clientId: string;
+  name: string;
+  email: string;
+  role: "CLIENT_DIRECTION" | "CLIENT_CONTRIBUTEUR" | "CLIENT_ANALYSTE";
+  active: boolean;
+}
+
+/** Démo : trois comptes fictifs chez le premier client, un contributeur affecté à la première entité. */
+const demoPeople: CollectionPerson[] = [
+  { id: "cu-1", clientId: "cc-1", name: "Awa Koné", email: "direction@exemple.test", role: "CLIENT_DIRECTION", active: true },
+  { id: "cu-2", clientId: "cc-1", name: "Moussa Traoré", email: "contributeur@exemple.test", role: "CLIENT_CONTRIBUTEUR", active: true },
+  { id: "cu-3", clientId: "cc-1", name: "Fanta Diallo", email: "analyste@exemple.test", role: "CLIENT_ANALYSTE", active: true },
+];
+const demoAssignments: { userId: string; entityId: string }[] = [{ userId: "cu-2", entityId: "ce-1" }];
+
+/** Mois (`AAAA-MM`) d'une période : la clé des colonnes du tableau de suivi. */
+export const monthKey = (p: Pick<CollectionPeriod, "periodStart">) => p.periodStart.slice(0, 7);
+
+/** Crée le compte d'un client avec le rôle choisi et envoie l'invitation. `mock` : compte fictif. */
+export const inviteCollectionUser = (input: { clientId: string; name: string; email: string; role: CollectionPerson["role"] }): Promise<void> =>
+  USE_DB
+    ? unwrap(actions.inviteCollectionUserAction(input)).then(() => undefined)
+    : latency(() => {
+        if (demoPeople.some((p) => p.email === input.email.trim().toLowerCase())) throw new ServiceError("Cette adresse email a déjà un compte.", "EMAIL_TAKEN");
+        demoPeople.push({ id: `cu-${demoPeople.length + 1}`, clientId: input.clientId, name: input.name.trim(), email: input.email.trim().toLowerCase(), role: input.role, active: true });
+      });
+
+export const createCollectionPlan = (input: { entityId: string; templateId: string; frequency: "MENSUELLE" | "HEBDOMADAIRE"; delayDays: number; startsOn: string }): Promise<CollectionPlan> =>
+  USE_DB
+    ? unwrap(actions.createCollectionPlanAction(input))
+    : latency(() => {
+        const entity = state.entities.find((e) => e.id === input.entityId);
+        const template = collectionTemplates.find((t) => t.id === input.templateId);
+        if (!entity || !template) throw new ServiceError("Entité ou modèle introuvable.", "NOT_FOUND");
+        if (template.sector !== entity.sector) throw new ServiceError("Ce modèle ne correspond pas au secteur de l'entité.", "VALIDATION");
+        if (state.plans.some((p) => p.entityId === entity.id && p.templateId === template.id)) throw new ServiceError("Cette entité a déjà un plan pour ce modèle.", "DUPLICATE");
+        const plan: CollectionPlan = { id: `cp-${state.plans.length + 1}`, entityId: entity.id, templateId: template.id, frequency: input.frequency, delayDays: input.delayDays, startsOn: new Date(`${input.startsOn}T00:00:00Z`).toISOString(), active: true };
+        state.plans.push(plan);
+        return structuredClone(plan);
+      });
+
+export const setCollectionPlanActive = (planId: string, active: boolean): Promise<CollectionPlan> =>
+  USE_DB
+    ? unwrap(actions.setCollectionPlanActiveAction({ planId, active }))
+    : latency(() => {
+        const plan = state.plans.find((p) => p.id === planId);
+        if (!plan) throw new ServiceError("Plan introuvable.", "NOT_FOUND");
+        plan.active = active;
+        return structuredClone(plan);
+      });
+
+export const listCollectionPeople = (): Promise<{ users: CollectionPerson[]; assignments: { userId: string; entityId: string }[] }> =>
+  USE_DB ? unwrap(actions.listCollectionPeopleAction()) : latency(() => ({ users: structuredClone(demoPeople), assignments: structuredClone(demoAssignments) }));
+
+export const assignContributor = (entityId: string, userId: string): Promise<void> =>
+  USE_DB
+    ? unwrap(actions.assignContributorAction({ entityId, userId })).then(() => undefined)
+    : latency(() => {
+        if (demoPeople.find((p) => p.id === userId)?.role !== "CLIENT_CONTRIBUTEUR") throw new ServiceError("Seul un utilisateur « contributeur » peut être affecté à une entité.", "NOT_CONTRIBUTOR");
+        if (!demoAssignments.some((a) => a.userId === userId && a.entityId === entityId)) demoAssignments.push({ userId, entityId });
+      });
+
+export const unassignContributor = (entityId: string, userId: string): Promise<void> =>
+  USE_DB
+    ? unwrap(actions.unassignContributorAction({ entityId, userId })).then(() => undefined)
+    : latency(() => {
+        const index = demoAssignments.findIndex((a) => a.userId === userId && a.entityId === entityId);
+        if (index >= 0) demoAssignments.splice(index, 1);
+      });
+
+/** Lien de téléchargement (5 minutes) du fichier original d'un dépôt. `mock` : pas de fichier. */
+export const downloadSubmission = (submissionId: string): Promise<{ url: string; filename: string }> =>
+  USE_DB ? unwrap(actions.downloadSubmissionAction(submissionId)) : latency(() => { throw new ServiceError("Téléchargement disponible avec la base de données (DATA_SOURCE=db).", "MOCK"); });
+
+/** Excel à remplir pour une période (route protégée par la session). */
+export const templateUrl = (periodId: string) => `/api/collection/template/${encodeURIComponent(periodId)}`;
+
+export interface CollectionExportFilters {
+  templateId: string;
+  from: string;
+  to: string;
+  clientId?: string;
+  sector?: string;
+  entityId?: string;
+}
+
+/** Export consolidé : `xlsx` ou `zip` des fichiers originaux. */
+export function exportUrl(filters: CollectionExportFilters, format: "xlsx" | "zip" = "xlsx"): string {
+  const query = new URLSearchParams({ templateId: filters.templateId, from: filters.from, to: filters.to });
+  for (const key of ["clientId", "sector", "entityId"] as const) if (filters[key]) query.set(key, filters[key]!);
+  if (format === "zip") query.set("format", "zip");
+  return `/api/collection/export?${query}`;
+}
 
 /* ---------- Espace client ---------- */
 
@@ -133,15 +230,16 @@ export function entityScope(role: CollectionViewerRole): string[] {
   return role === "CLIENT_CONTRIBUTEUR" ? own.filter((id) => DEMO_CONTRIBUTOR_ENTITIES.includes(id)) : own;
 }
 
+/** `db` : la session décide du périmètre (le rôle passé en paramètre ne sert qu'à la démo). */
 export const getClientCollection = (role: CollectionViewerRole): Promise<CollectionOverview> =>
-  latency(() => {
+  USE_DB ? unwrap(actions.getCollectionOverviewAction()) : latency(() => {
     const scope = entityScope(role);
     return { clients: collectionClients.filter((c) => c.id === DEMO_CLIENT_ID), months: collectionMonths, rows: rowsFor().filter((r) => scope.includes(r.entity.id)) };
   });
 
 /** Dépôt simulé : un fichier .xlsx dont le nom contient « rejet » produit un rapport d'erreurs, les autres sont validés. */
-export const submitDeposit = (periodId: string, file: { name: string; size: number }, role: CollectionViewerRole): Promise<CollectionSubmission> =>
-  latency(() => {
+export const submitDeposit = (periodId: string, file: { name: string; size: number } | File, role: CollectionViewerRole): Promise<CollectionSubmission> =>
+  USE_DB ? depositToStorage(periodId, file as File) : latency(() => {
     if (role === "CLIENT_ANALYSTE") throw new ServiceError("Votre rôle est en lecture seule : vous ne pouvez pas déposer.", "FORBIDDEN");
     const period = state.periods.find((p) => p.id === periodId);
     const row = period && rowsFor().find((r) => r.plan.id === period.planId);
@@ -173,9 +271,27 @@ export const submitDeposit = (periodId: string, file: { name: string; size: numb
     return structuredClone(submission);
   });
 
+/**
+ * `db` : envoie le fichier au stockage privé (URL présignée), puis confirme. Le contrôle est fait par le
+ * worker : le dépôt revient « en contrôle », et l'écran se rafraîchit pour afficher le résultat.
+ */
+async function depositToStorage(periodId: string, file: File): Promise<CollectionSubmission> {
+  if (!(file instanceof File)) throw new ServiceError("Choisissez un fichier .xlsx à déposer.", "INVALID");
+  const ticket = await unwrap(actions.requestDepositUploadAction({ periodId, filename: file.name, sizeBytes: file.size }));
+  let response: Response;
+  try {
+    response = await fetch(ticket.uploadUrl, { method: "PUT", headers: ticket.headers, body: file });
+  } catch {
+    throw new ServiceError("Impossible d'envoyer le fichier. Vérifiez votre connexion.", "NETWORK");
+  }
+  if (!response.ok) throw new ServiceError("L'envoi du fichier a échoué. Réessayez.", String(response.status));
+  const created = await unwrap(actions.confirmDepositAction({ periodId, key: ticket.key, originalName: file.name }));
+  return { id: created.submissionId, version: created.version, originalName: file.name, uploadedBy: "", uploadedAt: new Date().toISOString(), status: "EN_CONTROLE", report: null };
+}
+
 /** Compte à rebours lisible : « dans 3 jours », « 2 jours de retard ». */
 export function dueLabel(dueAt: string): { text: string; late: boolean } {
-  const days = Math.ceil((new Date(dueAt).getTime() - NOW().getTime()) / 86_400_000);
+  const days = Math.ceil((new Date(dueAt).getTime() - (USE_DB ? Date.now() : NOW().getTime())) / 86_400_000);
   if (days < 0) return { text: `${-days} jour${-days > 1 ? "s" : ""} de retard`, late: true };
   if (days === 0) return { text: "à rendre aujourd'hui", late: false };
   return { text: `dans ${days} jour${days > 1 ? "s" : ""}`, late: false };

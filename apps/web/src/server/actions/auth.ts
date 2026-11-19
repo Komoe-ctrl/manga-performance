@@ -61,7 +61,7 @@ export async function inviteClientAction(input: unknown): Promise<ActionResult> 
     action: "client.access.invited",
     entity: "User",
     entityId: result.userId,
-    diff: { clientId: parsed.data.clientId },
+    diff: { clientId: parsed.data.clientId, role: parsed.data.role },
     ip: clientIp(await headers()),
   });
   return { ok: true };

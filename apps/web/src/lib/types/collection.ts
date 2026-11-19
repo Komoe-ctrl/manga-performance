@@ -100,6 +100,8 @@ export interface TrackingRow {
 }
 
 export interface CollectionOverview {
+  /** Rôle de la session (base de données) : l'écran en déduit ce qu'il montre. Absent en démonstration. */
+  viewerRole?: "ADMIN" | "CLIENT_DIRECTION" | "CLIENT_CONTRIBUTEUR" | "CLIENT_ANALYSTE";
   clients: CollectionClient[];
   months: { key: string; label: string }[];
   rows: TrackingRow[];

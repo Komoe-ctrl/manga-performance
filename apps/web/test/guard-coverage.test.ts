@@ -19,7 +19,7 @@ function walk(dir: string, match: (path: string) => boolean): string[] {
 const read = (path: string) => readFileSync(path, "utf8");
 const rel = (path: string) => relative(SRC, path).replaceAll("\\", "/");
 
-const GUARD = /\b(runAdmin|runClient|requireAdmin|requireClient|requireAdminOrClient)\(/;
+const GUARD = /\b(runAdmin|runAdminOrClient|runClient|requireAdmin|requireClient|requireAdminOrClient)\(/;
 
 /** Public on purpose. Each has its own protection, named here. */
 const PUBLIC_ACTIONS: Record<string, string> = {

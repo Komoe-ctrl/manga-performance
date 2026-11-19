@@ -1,4 +1,5 @@
 import { AUTH_POLICY, PASSWORD_MESSAGES, checkPassword } from "@manga/core";
+import type { ClientRole } from "@manga/core/roles";
 import { createTokenStore, type PrismaClient, type TokenPurpose } from "@manga/db";
 import type { AuthMailer } from "../email/auth-mailer";
 import { createUsersRepository } from "../repositories/users";
@@ -70,6 +71,8 @@ export function createAccountFlows({ prisma, mailer, appUrl, now = () => new Dat
       clientId: string;
       email: string;
       name: string;
+      /** Rôle du compte (avenant §3) ; la direction par défaut. */
+      role?: ClientRole;
     }): Promise<{ ok: true; userId: string } | FlowFailure> {
       const client = await prisma.client.findFirst({
         where: { id: input.clientId, deletedAt: null },
@@ -81,7 +84,7 @@ export function createAccountFlows({ prisma, mailer, appUrl, now = () => new Dat
       const user = await users.create({
         email: input.email,
         name: input.name,
-        role: "CLIENT_DIRECTION",
+        role: input.role ?? "CLIENT_DIRECTION",
         clientId: client.id,
       });
       await sendInvitation(user);

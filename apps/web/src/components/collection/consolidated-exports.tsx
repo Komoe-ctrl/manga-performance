@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Download, FileArchive } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { getCollectionOverview } from "@/lib/services/collection";
+import { exportUrl, getCollectionOverview, monthKey } from "@/lib/services/collection";
+import { USE_DB } from "@/lib/services/data-source";
 import { collectionTemplates } from "@/lib/mock/collection";
 import { Button } from "@/components/ui/button";
 import { Field, Select } from "@/components/ui/field";
@@ -26,12 +27,15 @@ export function ConsolidatedExports() {
 
   const matching = rows.filter((r) => r.template.id === template && (client === "all" || r.client.id === client));
   const periods = matching.flatMap((r) => r.periods).filter((p) => {
-    const key = p.id.slice(-7);
+    const key = monthKey(p);
     return key >= start && key <= end;
   });
   const usable = periods.filter((p) => p.status === "VALIDE" || p.status === "ACCEPTE_AVEC_RESERVE");
   const missing = periods.filter((p) => ["ATTENDU", "EN_RETARD", "EN_CONTROLE", "REJETE"].includes(p.status));
-  const soon = () => toast.info("Export disponible avec la base de données (DATA_SOURCE=db)");
+  const download = (format: "xlsx" | "zip") => () => {
+    if (!USE_DB) return toast.info("Export disponible avec la base de données (DATA_SOURCE=db)");
+    window.location.assign(exportUrl({ templateId: template, from: start, to: end, ...(client !== "all" ? { clientId: client } : {}) }, format));
+  };
 
   return (
     <div className="space-y-5">
@@ -69,10 +73,10 @@ export function ConsolidatedExports() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="accent" disabled={usable.length === 0} onClick={soon}>
+        <Button variant="accent" disabled={usable.length === 0} onClick={download("xlsx")}>
           <Download className="h-4 w-4" aria-hidden /> Télécharger l&apos;export consolidé (.xlsx)
         </Button>
-        <Button variant="outline" disabled={usable.length === 0} onClick={soon}>
+        <Button variant="outline" disabled={usable.length === 0} onClick={download("zip")}>
           <FileArchive className="h-4 w-4" aria-hidden /> Fichiers originaux (.zip)
         </Button>
       </div>

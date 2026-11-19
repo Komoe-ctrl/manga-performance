@@ -63,6 +63,7 @@ let counter = 0;
 export async function createUser(options: {
   role: Role;
   email?: string;
+  name?: string;
   clientId?: string;
   password?: string | null;
   twoFactorEnabled?: boolean;
@@ -72,7 +73,7 @@ export async function createUser(options: {
   const user = await db().user.create({
     data: {
       email,
-      name: `User ${counter}`,
+      name: options.name ?? `User ${counter}`,
       role: options.role,
       ...(options.clientId ? { clientId: options.clientId } : {}),
       emailVerified: true,

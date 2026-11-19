@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { BellRing, CheckCircle2, Download, FileWarning, Hourglass } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { getCollectionOverview, remindPeriods } from "@/lib/services/collection";
+import { exportUrl, getCollectionOverview, monthKey, remindPeriods } from "@/lib/services/collection";
+import { USE_DB } from "@/lib/services/data-source";
 import { PERIOD_STATUS_LABELS, SECTOR_LABELS, type PeriodStatus, type Sector } from "@/lib/types/collection";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -32,8 +33,8 @@ export function TrackingBoard() {
 
   const { months, clients } = data.data;
   // Dernier mois terminé = dernière colonne qui n'est plus « à venir » pour au moins une ligne.
-  const lastClosed = [...months].reverse().find((m) => rows.some((r) => r.periods.find((p) => p.id.endsWith(m.key))?.status !== "A_VENIR"));
-  const closed = rows.map((r) => r.periods.find((p) => lastClosed && p.id.endsWith(lastClosed.key))).filter((p) => p && p.status !== "A_VENIR");
+  const lastClosed = [...months].reverse().find((m) => rows.some((r) => r.periods.find((p) => monthKey(p) === m.key)?.status !== "A_VENIR"));
+  const closed = rows.map((r) => r.periods.find((p) => lastClosed && monthKey(p) === lastClosed.key)).filter((p) => p && p.status !== "A_VENIR");
   const complete = closed.filter((p) => p!.status === "VALIDE" || p!.status === "ACCEPTE_AVEC_RESERVE").length;
   const late = rows.flatMap((r) => r.periods).filter((p) => p.status === "EN_RETARD").length;
   const rejected = rows.flatMap((r) => r.periods).filter((p) => p.status === "REJETE").length;
@@ -71,7 +72,17 @@ export function TrackingBoard() {
           >
             <BellRing className="h-4 w-4" aria-hidden /> Relancer les retards ({late})
           </Button>
-          <Button variant="outline" size="sm" onClick={() => toast.info("Export du suivi disponible avec la base de données (DATA_SOURCE=db)")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!USE_DB) return toast.info("Export du suivi disponible avec la base de données (DATA_SOURCE=db)");
+              const first = rows[0];
+              const range = months.length ? { from: months[0]!.key, to: months.at(-1)!.key } : null;
+              if (!first || !range) return toast.info("Rien à exporter.");
+              window.location.assign(exportUrl({ templateId: first.template.id, ...range, ...(client !== ALL ? { clientId: client } : {}), ...(sector !== ALL ? { sector } : {}) }));
+            }}
+          >
             <Download className="h-4 w-4" aria-hidden /> Exporter le suivi
           </Button>
         </div>
@@ -107,7 +118,7 @@ export function TrackingBoard() {
                     <p className="text-xs text-muted-foreground">{r.template.label} · {r.client.name}</p>
                   </th>
                   {months.map((m) => {
-                    const period = r.periods.find((p) => p.id.endsWith(m.key));
+                    const period = r.periods.find((p) => monthKey(p) === m.key);
                     const status = period?.status ?? "A_VENIR";
                     return (
                       <td key={m.key} className="px-1.5 py-1.5 text-center">
