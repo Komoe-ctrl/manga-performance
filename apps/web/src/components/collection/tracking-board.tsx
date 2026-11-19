@@ -1,28 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, FileWarning, Hourglass } from "lucide-react";
+import { BellRing, CheckCircle2, Download, FileWarning, Hourglass } from "lucide-react";
+import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { getCollectionOverview } from "@/lib/services/collection";
+import { getCollectionOverview, remindPeriods } from "@/lib/services/collection";
 import { PERIOD_STATUS_LABELS, SECTOR_LABELS, type PeriodStatus, type Sector } from "@/lib/types/collection";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared";
-
-/** Couleur + symbole : le statut ne repose jamais sur la couleur seule. */
-const STATUS_STYLE: Record<PeriodStatus, { cell: string; symbol: string }> = {
-  A_VENIR: { cell: "bg-muted text-muted-foreground", symbol: "·" },
-  ATTENDU: { cell: "bg-accent/25 text-accent-foreground", symbol: "…" },
-  EN_RETARD: { cell: "bg-danger/15 text-danger", symbol: "!" },
-  EN_CONTROLE: { cell: "bg-primary/10 text-primary", symbol: "⏳" },
-  REJETE: { cell: "bg-danger text-white", symbol: "✕" },
-  VALIDE: { cell: "bg-success/15 text-success", symbol: "✓" },
-  ACCEPTE_AVEC_RESERVE: { cell: "bg-success/40 text-success", symbol: "✓*" },
-};
+import { PeriodPanel } from "./period-panel";
+import { STATUS_STYLE } from "./status";
 
 const ALL = "all";
 
 export function TrackingBoard() {
-  const data = useAsync(getCollectionOverview);
+  const [version, setVersion] = useState(0);
+  const [openPeriod, setOpenPeriod] = useState<string | null>(null);
+  const [reminding, setReminding] = useState(false);
+  const data = useAsync(getCollectionOverview, [version]);
   const [client, setClient] = useState(ALL);
   const [sector, setSector] = useState(ALL);
 
@@ -54,7 +50,33 @@ export function TrackingBoard() {
       <div className="flex flex-wrap items-end gap-3">
         <Filter label="Client" value={client} onChange={setClient} options={clients.map((c) => [c.id, c.name])} />
         <Filter label="Secteur" value={sector} onChange={setSector} options={sectors.map((s) => [s, SECTOR_LABELS[s as Sector]])} />
-        <ul className="ml-auto flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" aria-label="Légende des statuts">
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            loading={reminding}
+            disabled={late === 0}
+            title={late === 0 ? "Aucune période en retard" : undefined}
+            onClick={async () => {
+              setReminding(true);
+              try {
+                const ids = rows.flatMap((r) => r.periods).filter((p) => p.status === "EN_RETARD").map((p) => p.id);
+                const sent = await remindPeriods(ids);
+                toast.success(`${sent} relance(s) envoyée(s)${sent < ids.length ? ` — ${ids.length - sent} ignorée(s) (plafond atteint)` : ""}`);
+                setVersion((v) => v + 1);
+              } finally {
+                setReminding(false);
+              }
+            }}
+          >
+            <BellRing className="h-4 w-4" aria-hidden /> Relancer les retards ({late})
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => toast.info("Export du suivi disponible avec la base de données (DATA_SOURCE=db)")}>
+            <Download className="h-4 w-4" aria-hidden /> Exporter le suivi
+          </Button>
+        </div>
+      </div>
+      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" aria-label="Légende des statuts">
           {(Object.keys(STATUS_STYLE) as PeriodStatus[]).map((s) => (
             <li key={s} className="flex items-center gap-1">
               <span className={cn("inline-flex h-5 min-w-5 items-center justify-center rounded px-1 text-[11px] font-bold", STATUS_STYLE[s].cell)} aria-hidden>{STATUS_STYLE[s].symbol}</span>
@@ -62,7 +84,6 @@ export function TrackingBoard() {
             </li>
           ))}
         </ul>
-      </div>
 
       {rows.length === 0 ? (
         <EmptyState message="Aucun plan de collecte pour ces filtres." />
@@ -90,13 +111,16 @@ export function TrackingBoard() {
                     const status = period?.status ?? "A_VENIR";
                     return (
                       <td key={m.key} className="px-1.5 py-1.5 text-center">
-                        <span
+                        <button
+                          type="button"
+                          onClick={() => setOpenPeriod(period?.id ?? null)}
+                          disabled={status === "A_VENIR"}
                           title={`${PERIOD_STATUS_LABELS[status]}${period?.submissions.length ? ` — version ${period.submissions[period.submissions.length - 1].version}` : ""}`}
-                          className={cn("inline-flex h-8 min-w-9 items-center justify-center rounded-md px-1.5 text-xs font-bold", STATUS_STYLE[status].cell)}
+                          className={cn("inline-flex h-8 min-w-9 items-center justify-center rounded-md px-1.5 text-xs font-bold transition-transform enabled:hover:scale-110 enabled:focus-visible:ring-2 enabled:focus-visible:ring-accent", STATUS_STYLE[status].cell)}
                         >
                           <span aria-hidden>{STATUS_STYLE[status].symbol}</span>
-                          <span className="sr-only">{PERIOD_STATUS_LABELS[status]}</span>
-                        </span>
+                          <span className="sr-only">{`${r.entity.name}, ${m.label} : ${PERIOD_STATUS_LABELS[status]}`}</span>
+                        </button>
                       </td>
                     );
                   })}
@@ -106,9 +130,7 @@ export function TrackingBoard() {
           </table>
         </div>
       )}
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <AlertTriangle className="h-3.5 w-3.5" aria-hidden /> Données de démonstration fictives. Le détail d&apos;une période, les relances et les exports arrivent dans la suite de l&apos;étape A1.
-      </p>
+      <PeriodPanel periodId={openPeriod} onClose={() => setOpenPeriod(null)} onChanged={() => setVersion((v) => v + 1)} />
     </div>
   );
 }
