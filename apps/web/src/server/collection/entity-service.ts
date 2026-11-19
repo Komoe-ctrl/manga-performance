@@ -12,6 +12,15 @@ export interface EntityView {
   active: boolean;
 }
 
+export interface PersonView {
+  id: string;
+  clientId: string;
+  name: string;
+  email: string;
+  role: "CLIENT_DIRECTION" | "CLIENT_CONTRIBUTEUR" | "CLIENT_ANALYSTE";
+  active: boolean;
+}
+
 const select = { id: true, clientId: true, name: true, sector: true, active: true } as const;
 
 export function createEntityService(deps: { prisma: PrismaClient }) {
@@ -63,6 +72,26 @@ export function createEntityService(deps: { prisma: PrismaClient }) {
         await tx.entityAssignment.upsert({ where: { userId_entityId: { userId, entityId } }, create: { userId, entityId }, update: {} });
         await recordAudit(tx, { actorId, action: "entity.assign", entity: "Entity", entityId, diff: { userId } });
       });
+    },
+
+    /**
+     * Comptes d'un client et affectations de ses contributeurs, pour l'écran d'affectation. L'acteur ne
+     * voit que son périmètre : l'administrateur tout, les autres les comptes de leur client.
+     */
+    async listPeople(actor: CollectionActor): Promise<{ users: PersonView[]; assignments: { userId: string; entityId: string }[] }> {
+      const scope = await entityScope(prisma, actor);
+      const entities = await prisma.entity.findMany({ where: { id: { in: scope } }, select: { clientId: true } });
+      const clientIds = [...new Set(entities.map((e) => e.clientId))];
+      const users = await prisma.user.findMany({
+        where: { clientId: { in: clientIds }, role: { in: ["CLIENT_DIRECTION", "CLIENT_CONTRIBUTEUR", "CLIENT_ANALYSTE"] } },
+        orderBy: { name: "asc" },
+        select: { id: true, clientId: true, name: true, email: true, role: true, disabledAt: true },
+      });
+      const assignments = await prisma.entityAssignment.findMany({ where: { entityId: { in: scope }, userId: { in: users.map((u) => u.id) } }, select: { userId: true, entityId: true } });
+      return {
+        users: users.map((u) => ({ id: u.id, clientId: u.clientId ?? "", name: u.name, email: u.email, role: u.role as PersonView["role"], active: u.disabledAt === null })),
+        assignments,
+      };
     },
 
     async unassignContributor(entityId: string, userId: string, actorId: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { createLogger } from "@manga/core";
-import { AuthorizationError, requireAdmin, requireClient, type AdminSession, type ClientSession } from "../auth/guards";
+import { AuthorizationError, requireAdmin, requireAdminOrClient, requireClient, type AdminSession, type ClientSession } from "../auth/guards";
 import type { z } from "zod";
 import { DomainError } from "../domain-error";
 import { CrmError } from "../crm/errors";
@@ -49,6 +49,22 @@ export async function runAdmin<T>(operation: (admin: AdminSession) => Promise<T>
 export async function runClient<T>(operation: (session: ClientSession) => Promise<T>): Promise<Result<T>> {
   try {
     return { ok: true, data: await operation(await requireClient()) };
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return { ok: false, code: error.code, error: AUTH_MESSAGES[error.code] };
+    }
+    if (error instanceof DomainError) {
+      return { ok: false, code: error.code, error: error.message };
+    }
+    logger.error({ errorName: error instanceof Error ? error.name : "unknown" }, "unexpected action failure");
+    return { ok: false, code: "INTERNAL", error: "Une erreur est survenue. Réessayez." };
+  }
+}
+
+/** Operations open to the admin and to every client role: the operation itself narrows the scope (`entityScope`). */
+export async function runAdminOrClient<T>(operation: (session: AdminSession | ClientSession) => Promise<T>): Promise<Result<T>> {
+  try {
+    return { ok: true, data: await operation(await requireAdminOrClient()) };
   } catch (error) {
     if (error instanceof AuthorizationError) {
       return { ok: false, code: error.code, error: AUTH_MESSAGES[error.code] };

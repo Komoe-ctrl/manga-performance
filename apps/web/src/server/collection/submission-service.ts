@@ -135,6 +135,18 @@ export function createSubmissionService(deps: SubmissionDeps) {
     },
 
     /**
+     * Lien de téléchargement (5 minutes) du fichier original d'un dépôt. Hors périmètre ou inexistant :
+     * même réponse. L'analyste, en lecture seule, peut lire les fichiers de son client.
+     */
+    async downloadOriginal(actor: CollectionActor, submissionId: string): Promise<{ url: string; filename: string }> {
+      const submission = await prisma.submission.findUnique({ where: { id: submissionId }, select: { storageKey: true, originalName: true, period: { select: { plan: { select: { entityId: true } } } } } });
+      if (!submission) throw new DomainError("NOT_FOUND", "Dépôt introuvable.");
+      await assertEntityInScope(prisma, actor, submission.period.plan.entityId);
+      const url = await storage.presignDownload({ key: submission.storageKey, filename: submission.originalName });
+      return { url, filename: submission.originalName };
+    },
+
+    /**
      * Forçage admin (avenant §7) : accepte avec réserve une période rejetée. Le commentaire est
      * obligatoire et journalisé. Les lignes lues au mieux restent attachées au dépôt.
      */

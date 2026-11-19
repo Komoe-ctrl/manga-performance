@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BellRing, Download, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { forcePeriod, getPeriodDetail, periodLabel, remindPeriods } from "@/lib/services/collection";
+import { downloadSubmission, forcePeriod, getPeriodDetail, periodLabel, remindPeriods } from "@/lib/services/collection";
 import { formatDate } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
@@ -87,7 +87,13 @@ function PanelBody({ periodId, onClose, onChanged }: { periodId: string; onClose
                     <p className="text-xs font-medium">{{ EN_CONTROLE: "En contrôle", REJETE: "Rejeté", VALIDE: "Validé", ACCEPTE_AVEC_RESERVE: "Accepté avec réserve" }[s.status]}</p>
                     <ReportView report={s.report} />
                     {s.reviewComment && <p className="rounded bg-muted p-2 text-xs"><strong>Réserve :</strong> {s.reviewComment}</p>}
-                    <Button type="button" variant="outline" size="sm" onClick={() => toast.info("Téléchargement disponible avec la base de données (DATA_SOURCE=db)")}>
+                    <Button type="button" variant="outline" size="sm" onClick={async () => {
+                      try {
+                        window.location.assign((await downloadSubmission(s.id)).url);
+                      } catch (error) {
+                        toast.info(error instanceof Error ? error.message : "Téléchargement impossible.");
+                      }
+                    }}>
                       <Download className="h-4 w-4" aria-hidden /> Télécharger le fichier
                     </Button>
                   </div>

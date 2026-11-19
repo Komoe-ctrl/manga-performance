@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarClock, Download, FileSpreadsheet, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { dueLabel, getClientCollection, periodLabel, submitDeposit, VIEWER_ROLE_LABELS, type CollectionViewerRole } from "@/lib/services/collection";
+import { dueLabel, exportUrl, getClientCollection, monthKey, periodLabel, submitDeposit, templateUrl, VIEWER_ROLE_LABELS, type CollectionViewerRole } from "@/lib/services/collection";
+import { USE_DB } from "@/lib/services/data-source";
 import { type CollectionPeriod, type TrackingRow } from "@/lib/types/collection";
 import { formatDate } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -19,13 +20,24 @@ const OPEN: CollectionPeriod["status"][] = ["ATTENDU", "EN_RETARD", "REJETE"];
  * les trois vues ; en production le rôle vient de la session et le serveur filtre par `entityScope`.
  */
 export function ClientCollection() {
-  const [role, setRole] = useState<CollectionViewerRole>("CLIENT_CONTRIBUTEUR");
+  const [demoRole, setRole] = useState<CollectionViewerRole>("CLIENT_CONTRIBUTEUR");
   const [version, setVersion] = useState(0);
-  const data = useAsync(() => getClientCollection(role), [role, version]);
+  const data = useAsync(() => getClientCollection(demoRole), [demoRole, version]);
+  // `db`: the role is the session's; the picker below only exists in the demo.
+  const sessionRole = data.status === "success" ? data.data.viewerRole : undefined;
+  const role: CollectionViewerRole = USE_DB && sessionRole && sessionRole !== "ADMIN" ? sessionRole : demoRole;
+
+  // The check runs in the worker: while a deposit is being checked, look again every few seconds.
+  const checking = data.status === "success" && data.data.rows.some((r) => r.periods.some((p) => p.status === "EN_CONTROLE"));
+  useEffect(() => {
+    if (!USE_DB || !checking) return;
+    const timer = setTimeout(() => setVersion((v) => v + 1), 4000);
+    return () => clearTimeout(timer);
+  }, [checking, version]);
 
   return (
     <div className="space-y-5">
-      <fieldset className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-border p-3">
+      {!USE_DB && <fieldset className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-border p-3">
         <legend className="px-1 text-xs font-medium text-muted-foreground">Démonstration : voir l&apos;espace en tant que…</legend>
         {(Object.keys(VIEWER_ROLE_LABELS) as CollectionViewerRole[]).map((r) => (
           <label key={r} className={cn("cursor-pointer rounded-full border px-3 py-1 text-sm focus-within:ring-2 focus-within:ring-accent", role === r ? "border-accent bg-accent text-accent-foreground" : "border-border hover:bg-muted")}>
@@ -38,7 +50,7 @@ export function ClientCollection() {
           {role === "CLIENT_DIRECTION" && "Voit toutes les entités de son entreprise et peut déposer."}
           {role === "CLIENT_ANALYSTE" && "Lecture seule : statuts et exports, aucun dépôt."}
         </span>
-      </fieldset>
+      </fieldset>}
 
       {data.status === "loading" && <LoadingState />}
       {data.status === "error" && <ErrorState message="Collecte indisponible." onRetry={data.reload} />}
@@ -86,8 +98,9 @@ function DepositCard({ row, period, role, onChanged }: { row: TrackingRow; perio
     if (!file) return;
     setBusy(true);
     try {
-      const s = await submitDeposit(period.id, { name: file.name, size: file.size }, role);
-      if (s.status === "VALIDE") toast.success("Dépôt validé. Merci !");
+      const s = await submitDeposit(period.id, USE_DB ? file : { name: file.name, size: file.size }, role);
+      if (s.status === "EN_CONTROLE") toast.success("Fichier reçu : contrôle en cours, le résultat s'affiche dans quelques secondes.");
+      else if (s.status === "VALIDE") toast.success("Dépôt validé. Merci !");
       else toast.error("Dépôt rejeté : consultez le rapport de contrôle ci-dessous.");
       onChanged();
     } catch (error) {
@@ -121,7 +134,7 @@ function DepositCard({ row, period, role, onChanged }: { row: TrackingRow; perio
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => toast.info("Modèle Excel pré-rempli disponible avec la base de données (DATA_SOURCE=db)")}>
+        <Button type="button" variant="outline" size="sm" onClick={() => (USE_DB ? window.location.assign(templateUrl(period.id)) : toast.info("Modèle Excel pré-rempli disponible avec la base de données (DATA_SOURCE=db)"))}>
           <Download className="h-4 w-4" aria-hidden /> Télécharger le modèle
         </Button>
       </div>
@@ -160,9 +173,18 @@ function ReadOnlyMatrix({ rows, months, analyst }: { rows: TrackingRow[]; months
     <section aria-label="Suivi des entités" className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-primary">Suivi de vos entités</h2>
-        <Button variant="outline" size="sm" onClick={() => toast.info("Export disponible avec la base de données (DATA_SOURCE=db)")}>
-          <Download className="h-4 w-4" aria-hidden /> {analyst ? "Export consolidé (dépôts validés)" : "Télécharger les dépôts validés"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {[...new Map(rows.map((r) => [r.template.id, r.template])).values()].map((template) => (
+            <Button
+              key={template.id}
+              variant="outline"
+              size="sm"
+              onClick={() => (USE_DB && months.length ? window.location.assign(exportUrl({ templateId: template.id, from: months[0]!.key, to: months.at(-1)!.key })) : toast.info("Export disponible avec la base de données (DATA_SOURCE=db)"))}
+            >
+              <Download className="h-4 w-4" aria-hidden /> {analyst ? "Export consolidé" : "Dépôts validés"} — {template.label}
+            </Button>
+          ))}
+        </div>
       </div>
       <div className="relative overflow-x-auto rounded-xl border border-border bg-background">
         <table className="w-full min-w-[640px] text-sm">
@@ -178,7 +200,7 @@ function ReadOnlyMatrix({ rows, months, analyst }: { rows: TrackingRow[]; months
               <tr key={r.plan.id} className="border-t border-border">
                 <th scope="row" className="px-3 py-2 text-left font-normal"><p className="font-semibold text-primary">{r.entity.name}</p><p className="text-xs text-muted-foreground">{r.template.label}</p></th>
                 {months.map((m) => {
-                  const status = r.periods.find((p) => p.id.endsWith(m.key))?.status ?? "A_VENIR";
+                  const status = r.periods.find((p) => monthKey(p) === m.key)?.status ?? "A_VENIR";
                   return (
                     <td key={m.key} className="px-1.5 py-1.5 text-center">
                       <span className={cn("inline-flex h-8 min-w-9 items-center justify-center rounded-md px-1.5 text-xs font-bold", STATUS_STYLE[status].cell)}>

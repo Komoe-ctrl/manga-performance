@@ -8,6 +8,8 @@ export const inviteClientSchema = z.object({
   clientId: z.string().min(1).max(64),
   email,
   name: z.string().trim().min(1).max(120),
+  /** Rôle du compte client (avenant §3) ; la direction par défaut. */
+  role: z.enum(["CLIENT_DIRECTION", "CLIENT_CONTRIBUTEUR", "CLIENT_ANALYSTE"]).default("CLIENT_DIRECTION"),
 });
 
 export const acceptInvitationSchema = z.object({ token, password });
