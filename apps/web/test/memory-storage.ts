@@ -35,6 +35,12 @@ export class MemoryStorage implements ObjectStorage {
     return createHash("sha256").update(this.objects.get(key) ?? new Uint8Array()).digest("hex");
   }
 
+  async read(key: string) {
+    const object = this.objects.get(key);
+    if (!object) throw new Error("NoSuchKey");
+    return object;
+  }
+
   async delete(key: string) {
     this.deleted.push(key);
     this.objects.delete(key);

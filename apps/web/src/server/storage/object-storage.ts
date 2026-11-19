@@ -23,6 +23,8 @@ export interface ObjectStorage {
   readHead(key: string, bytes: number): Promise<Uint8Array>;
   /** SHA-256 of the whole object, computed while streaming it. */
   sha256(key: string): Promise<string>;
+  /** The whole object, in memory: for small files only (collection deposits are 10 MB at most). */
+  read(key: string): Promise<Uint8Array>;
   delete(key: string): Promise<void>;
 }
 
@@ -90,6 +92,11 @@ export function createS3Storage(config: S3Config): ObjectStorage {
       const hash = createHash("sha256");
       for await (const chunk of result.Body as AsyncIterable<Uint8Array>) hash.update(chunk);
       return hash.digest("hex");
+    },
+
+    async read(key) {
+      const result = await client.send(new GetObjectCommand({ Bucket, Key: key }));
+      return result.Body ? await result.Body.transformToByteArray() : new Uint8Array();
     },
 
     async delete(key) {
