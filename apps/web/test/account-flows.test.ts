@@ -42,7 +42,7 @@ describe("client invitation", () => {
     expect(result.ok).toBe(true);
 
     const user = await db().user.findUniqueOrThrow({ where: { email: "contact@acme.ci" } });
-    expect(user).toMatchObject({ role: "CLIENT", clientId: client.id, emailVerified: false });
+    expect(user).toMatchObject({ role: "CLIENT_DIRECTION", clientId: client.id, emailVerified: false });
     expect(await db().account.count({ where: { userId: user.id } })).toBe(0);
 
     const [mail] = mailer.invitations;
@@ -71,7 +71,7 @@ describe("client invitation", () => {
     ).toEqual({ ok: false, code: "CLIENT_NOT_FOUND" });
 
     const client = await createClientCompany("Acme");
-    await createUser({ role: "CLIENT", email: "taken@acme.ci", clientId: client.id });
+    await createUser({ role: "CLIENT_DIRECTION", email: "taken@acme.ci", clientId: client.id });
     expect(
       await flows().inviteClientUser({ clientId: client.id, email: "TAKEN@acme.ci", name: "A" }),
     ).toEqual({ ok: false, code: "EMAIL_TAKEN" });
@@ -140,20 +140,20 @@ describe("client invitation", () => {
 
 describe("password reset", () => {
   it("answers identically for known and unknown emails, and only mails known ones", async () => {
-    await createUser({ role: "CLIENT", email: "known@acme.ci" });
+    await createUser({ role: "CLIENT_DIRECTION", email: "known@acme.ci" });
     await expect(flows().requestPasswordReset("known@acme.ci")).resolves.toBeUndefined();
     await expect(flows().requestPasswordReset("unknown@acme.ci")).resolves.toBeUndefined();
     expect(mailer.resets.map((m) => m.to)).toEqual(["known@acme.ci"]);
   });
 
   it("does not send a reset to an account that never activated", async () => {
-    await createUser({ role: "CLIENT", email: "pending@acme.ci", password: null });
+    await createUser({ role: "CLIENT_DIRECTION", email: "pending@acme.ci", password: null });
     await flows().requestPasswordReset("pending@acme.ci");
     expect(mailer.resets).toHaveLength(0);
   });
 
   it("stores the token hashed and expires after one hour", async () => {
-    await createUser({ role: "CLIENT", email: "known@acme.ci" });
+    await createUser({ role: "CLIENT_DIRECTION", email: "known@acme.ci" });
     await flows().requestPasswordReset("known@acme.ci");
     const token = tokenFromUrl(mailer.resets[0]!.url);
     const rows = await db().verification.findMany();
@@ -167,7 +167,7 @@ describe("password reset", () => {
   });
 
   it("sets the password, is single-use, and signs the user out everywhere", async () => {
-    const user = await createUser({ role: "CLIENT", email: "known@acme.ci" });
+    const user = await createUser({ role: "CLIENT_DIRECTION", email: "known@acme.ci" });
     await login(user.email);
     await login(user.email);
     expect(await db().session.count({ where: { userId: user.id } })).toBe(2);
@@ -185,7 +185,7 @@ describe("password reset", () => {
   });
 
   it("clears a lockout, and a new request supersedes the previous link", async () => {
-    const user = await createUser({ role: "CLIENT", email: "known@acme.ci" });
+    const user = await createUser({ role: "CLIENT_DIRECTION", email: "known@acme.ci" });
     await db().user.update({
       where: { id: user.id },
       data: { failedLoginCount: 3, lockedUntil: new Date(Date.now() + HOUR) },

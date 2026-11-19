@@ -17,7 +17,7 @@ vi.mock("next/headers", async () => {
 
 async function seedClient(name: string) {
   const client = await createClientCompany(name);
-  const user = await createUser({ role: "CLIENT", clientId: client.id });
+  const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
   const invoice = await db().invoice.create({
     data: { clientId: client.id, status: "EMISE", number: `2026-${name}`, totalHt: 100, totalVat: 18, totalTtc: 118 },
   });
@@ -36,7 +36,7 @@ async function seedClient(name: string) {
     },
   });
   const message = await db().message.create({
-    data: { clientId: client.id, authorId: user.id, fromRole: "CLIENT", body: `Message ${name}` },
+    data: { clientId: client.id, authorId: user.id, fromRole: "CLIENT_DIRECTION", body: `Message ${name}` },
   });
   const notification = await db().notification.create({
     data: { userId: user.id, type: "NEW_MESSAGE", payload: {} },

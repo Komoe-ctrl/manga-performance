@@ -1,3 +1,4 @@
+import { isClientRole, type ClientRole } from "@manga/core/roles";
 import { twoFactorClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
@@ -7,7 +8,7 @@ export const authClient = createAuthClient({ plugins: [twoFactorClient()] });
 export interface CurrentUser {
   id: string;
   email: string;
-  role: "ADMIN" | "CLIENT";
+  role: "ADMIN" | ClientRole;
   clientId: string | null;
   twoFactorEnabled: boolean;
 }
@@ -24,7 +25,7 @@ export async function fetchCurrentUser(): Promise<CurrentUser | null> {
   return {
     id: user.id,
     email: user.email,
-    role: user.role === "ADMIN" ? "ADMIN" : "CLIENT",
+    role: user.role === "ADMIN" ? "ADMIN" : isClientRole(user.role) ? user.role : "CLIENT_DIRECTION",
     clientId: user.clientId ?? null,
     twoFactorEnabled: user.twoFactorEnabled === true,
   };

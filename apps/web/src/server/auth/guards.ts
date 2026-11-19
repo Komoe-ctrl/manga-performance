@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { isSessionTooOld } from "@manga/core";
+import { isClientRole, isSessionTooOld, type AppRole, type ClientRole } from "@manga/core";
 import { getPrisma } from "../db";
 import { getAuth } from "./instance";
 
@@ -20,7 +20,7 @@ export class AuthorizationError extends Error {
 export interface AppSession {
   userId: string;
   email: string;
-  role: "ADMIN" | "CLIENT";
+  role: AppRole;
   clientId: string | null;
   twoFactorEnabled: boolean;
   sessionCreatedAt: Date;
@@ -31,7 +31,7 @@ export interface AdminSession extends AppSession {
 }
 
 export interface ClientSession extends AppSession {
-  role: "CLIENT";
+  role: ClientRole;
   clientId: string;
 }
 
@@ -49,7 +49,7 @@ async function readSession(): Promise<AppSession | null> {
   return {
     userId: user.id,
     email: user.email,
-    role: user.role === "ADMIN" ? "ADMIN" : "CLIENT",
+    role: user.role === "ADMIN" ? "ADMIN" : isClientRole(user.role) ? user.role : (() => { throw new AuthorizationError("FORBIDDEN"); })(),
     clientId: user.clientId ?? null,
     twoFactorEnabled: user.twoFactorEnabled === true,
     sessionCreatedAt: new Date(result.session.createdAt),
@@ -82,8 +82,8 @@ export async function requireAdmin(
 export async function requireClient(): Promise<ClientSession> {
   const session = await readSession();
   if (!session) throw new AuthorizationError("UNAUTHENTICATED");
-  if (session.role !== "CLIENT" || !session.clientId) throw new AuthorizationError("FORBIDDEN");
-  if (isSessionTooOld("CLIENT", session.sessionCreatedAt, new Date())) {
+  if (!isClientRole(session.role) || !session.clientId) throw new AuthorizationError("FORBIDDEN");
+  if (isSessionTooOld(session.role, session.sessionCreatedAt, new Date())) {
     throw new AuthorizationError("SESSION_EXPIRED");
   }
   const client = await getPrisma().client.findFirst({
@@ -91,7 +91,7 @@ export async function requireClient(): Promise<ClientSession> {
     select: { id: true },
   });
   if (!client) throw new AuthorizationError("FORBIDDEN");
-  return { ...session, role: "CLIENT", clientId: session.clientId };
+  return { ...session, role: session.role, clientId: session.clientId };
 }
 
 /** For downloads shared by both spaces: the admin, or a client (who is then scoped). */

@@ -57,7 +57,7 @@ describe("billing actions are admin-only", () => {
 
   it.each(allActions)("%s refuses a client session", async (_name, call) => {
     const client = await createClientCompany("Acme");
-    const user = await createUser({ role: "CLIENT", clientId: client.id });
+    const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
     actAs((await login(user.email)).cookie);
     expect(await call()).toMatchObject({ ok: false, code: "FORBIDDEN" });
   });

@@ -70,7 +70,7 @@ export function makeDeps(overrides: Partial<WorkerDeps> = {}) {
 }
 
 let counter = 0;
-export function createUser(role: "ADMIN" | "CLIENT", extra: { disabledAt?: Date } = {}) {
+export function createUser(role: "ADMIN" | "CLIENT_DIRECTION", extra: { disabledAt?: Date } = {}) {
   counter += 1;
   return db().user.create({
     data: { email: `user${counter}@example.com`, name: `User ${counter}`, role, ...extra },

@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { Session } from "@/lib/types";
 import { USE_DB } from "@/lib/services/data-source";
 import { resolveClientSession } from "@/lib/services/auth";
+import { isClientRole } from "@manga/core/roles";
 import { authClient, fetchCurrentUser } from "./auth-client";
 
 interface SessionContextValue {
@@ -34,7 +35,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         .then(async (user) => {
           let next: Session = null;
           if (user?.role === "ADMIN" && user.twoFactorEnabled) next = { role: "consultant" };
-          else if (user?.role === "CLIENT") {
+          else if (user && isClientRole(user.role)) {
             // The screens use the prospect id as client id: ask the server for the session's own.
             const client = await resolveClientSession();
             if (client.status === "ok") next = { role: "client", clientId: client.clientId };

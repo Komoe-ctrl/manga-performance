@@ -8,6 +8,7 @@ import {
   uploadRequestSchema,
 } from "@manga/validation";
 import { z } from "zod";
+import type { ClientRole } from "@manga/core/roles";
 import type { Viewer } from "../client-space/client-space-service";
 import { getClientSpace } from "../client-space/instance";
 import { clientIdOfProspect } from "../client-space/lookup";
@@ -16,7 +17,7 @@ import { parseInput, runAdmin, runClient } from "./result";
 
 const idSchema = z.string().min(1).max(64);
 
-const clientViewer = (session: { userId: string; clientId: string }): Viewer => ({ userId: session.userId, role: "CLIENT", clientId: session.clientId });
+const clientViewer = (session: { userId: string; clientId: string; role: ClientRole }): Viewer => ({ userId: session.userId, role: session.role, clientId: session.clientId });
 const adminViewer = (session: { userId: string }): Viewer => ({ userId: session.userId, role: "ADMIN", clientId: null });
 
 // The client never says whose data it wants: `runClient` hands over the session, and every
@@ -53,7 +54,7 @@ export async function requestMyAttachmentUploadAction(input: unknown) {
 export async function sendMyMessageAction(input: unknown) {
   return runClient((session) => {
     const data = parseInput(sendMessageSchema, input);
-    return getClientSpace().sendMessage({ clientId: session.clientId, fromRole: "CLIENT", authorId: session.userId, body: data.body, attachment: data.attachment });
+    return getClientSpace().sendMessage({ clientId: session.clientId, fromRole: session.role, authorId: session.userId, body: data.body, attachment: data.attachment });
   });
 }
 

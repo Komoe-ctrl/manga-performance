@@ -12,5 +12,6 @@ export * from "./files";
 export * from "./marketing-schedule";
 export * from "./signed-tokens";
 export * from "./slug";
+export * from "./roles";
 export * from "./template-vars";
 export * from "./internal-api";

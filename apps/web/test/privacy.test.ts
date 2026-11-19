@@ -48,7 +48,7 @@ async function fullContact() {
   await db().sequenceEnrollment.create({ data: { sequenceId: sequence.id, prospectId: prospect.id, status: "ACTIVE", nextSendAt: NOW } });
 
   const client = await db().client.create({ data: { prospectId: prospect.id, legalName: "Lagune Hôtel SARL", address: "Cocody", taxId: "1234567A" } });
-  const portal = await createUser({ role: "CLIENT", clientId: client.id, email: "awa@lagune.example" });
+  const portal = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id, email: "awa@lagune.example" });
   await login(portal.email);
 
   const billing = createInvoiceService({ prisma: db(), queue: { enqueueEmail: async () => undefined }, appUrl: "https://app.example.com" });
@@ -57,7 +57,7 @@ async function fullContact() {
 
   storage.put("messages/a.pdf", "%PDF-1.7");
   await db().message.create({
-    data: { clientId: client.id, authorId: portal.id, fromRole: "CLIENT", body: "Bonjour, mon numéro est 0701020304", attachmentKey: "messages/a.pdf", attachmentName: "contrat.pdf", attachmentMime: "application/pdf", attachmentSize: 8 },
+    data: { clientId: client.id, authorId: portal.id, fromRole: "CLIENT_DIRECTION", body: "Bonjour, mon numéro est 0701020304", attachmentKey: "messages/a.pdf", attachmentName: "contrat.pdf", attachmentMime: "application/pdf", attachmentSize: 8 },
   });
   await db().notification.create({ data: { userId: portal.id, type: "NEW_MESSAGE", payload: { from: "Awa" } } });
   await db().newsletterSubscriber.create({ data: { email: "awa@lagune.example", confirmedAt: NOW, consentIp: "203.0.113.9" } });
@@ -218,7 +218,7 @@ describe("privacy actions", () => {
 
   it.each(all)("%s refuses a client", async (_name, call) => {
     const company = await createClientCompany("Acme");
-    const user = await createUser({ role: "CLIENT", clientId: company.id });
+    const user = await createUser({ role: "CLIENT_DIRECTION", clientId: company.id });
     actAs((await login(user.email)).cookie);
     expect(await call()).toMatchObject({ ok: false, code: "FORBIDDEN" });
   });

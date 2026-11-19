@@ -46,8 +46,8 @@ describe("isSessionTooOld", () => {
     expect(isSessionTooOld("ADMIN", hours(13), now)).toBe(true);
   });
   it("caps client sessions at 7 days", () => {
-    expect(isSessionTooOld("CLIENT", hours(24 * 6), now)).toBe(false);
-    expect(isSessionTooOld("CLIENT", hours(24 * 8), now)).toBe(true);
+    expect(isSessionTooOld("CLIENT_DIRECTION", hours(24 * 6), now)).toBe(false);
+    expect(isSessionTooOld("CLIENT_DIRECTION", hours(24 * 8), now)).toBe(true);
   });
   it("exposes the 72h invitation and 1h reset lifetimes", () => {
     expect(AUTH_POLICY.invitationTtlMs).toBe(72 * 3600_000);
