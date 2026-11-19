@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared";
+import { PilotClient } from "@/components/pilot/pilot-client";
 import { ReportView, STATUS_STYLE, StatusPill } from "./status";
 
 const OPEN: CollectionPeriod["status"][] = ["ATTENDU", "EN_RETARD", "REJETE"];
@@ -58,6 +59,8 @@ export function ClientCollection() {
         <>
           {role !== "CLIENT_ANALYSTE" && <Deposits rows={data.data.rows} role={role} onChanged={() => setVersion((v) => v + 1)} />}
           {role !== "CLIENT_CONTRIBUTEUR" && <ReadOnlyMatrix rows={data.data.rows} months={data.data.months} analyst={role === "CLIENT_ANALYSTE"} />}
+          {/* Pilot results are demo data until the database wiring (steps B8 to B10). */}
+          {role !== "CLIENT_CONTRIBUTEUR" && !USE_DB && data.data.rows.some((r) => r.entity.sector === "HOTELLERIE") && <PilotClient />}
         </>
       )}
     </div>
