@@ -9,9 +9,12 @@ datasource db {
   extensions = [pg_trgm, citext, unaccent]
 }
 
+/// ADMIN is Manga Performance; the three CLIENT_* roles belong to a client company (avenant 1, §3).
 enum Role {
   ADMIN
-  CLIENT
+  CLIENT_DIRECTION
+  CLIENT_CONTRIBUTEUR
+  CLIENT_ANALYSTE
 }
 
 enum ProspectStatus {
@@ -78,7 +81,7 @@ model User {
   email            String      @unique @db.Citext
   emailVerified    Boolean     @default(false)
   image            String?
-  role             Role        @default(CLIENT)
+  role             Role        @default(CLIENT_DIRECTION)
   clientId         String?
   client           Client?     @relation(fields: [clientId], references: [id])
   twoFactorEnabled Boolean     @default(false)
@@ -91,6 +94,7 @@ model User {
   sessions         Session[]
   accounts         Account[]
   twoFactors       TwoFactor[]
+  assignments      EntityAssignment[]
 
   @@index([clientId])
 }
@@ -230,7 +234,8 @@ model Client {
   legalName    String
   address      String?
   taxId        String? // NCC (numéro de compte contribuable)
-  portalUsers  User[] // utilisateurs Role.CLIENT rattachés
+  portalUsers  User[] // utilisateurs des rôles CLIENT_* rattachés
+  entities     Entity[]
   invoices     Invoice[]
   deliverables Deliverable[]
   messages     Message[]
@@ -487,4 +492,122 @@ model AuditLog {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([entity, entityId])
+}
+
+// ---------------------------------------------------------------------------
+// Module Collecte & suivi des dépôts (avenant n°1, §9)
+// ---------------------------------------------------------------------------
+
+enum Sector {
+  BTP
+  HOTELLERIE
+  RESTAURATION
+  COMMERCE
+  TECH_FINTECH
+}
+
+enum CollectionFrequency {
+  HEBDOMADAIRE
+  MENSUELLE
+}
+
+enum PeriodStatus {
+  A_VENIR
+  ATTENDU
+  EN_RETARD
+  EN_CONTROLE
+  REJETE
+  VALIDE
+  ACCEPTE_AVEC_RESERVE
+}
+
+enum SubmissionStatus {
+  EN_CONTROLE
+  REJETE
+  VALIDE
+  ACCEPTE_AVEC_RESERVE
+  ERREUR_TECHNIQUE
+}
+
+/// Filiale, site, hôtel, restaurant, chantier… d'un client : l'unité de cloisonnement du module.
+model Entity {
+  id          String             @id @default(cuid(2))
+  clientId    String
+  client      Client             @relation(fields: [clientId], references: [id])
+  name        String
+  sector      Sector
+  currency    String             @default("XOF")
+  active      Boolean            @default(true)
+  assignments EntityAssignment[]
+  plans       CollectionPlan[]
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+
+  @@unique([clientId, name])
+}
+
+/// Contributeur affecté à une entité : il ne voit que celles-ci.
+model EntityAssignment {
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityId String
+  entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@id([userId, entityId])
+  @@index([entityId])
+}
+
+model CollectionPlan {
+  id         String              @id @default(cuid(2))
+  entityId   String
+  entity     Entity              @relation(fields: [entityId], references: [id])
+  templateId String // ex. "hotel_mensuel"
+  frequency  CollectionFrequency @default(MENSUELLE)
+  delayDays  Int                 @default(3)
+  startsOn   DateTime            @db.Timestamptz(3)
+  active     Boolean             @default(true)
+  periods    CollectionPeriod[]
+
+  @@unique([entityId, templateId])
+}
+
+model CollectionPeriod {
+  id             String           @id @default(cuid(2))
+  planId         String
+  plan           CollectionPlan   @relation(fields: [planId], references: [id])
+  periodStart    DateTime         @db.Timestamptz(3)
+  periodEnd      DateTime         @db.Timestamptz(3)
+  dueAt          DateTime         @db.Timestamptz(3)
+  status         PeriodStatus     @default(ATTENDU)
+  remindersSent  Int              @default(0)
+  lastReminderAt DateTime?        @db.Timestamptz(3)
+  submissions    Submission[]
+
+  @@unique([planId, periodStart])
+  @@index([status, dueAt])
+}
+
+model Submission {
+  id              String           @id @default(cuid(2))
+  periodId        String
+  period          CollectionPeriod @relation(fields: [periodId], references: [id])
+  version         Int
+  templateId      String
+  templateVersion Int
+  storageKey      String           @unique
+  originalName    String
+  sizeBytes       Int
+  checksum        String // sha256
+  uploadedBy      String // userId
+  uploadedAt      DateTime         @default(now()) @db.Timestamptz(3)
+  status          SubmissionStatus @default(EN_CONTROLE)
+  /// { errors: [...], warnings: [...] }
+  report          Json?
+  /// Lignes normalisées (préparation de l'option 3, aucun KPI calculé ici).
+  rows            Json?
+  rowCount        Int?
+  /// Forçage admin : commentaire obligatoire.
+  reviewComment   String?
+  reviewedBy      String?
+
+  @@unique([periodId, version])
 }

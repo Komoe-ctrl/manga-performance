@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   try {
     const session = await requireAdminOrClient();
     const { id } = await params;
-    const scope = session.role === "CLIENT" ? { ...clientScope(session), excludeDrafts: true as const } : undefined;
+    const scope = session.role !== "ADMIN" ? { ...clientScope(session), excludeDrafts: true as const } : undefined;
 
     const data = await loadInvoiceDocument(getPrisma(), id, scope);
     if (!data) return Response.json({ error: "NOT_FOUND" }, { status: 404 });

@@ -46,6 +46,18 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
 - Les cookies de session sont désormais `Secure` de façon explicite en production, au lieu de dépendre de l'inférence
   à partir de l'URL.
 
+## Rôles client et cloisonnement par entité (avenant n°1, étape B1)
+
+- Le rôle unique `CLIENT` est remplacé par `CLIENT_DIRECTION`, `CLIENT_CONTRIBUTEUR` et `CLIENT_ANALYSTE`. La migration
+  convertit les comptes et les messages existants en `CLIENT_DIRECTION` (vérifié sur une base contenant des lignes
+  `CLIENT`). Les gardes `requireClient` acceptent les trois rôles et refusent tout rôle inconnu.
+- `entityScope` (`apps/web/src/server/collection/scope.ts`) est le seul point d'entrée des requêtes du module : administrateur,
+  toutes les entités ; direction et analyste, celles de leur client ; contributeur, celles qui lui sont affectées et qui
+  appartiennent bien à son client (une affectation parasite vers un autre client est ignorée). Une entité hors périmètre
+  répond comme une entité inexistante.
+- L'analyste est en lecture seule (`assertCanDeposit`). Les affectations sont refusées entre clients et réservées aux
+  contributeurs ; création d'entité et changements d'affectation sont journalisés.
+
 ## Points à valider ou à surveiller
 
 1. **Liste d'exclusion et anonymisation** : après anonymisation, une personne désinscrite reste exclue sous la forme

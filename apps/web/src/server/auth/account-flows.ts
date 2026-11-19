@@ -81,7 +81,7 @@ export function createAccountFlows({ prisma, mailer, appUrl, now = () => new Dat
       const user = await users.create({
         email: input.email,
         name: input.name,
-        role: "CLIENT",
+        role: "CLIENT_DIRECTION",
         clientId: client.id,
       });
       await sendInvitation(user);

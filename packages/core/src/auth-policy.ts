@@ -1,3 +1,4 @@
+import type { AppRole } from "./roles";
 /** Authentication policy constants (spec, section 5). */
 export const AUTH_POLICY = {
   /** Admin sessions are capped at 12 hours, whatever the sliding expiry. */
@@ -35,7 +36,7 @@ export function onLoginSuccess(): LockState {
 }
 
 /** True when a session is older than the absolute cap for its role. */
-export function isSessionTooOld(role: "ADMIN" | "CLIENT", createdAt: Date, now: Date): boolean {
+export function isSessionTooOld(role: AppRole, createdAt: Date, now: Date): boolean {
   const max =
     role === "ADMIN" ? AUTH_POLICY.adminSessionMaxAgeMs : AUTH_POLICY.clientSessionMaxAgeMs;
   return now.getTime() - createdAt.getTime() > max;

@@ -274,7 +274,7 @@ describe("client portal access", () => {
 
     expect(mailer.invitations.map((m) => m.to)).toEqual(["awa@lagune.ci"]);
     const user = await db().user.findUniqueOrThrow({ where: { email: "awa@lagune.ci" } });
-    expect(user.role).toBe("CLIENT");
+    expect(user.role).toBe("CLIENT_DIRECTION");
     expect(await db().auditLog.count({ where: { action: "client.access.granted" } })).toBe(1);
   });
 

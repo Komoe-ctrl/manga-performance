@@ -67,7 +67,7 @@ describe("notifications.fanout", () => {
   it("notifies active admins only, and queues the email once", async () => {
     const admin = await createUser("ADMIN");
     await createUser("ADMIN", { disabledAt: new Date() });
-    await createUser("CLIENT");
+    await createUser("CLIENT_DIRECTION");
     const { deps, queue } = makeDeps();
 
     await handleFanout(lead(), deps);
@@ -99,8 +99,8 @@ describe("notifications.fanout", () => {
   });
 
   it("targets a single user, skipping disabled accounts", async () => {
-    const target = await createUser("CLIENT");
-    const disabled = await createUser("CLIENT", { disabledAt: new Date() });
+    const target = await createUser("CLIENT_DIRECTION");
+    const disabled = await createUser("CLIENT_DIRECTION", { disabledAt: new Date() });
     const { deps } = makeDeps();
     await handleFanout({ id: "job-2", data: { type: "NEW_MESSAGE", audience: { userId: target.id }, payload: {} } }, deps);
     await handleFanout({ id: "job-3", data: { type: "NEW_MESSAGE", audience: { userId: disabled.id }, payload: {} } }, deps);

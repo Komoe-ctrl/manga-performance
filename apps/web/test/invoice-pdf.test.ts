@@ -118,8 +118,8 @@ describe("GET /api/invoices/:id/pdf", () => {
     const clientA = await createClientCompany("Client A");
     const clientB = await createClientCompany("Client B");
     const admin = await createUser({ role: "ADMIN" });
-    const userA = await createUser({ role: "CLIENT", clientId: clientA.id });
-    const userB = await createUser({ role: "CLIENT", clientId: clientB.id });
+    const userA = await createUser({ role: "CLIENT_DIRECTION", clientId: clientA.id });
+    const userB = await createUser({ role: "CLIENT_DIRECTION", clientId: clientB.id });
     const issue = async (clientId: string) => {
       const id = await billing().createDraft({ clientId, lines }, admin.id);
       await billing().issue(id, admin.id);

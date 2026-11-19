@@ -44,7 +44,7 @@ describe("requireAdmin", () => {
 
   it("rejects a client session", async () => {
     const client = await createClientCompany("Acme");
-    const user = await createUser({ role: "CLIENT", clientId: client.id });
+    const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
     actAs((await login(user.email)).cookie);
     expect(await codeOf(requireAdmin())).toBe("FORBIDDEN");
   });
@@ -100,7 +100,7 @@ describe("requireClient", () => {
 
   it("accepts a client and exposes the server-side client id", async () => {
     const client = await createClientCompany("Acme");
-    const user = await createUser({ role: "CLIENT", clientId: client.id });
+    const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
     actAs((await login(user.email)).cookie);
     const session = await requireClient();
     expect(session.clientId).toBe(client.id);
@@ -109,13 +109,13 @@ describe("requireClient", () => {
 
   it("rejects a client user whose company was soft-deleted", async () => {
     const client = await createClientCompany("Gone", new Date());
-    const user = await createUser({ role: "CLIENT", clientId: client.id });
+    const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
     actAs((await login(user.email)).cookie);
     expect(await codeOf(requireClient())).toBe("FORBIDDEN");
   });
 
   it("rejects a client user not attached to any company", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     actAs((await login(user.email)).cookie);
     expect(await codeOf(requireClient())).toBe("FORBIDDEN");
   });

@@ -37,14 +37,14 @@ let adminEmail: string;
 
 async function space(name: string): Promise<Space> {
   const client = await createClientCompany(name);
-  const user = await createUser({ role: "CLIENT", clientId: client.id });
+  const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
   const prospectId = (await db().client.findUniqueOrThrow({ where: { id: client.id } })).prospectId;
   const key = `clients/${client.id}/deliverable-${name}.pdf`;
   storage.put(key, FILES.pdf);
   const deliverable = await db().deliverable.create({ data: { clientId: client.id, title: `Livrable ${name}`, storageKey: key, mimeType: "application/pdf", sizeBytes: 10, checksum: "x", publishedBy: adminId } });
   const attachmentKey = `clients/${client.id}/attachment-${name}.pdf`;
   storage.put(attachmentKey, FILES.pdf);
-  const message = await db().message.create({ data: { clientId: client.id, authorId: user.id, fromRole: "CLIENT", body: `Message ${name}`, attachmentKey, attachmentName: `pj-${name}.pdf`, attachmentMime: "application/pdf", attachmentSize: 10 } });
+  const message = await db().message.create({ data: { clientId: client.id, authorId: user.id, fromRole: "CLIENT_DIRECTION", body: `Message ${name}`, attachmentKey, attachmentName: `pj-${name}.pdf`, attachmentMime: "application/pdf", attachmentSize: 10 } });
   await db().notification.create({ data: { userId: user.id, type: "NEW_DELIVERABLE", payload: { deliverableId: deliverable.id, title: deliverable.title } } });
   return { clientId: client.id, prospectId, user, cookie: "", deliverableId: deliverable.id, messageId: message.id, attachmentKey };
 }

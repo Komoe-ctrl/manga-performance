@@ -37,7 +37,7 @@ describe("scraper actions are admin-only", () => {
 
   it.each(all)("%s refuses a client", async (_n, run) => {
     const client = await createClientCompany("Acme");
-    const user = await createUser({ role: "CLIENT", clientId: client.id });
+    const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
     actAs((await login(user.email)).cookie);
     expect(await run()).toMatchObject({ ok: false, code: "FORBIDDEN" });
   });

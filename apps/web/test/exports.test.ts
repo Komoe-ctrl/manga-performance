@@ -43,7 +43,7 @@ describe("authorization", () => {
 
   it("refuses a client, and an admin without 2FA", async () => {
     const company = await createClientCompany("Acme");
-    const client = await createUser({ role: "CLIENT", clientId: company.id });
+    const client = await createUser({ role: "CLIENT_DIRECTION", clientId: company.id });
     actAs((await login(client.email)).cookie);
     expect((await call()).status).toBe(403);
 

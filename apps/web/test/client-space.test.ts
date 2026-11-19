@@ -34,9 +34,9 @@ interface World {
 
 async function world(name: string): Promise<World> {
   const client = await createClientCompany(name);
-  const user = await createUser({ role: "CLIENT", clientId: client.id });
+  const user = await createUser({ role: "CLIENT_DIRECTION", clientId: client.id });
   const row = await db().client.findUniqueOrThrow({ where: { id: client.id } });
-  return { clientId: client.id, prospectId: row.prospectId, user, viewer: { userId: user.id, role: "CLIENT", clientId: client.id } };
+  return { clientId: client.id, prospectId: row.prospectId, user, viewer: { userId: user.id, role: "CLIENT_DIRECTION", clientId: client.id } };
 }
 
 let adminId: string;
@@ -120,8 +120,8 @@ describe("publishing a deliverable", () => {
 
   it("notifies each active portal user in the app and by email, never twice", async () => {
     const w = await world("Acme");
-    const second = await createUser({ role: "CLIENT", clientId: w.clientId });
-    const disabled = await createUser({ role: "CLIENT", clientId: w.clientId });
+    const second = await createUser({ role: "CLIENT_DIRECTION", clientId: w.clientId });
+    const disabled = await createUser({ role: "CLIENT_DIRECTION", clientId: w.clientId });
     await db().user.update({ where: { id: disabled.id }, data: { disabledAt: new Date() } });
     const other = await world("Autre");
 
@@ -236,7 +236,7 @@ describe("listing, seen and download", () => {
   it("refuses a client viewer that has no client attached", async () => {
     const a = await world("A");
     const deliverable = await publish(a);
-    const orphan: Viewer = { userId: "u", role: "CLIENT", clientId: null };
+    const orphan: Viewer = { userId: "u", role: "CLIENT_DIRECTION", clientId: null };
     expect((await failure(service().deliverableDownload(orphan, deliverable.id))).code).toBe("NOT_FOUND");
   });
 });
@@ -244,7 +244,7 @@ describe("listing, seen and download", () => {
 describe("messages", () => {
   it("lets the client write, and alerts the consultant without sending the message", async () => {
     const w = await world("Lagune Hôtel");
-    const message = await service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT", authorId: w.user.id, body: "  Bonjour, voici mes chiffres confidentiels.  " });
+    const message = await service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT_DIRECTION", authorId: w.user.id, body: "  Bonjour, voici mes chiffres confidentiels.  " });
     expect(message).toMatchObject({ clientId: w.prospectId, from: "client", body: "Bonjour, voici mes chiffres confidentiels.", read: false });
 
     expect(fanouts).toHaveLength(1);
@@ -257,7 +257,7 @@ describe("messages", () => {
 
   it("lets the consultant answer, alerting each active portal user", async () => {
     const w = await world("Acme");
-    const second = await createUser({ role: "CLIENT", clientId: w.clientId });
+    const second = await createUser({ role: "CLIENT_DIRECTION", clientId: w.clientId });
     const message = await service().sendMessage({ clientId: w.clientId, fromRole: "ADMIN", authorId: adminId, body: "Merci, je regarde." });
     expect(message.from).toBe("consultant");
     expect(fanouts.map((f) => f.job.audience)).toEqual(expect.arrayContaining([{ userId: w.user.id }, { userId: second.id }]));
@@ -268,14 +268,14 @@ describe("messages", () => {
   it("validates the body", async () => {
     const w = await world("Acme");
     for (const body of ["", "   ", "x".repeat(5001)]) {
-      expect((await failure(service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT", authorId: w.user.id, body }))).code).toBe("INVALID");
+      expect((await failure(service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT_DIRECTION", authorId: w.user.id, body }))).code).toBe("INVALID");
     }
     expect(await db().message.count()).toBe(0);
   });
 
   it("keeps the thread in order, with the read state and the attachment name", async () => {
     const w = await world("Acme");
-    await service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT", authorId: w.user.id, body: "Un" });
+    await service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT_DIRECTION", authorId: w.user.id, body: "Un" });
     clock = new Date(clock.getTime() + 60_000);
     await service().sendMessage({ clientId: w.clientId, fromRole: "ADMIN", authorId: adminId, body: "Deux" });
     const thread = await service().listMessages(w.clientId);
@@ -287,7 +287,7 @@ describe("messages", () => {
     const b = await world("B");
     const ticket = await service().requestAttachmentUpload(a.clientId, { filename: "../../Relevé banque.pdf", mimeType: "application/pdf", sizeBytes: FILES.pdf.length });
     storage.put(ticket.key, FILES.pdf);
-    const message = await service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT", authorId: a.user.id, body: "Voir pièce jointe", attachment: { key: ticket.key, filename: "../../Relevé banque.pdf" } });
+    const message = await service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT_DIRECTION", authorId: a.user.id, body: "Voir pièce jointe", attachment: { key: ticket.key, filename: "../../Relevé banque.pdf" } });
     expect(message.attachment).toBe("Relevé banque.pdf");
     expect(await db().message.findUniqueOrThrow({ where: { id: message.id } })).toMatchObject({ attachmentKey: ticket.key, attachmentName: "Relevé banque.pdf", attachmentMime: "application/pdf", attachmentSize: FILES.pdf.length });
 
@@ -305,20 +305,20 @@ describe("messages", () => {
     const b = await world("B");
     const bad = await service().requestAttachmentUpload(a.clientId, { filename: "x.pdf", mimeType: "", sizeBytes: 10 });
     storage.put(bad.key, FILES.exe);
-    expect((await failure(service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT", authorId: a.user.id, body: "x", attachment: { key: bad.key, filename: "x.pdf" } }))).code).toBe("INVALID_CONTENT");
+    expect((await failure(service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT_DIRECTION", authorId: a.user.id, body: "x", attachment: { key: bad.key, filename: "x.pdf" } }))).code).toBe("INVALID_CONTENT");
 
     const theirs = await service().requestAttachmentUpload(b.clientId, { filename: "x.pdf", mimeType: "", sizeBytes: 10 });
     storage.put(theirs.key, FILES.pdf);
-    expect((await failure(service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT", authorId: a.user.id, body: "x", attachment: { key: theirs.key, filename: "x.pdf" } }))).code).toBe("INVALID_KEY");
+    expect((await failure(service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT_DIRECTION", authorId: a.user.id, body: "x", attachment: { key: theirs.key, filename: "x.pdf" } }))).code).toBe("INVALID_KEY");
     expect(await db().message.count()).toBe(0);
 
-    const plain = await service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT", authorId: a.user.id, body: "sans pièce jointe" });
+    const plain = await service().sendMessage({ clientId: a.clientId, fromRole: "CLIENT_DIRECTION", authorId: a.user.id, body: "sans pièce jointe" });
     expect((await failure(service().attachmentDownload(a.viewer, plain.id))).code).toBe("NOT_FOUND");
   });
 
   it("marks only the other side's messages as read when a thread is opened", async () => {
     const w = await world("Acme");
-    const mine = await service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT", authorId: w.user.id, body: "Du client" });
+    const mine = await service().sendMessage({ clientId: w.clientId, fromRole: "CLIENT_DIRECTION", authorId: w.user.id, body: "Du client" });
     const theirs = await service().sendMessage({ clientId: w.clientId, fromRole: "ADMIN", authorId: adminId, body: "Du consultant" });
     await db().notification.create({ data: { userId: w.user.id, type: "NEW_MESSAGE", payload: { clientId: w.clientId, messageId: theirs.id } } });
 

@@ -14,6 +14,7 @@
     "./signed-tokens": "./src/signed-tokens.ts",
     "./marketing-schedule": "./src/marketing-schedule.ts",
     "./slug": "./src/slug.ts",
+    "./roles": "./src/roles.ts",
     "./kpi/sector": "./src/kpi/sector.ts"
   },
   "scripts": {

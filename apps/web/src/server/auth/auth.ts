@@ -58,7 +58,7 @@ export function createAuth({ prisma, env }: AuthDeps) {
 
     user: {
       additionalFields: {
-        role: { type: "string", required: false, defaultValue: "CLIENT", input: false },
+        role: { type: "string", required: false, defaultValue: "CLIENT_DIRECTION", input: false },
         clientId: { type: "string", required: false, input: false },
         disabledAt: { type: "date", required: false, input: false },
       },

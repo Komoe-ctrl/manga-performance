@@ -1,3 +1,4 @@
+import { CLIENT_ROLES, isClientRole, type AppRole } from "@manga/core/roles";
 import { FILE_KINDS, extensionOf, sanitizeFilename, type FileKind } from "@manga/core/files";
 import type { Prisma, PrismaClient } from "@manga/db";
 import type { Deliverable, Message } from "@/lib/types";
@@ -19,7 +20,7 @@ export interface ClientSpaceDeps {
 /** Who is asking: taken from the session, never from the request. */
 export interface Viewer {
   userId: string;
-  role: "ADMIN" | "CLIENT";
+  role: AppRole;
   clientId: string | null;
 }
 
@@ -79,13 +80,13 @@ export function createClientSpaceService(deps: ClientSpaceDeps) {
   }
 
   const activePortalUsers = (clientId: string) =>
-    prisma.user.findMany({ where: { clientId, role: "CLIENT", disabledAt: null }, select: { id: true, name: true, email: true } });
+    prisma.user.findMany({ where: { clientId, role: { in: [...CLIENT_ROLES] }, disabledAt: null }, select: { id: true, name: true, email: true } });
 
   const scopeDeliverable = (viewer: Viewer, id: string): Prisma.DeliverableWhereInput =>
-    viewer.role === "CLIENT" ? { id, clientId: viewer.clientId ?? "__none__" } : { id };
+    isClientRole(viewer.role) ? { id, clientId: viewer.clientId ?? "__none__" } : { id };
 
   const scopeMessage = (viewer: Viewer, id: string): Prisma.MessageWhereInput =>
-    viewer.role === "CLIENT" ? { id, clientId: viewer.clientId ?? "__none__" } : { id };
+    isClientRole(viewer.role) ? { id, clientId: viewer.clientId ?? "__none__" } : { id };
 
   async function presign(key: string, filename: string): Promise<{ url: string; expiresInSeconds: number }> {
     return { url: await storage.presignDownload({ key, filename }), expiresInSeconds: DOWNLOAD_URL_SECONDS };
@@ -154,7 +155,7 @@ export function createClientSpaceService(deps: ClientSpaceDeps) {
       const prospectId = await prospectIdOf(clientId);
       const rows = await prisma.deliverable.findMany({ where: { clientId }, orderBy: { publishedAt: "desc" } });
       const fresh = new Set<string>();
-      if (viewer.role === "CLIENT") {
+      if (isClientRole(viewer.role)) {
         const unread = await prisma.notification.findMany({ where: { userId: viewer.userId, type: "NEW_DELIVERABLE", readAt: null } });
         for (const n of unread) fresh.add(String((n.payload as { deliverableId?: unknown }).deliverableId));
       }
@@ -189,7 +190,7 @@ export function createClientSpaceService(deps: ClientSpaceDeps) {
       return rows.map((row) => ({
         id: row.id,
         clientId: prospectId,
-        from: row.fromRole === "CLIENT" ? "client" : "consultant",
+        from: isClientRole(row.fromRole) ? "client" : "consultant",
         body: row.body,
         sentAt: row.createdAt.toISOString(),
         read: row.readAt !== null,
@@ -202,7 +203,7 @@ export function createClientSpaceService(deps: ClientSpaceDeps) {
      * space: it never contains the message (spec, 6.5).
      */
     async sendMessage(
-      input: { clientId: string; fromRole: "ADMIN" | "CLIENT"; authorId: string; body: string; attachment?: { key: string; filename: string } },
+      input: { clientId: string; fromRole: AppRole; authorId: string; body: string; attachment?: { key: string; filename: string } },
     ): Promise<Message> {
       const body = input.body.trim();
       if (!body || body.length > MAX_BODY) throw new ClientSpaceError("INVALID", "Le message doit contenir entre 1 et 5 000 caractères.");
@@ -229,7 +230,7 @@ export function createClientSpaceService(deps: ClientSpaceDeps) {
         },
       });
 
-      if (input.fromRole === "CLIENT") {
+      if (isClientRole(input.fromRole)) {
         await queue.enqueueFanout(
           {
             type: "NEW_MESSAGE",
@@ -252,13 +253,13 @@ export function createClientSpaceService(deps: ClientSpaceDeps) {
           );
         }
       }
-      return { id: row.id, clientId: prospectId, from: input.fromRole === "CLIENT" ? "client" : "consultant", body, sentAt: row.createdAt.toISOString(), read: false, attachment: attachment?.name };
+      return { id: row.id, clientId: prospectId, from: isClientRole(input.fromRole) ? "client" : "consultant", body, sentAt: row.createdAt.toISOString(), read: false, attachment: attachment?.name };
     },
 
     /** Opening the thread marks the other side's messages (and their notifications) as read. */
     async markThreadRead(viewer: Viewer, clientId: string): Promise<{ marked: number }> {
       const { count } = await prisma.message.updateMany({
-        where: { clientId, readAt: null, fromRole: viewer.role === "CLIENT" ? "ADMIN" : "CLIENT" },
+        where: { clientId, readAt: null, fromRole: isClientRole(viewer.role) ? "ADMIN" : { in: [...CLIENT_ROLES] } },
         data: { readAt: now() },
       });
       await prisma.notification.updateMany({

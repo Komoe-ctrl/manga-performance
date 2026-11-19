@@ -7,7 +7,7 @@ afterAll(shutdown);
 
 describe("login", () => {
   it("accepts valid credentials and rejects wrong ones with the same generic error", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     expect((await tryLogin(user.email, PASSWORD)).ok).toBe(true);
     const wrong = await tryLogin(user.email, "not-the-password");
     const unknown = await tryLogin("nobody@example.com", "not-the-password");
@@ -16,7 +16,7 @@ describe("login", () => {
   });
 
   it("locks the account for 15 minutes after 5 failures, even with the right password", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     for (let i = 0; i < 5; i++) {
       expect((await tryLogin(user.email, "wrong-password-x")).status).toBe("UNAUTHORIZED");
     }
@@ -33,7 +33,7 @@ describe("login", () => {
   });
 
   it("does not count lock rejections as new failures", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     for (let i = 0; i < 5; i++) await tryLogin(user.email, "wrong-password-x");
     for (let i = 0; i < 3; i++) await tryLogin(user.email, "wrong-password-x");
     const row = await db().user.findUniqueOrThrow({ where: { id: user.id } });
@@ -41,7 +41,7 @@ describe("login", () => {
   });
 
   it("resets the failure counter on success", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     for (let i = 0; i < 3; i++) await tryLogin(user.email, "wrong-password-x");
     expect((await db().user.findUniqueOrThrow({ where: { id: user.id } })).failedLoginCount).toBe(3);
     await tryLogin(user.email, PASSWORD);
@@ -64,8 +64,8 @@ describe("login", () => {
   });
 
   it("keeps an unlocked user's sessions intact while another account is locked", async () => {
-    const victim = await createUser({ role: "CLIENT" });
-    const other = await createUser({ role: "CLIENT" });
+    const victim = await createUser({ role: "CLIENT_DIRECTION" });
+    const other = await createUser({ role: "CLIENT_DIRECTION" });
     for (let i = 0; i < 5; i++) await tryLogin(victim.email, "wrong-password-x");
     expect((await tryLogin(other.email, PASSWORD)).ok).toBe(true);
   });
@@ -82,7 +82,7 @@ describe("account creation and passwords", () => {
   });
 
   it("rejects weak passwords on change-password", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     const { cookie } = await login(user.email);
     const attempt = (newPassword: string) =>
       getAuth().api.changePassword({
@@ -95,13 +95,13 @@ describe("account creation and passwords", () => {
   });
 
   it("stores passwords as argon2id hashes", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     const account = await db().account.findFirstOrThrow({ where: { userId: user.id } });
     expect(account.password).toMatch(/^\$argon2id\$/);
   });
 
   it("does not expose Better Auth's own password-reset endpoints", async () => {
-    const user = await createUser({ role: "CLIENT" });
+    const user = await createUser({ role: "CLIENT_DIRECTION" });
     await expect(
       getAuth().api.requestPasswordReset({ body: { email: user.email } }),
     ).rejects.toThrow();
