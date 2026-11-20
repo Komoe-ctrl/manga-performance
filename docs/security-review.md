@@ -75,6 +75,20 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
 - Limite connue : un fichier qui plante le worker en dehors des garde-fous passe en `ERREUR_TECHNIQUE` après les
   tentatives, et la période redevient ouvrable.
 
+## Pilote hôtellerie : paramètres et moteur CPRA
+
+- Les paramètres (catalogue, conversions, normes datées, facteur long séjour, bornes de couverture) et le recalcul
+  sont des Server Actions d'administration (`runAdmin`) : un client n'y accède pas. Chaque modification est journalisée.
+- Les normes ne se modifient pas : une nouvelle date d'effet s'ajoute et l'historique reste lisible. Modifier un
+  paramètre ne change aucun résultat existant ; seul un recalcul explicite crée une nouvelle version, l'ancienne
+  est conservée avec l'instantané des paramètres utilisés (calcul reproductible).
+- Quantités et coûts unitaires sont des `Decimal` ; l'arrondi au FCFA ne porte que sur l'écart valorisé final.
+- Le calcul automatique (`hotel.compute`) lit le dépôt en base, jamais dans le message du job, et est idempotent.
+- Écarts à la spec, à connaître : `ProductConversion.factor` est nullable (une unité déclarée sans facteur doit rester
+  sélectionnable dans le dépôt, sinon « conversion manquante » serait inatteignable) ; les statuts stockés reprennent
+  ceux du moteur (`SOUS`, `SOUS_FORTE`, `SUR`, `SUR_FORTE`) ; un produit sans norme applicable n'est pas calculé et
+  figure dans le journal du calcul plutôt que d'inventer un CPRA.
+
 ## Points à valider ou à surveiller
 
 1. **Liste d'exclusion et anonymisation** : après anonymisation, une personne désinscrite reste exclue sous la forme

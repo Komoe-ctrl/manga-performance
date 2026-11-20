@@ -9,6 +9,11 @@ const day = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d))
 class FakeQueue {
   jobs: { submissionId: string; dedupeKey?: string }[] = [];
   fail = false;
+  compute: { periodId: string; dedupeKey?: string }[] = [];
+  async enqueueHotelCompute(job: { periodId: string }, options?: { dedupeKey?: string }) {
+    if (this.fail) throw new Error("boss down");
+    this.compute.push({ ...job, dedupeKey: options?.dedupeKey });
+  }
   async enqueueParseSubmission(job: { submissionId: string }, options?: { dedupeKey?: string }) {
     if (this.fail) throw new Error("boss down");
     this.jobs.push({ ...job, dedupeKey: options?.dedupeKey });

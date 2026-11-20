@@ -76,21 +76,21 @@ enum PaymentMethod {
 /// Better Auth tables (user, session, account, verification, twoFactor) plus our own
 /// fields on user: role, clientId, and the login lockout counters.
 model User {
-  id               String      @id @default(cuid(2))
+  id               String             @id @default(cuid(2))
   name             String
-  email            String      @unique @db.Citext
-  emailVerified    Boolean     @default(false)
+  email            String             @unique @db.Citext
+  emailVerified    Boolean            @default(false)
   image            String?
-  role             Role        @default(CLIENT_DIRECTION)
+  role             Role               @default(CLIENT_DIRECTION)
   clientId         String?
-  client           Client?     @relation(fields: [clientId], references: [id])
-  twoFactorEnabled Boolean     @default(false)
-  failedLoginCount Int         @default(0)
-  lockedUntil      DateTime?   @db.Timestamptz(3)
+  client           Client?            @relation(fields: [clientId], references: [id])
+  twoFactorEnabled Boolean            @default(false)
+  failedLoginCount Int                @default(0)
+  lockedUntil      DateTime?          @db.Timestamptz(3)
   /// Set when the firm disables a client's access to the portal.
-  disabledAt       DateTime?   @db.Timestamptz(3)
-  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+  disabledAt       DateTime?          @db.Timestamptz(3)
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
   sessions         Session[]
   accounts         Account[]
   twoFactors       TwoFactor[]
@@ -228,19 +228,20 @@ model FollowUp {
 }
 
 model Client {
-  id           String        @id @default(cuid(2))
-  prospectId   String        @unique
-  prospect     Prospect      @relation(fields: [prospectId], references: [id])
+  id           String          @id @default(cuid(2))
+  prospectId   String          @unique
+  prospect     Prospect        @relation(fields: [prospectId], references: [id])
   legalName    String
   address      String?
   taxId        String? // NCC (numéro de compte contribuable)
   portalUsers  User[] // utilisateurs des rôles CLIENT_* rattachés
   entities     Entity[]
+  products     ClientProduct[]
   invoices     Invoice[]
   deliverables Deliverable[]
   messages     Message[]
-  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
-  deletedAt    DateTime?     @db.Timestamptz(3)
+  createdAt    DateTime        @default(now()) @db.Timestamptz(3)
+  deletedAt    DateTime?       @db.Timestamptz(3)
 }
 
 model Invoice {
@@ -531,16 +532,18 @@ enum SubmissionStatus {
 
 /// Filiale, site, hôtel, restaurant, chantier… d'un client : l'unité de cloisonnement du module.
 model Entity {
-  id          String             @id @default(cuid(2))
-  clientId    String
-  client      Client             @relation(fields: [clientId], references: [id])
-  name        String
-  sector      Sector
-  currency    String             @default("XOF")
-  active      Boolean            @default(true)
-  assignments EntityAssignment[]
-  plans       CollectionPlan[]
-  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  id           String              @id @default(cuid(2))
+  clientId     String
+  client       Client              @relation(fields: [clientId], references: [id])
+  name         String
+  sector       Sector
+  currency     String              @default("XOF")
+  active       Boolean             @default(true)
+  assignments  EntityAssignment[]
+  plans        CollectionPlan[]
+  cpraNorms    CpraNorm[]
+  cpraSettings EntityCpraSetting[]
+  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
 
   @@unique([clientId, name])
 }
@@ -571,16 +574,17 @@ model CollectionPlan {
 }
 
 model CollectionPeriod {
-  id             String           @id @default(cuid(2))
+  id             String         @id @default(cuid(2))
   planId         String
-  plan           CollectionPlan   @relation(fields: [planId], references: [id])
-  periodStart    DateTime         @db.Timestamptz(3)
-  periodEnd      DateTime         @db.Timestamptz(3)
-  dueAt          DateTime         @db.Timestamptz(3)
-  status         PeriodStatus     @default(ATTENDU)
-  remindersSent  Int              @default(0)
-  lastReminderAt DateTime?        @db.Timestamptz(3)
+  plan           CollectionPlan @relation(fields: [planId], references: [id])
+  periodStart    DateTime       @db.Timestamptz(3)
+  periodEnd      DateTime       @db.Timestamptz(3)
+  dueAt          DateTime       @db.Timestamptz(3)
+  status         PeriodStatus   @default(ATTENDU)
+  remindersSent  Int            @default(0)
+  lastReminderAt DateTime?      @db.Timestamptz(3)
   submissions    Submission[]
+  cpraResults    CpraResult[]
 
   @@unique([planId, periodStart])
   @@index([status, dueAt])
@@ -609,5 +613,94 @@ model Submission {
   reviewComment   String?
   reviewedBy      String?
 
+  cpraResults CpraResult[]
+
   @@unique([periodId, version])
+}
+
+// ---------------------------------------------------------------------------
+// Pilote hôtellerie : paramètres CPRA et résultats (avenant n°1, v1.1)
+// Quantités et coûts unitaires en Decimal (jamais Float) ; l'arrondi au FCFA ne se fait que sur l'écart valorisé.
+// ---------------------------------------------------------------------------
+
+/// Catalogue des consommables suivis pour un client.
+model ClientProduct {
+  id            String              @id @default(cuid(2))
+  clientId      String
+  client        Client              @relation(fields: [clientId], references: [id])
+  code          String
+  label         String
+  /// Unité de calcul CPRA : "unite" ou "ml".
+  referenceUnit String
+  active        Boolean             @default(true)
+  conversions   ProductConversion[]
+  norms         CpraNorm[]
+  results       CpraResult[]
+
+  @@unique([clientId, code])
+  @@unique([clientId, label])
+}
+
+/// Unité de livraison -> unité de référence. `factor` nul = unité déclarée mais facteur inconnu (« conversion manquante »).
+model ProductConversion {
+  id           String        @id @default(cuid(2))
+  productId    String
+  product      ClientProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  deliveryUnit String
+  factor       Decimal?      @db.Decimal(14, 4)
+
+  @@unique([productId, deliveryUnit])
+}
+
+/// Norme par produit, éventuellement propre à une entité ; on applique la dernière `validFrom` <= début de période.
+model CpraNorm {
+  id            String        @id @default(cuid(2))
+  productId     String
+  product       ClientProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Nul = norme par défaut du client.
+  entityId      String?
+  entity        Entity?       @relation(fields: [entityId], references: [id])
+  validFrom     DateTime      @db.Timestamptz(3)
+  normPerClient Decimal       @db.Decimal(14, 4)
+  nonUserRate   Decimal       @default(0) @db.Decimal(5, 4)
+  unitCostFcfa  Decimal       @db.Decimal(14, 4)
+
+  @@index([productId, entityId, validFrom])
+}
+
+model EntityCpraSetting {
+  id             String   @id @default(cuid(2))
+  entityId       String
+  entity         Entity   @relation(fields: [entityId], references: [id])
+  validFrom      DateTime @db.Timestamptz(3)
+  longStayFactor Decimal  @db.Decimal(6, 4)
+
+  @@unique([entityId, validFrom])
+}
+
+/// Résultat figé d'un calcul, par période x produit. Un recalcul crée une nouvelle version, l'ancienne est conservée.
+model CpraResult {
+  id             String           @id @default(cuid(2))
+  periodId       String
+  period         CollectionPeriod @relation(fields: [periodId], references: [id])
+  submissionId   String
+  submission     Submission       @relation(fields: [submissionId], references: [id])
+  productId      String
+  product        ClientProduct    @relation(fields: [productId], references: [id])
+  cproRef        Decimal?         @db.Decimal(18, 4)
+  cpra           Decimal          @db.Decimal(18, 4)
+  ecartVolume    Decimal?         @db.Decimal(18, 4)
+  couverture     Decimal?         @db.Decimal(8, 4)
+  ecartValorise  Int?
+  /// CONFORME | SOUS | SOUS_FORTE | SUR | SUR_FORTE | CPRO_MANQUANT | CONVERSION_MANQUANTE | NA
+  status         String
+  /// Normes, facteurs, coûts et population utilisés : le calcul est reproductible.
+  paramsSnapshot Json
+  note           String?
+  computedBy     String?
+  computedAt     DateTime         @default(now()) @db.Timestamptz(3)
+  version        Int
+
+  @@unique([periodId, productId, version])
+  @@index([submissionId])
 }

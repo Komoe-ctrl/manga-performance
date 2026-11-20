@@ -14,9 +14,15 @@ export const QUEUES = {
   collectionMarkLate: "collection.mark-late",
   collectionReminders: "collection.reminders",
   collectionWeeklyDigest: "collection.weekly-digest",
+  hotelCompute: "hotel.compute",
 } as const;
 
 /** Payload of `collection.parse-submission`: the submission is read from the database, never from the job. */
+/** Payload of `hotel.compute`: the accepted deposit of the period is read from the database. */
+export interface HotelComputeJob {
+  periodId: string;
+}
+
 export interface ParseSubmissionJob {
   submissionId: string;
 }
