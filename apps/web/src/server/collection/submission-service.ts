@@ -27,7 +27,7 @@ const CLOSED_MESSAGES: Record<string, string> = {
 export interface SubmissionDeps {
   prisma: PrismaClient;
   storage: ObjectStorage;
-  queue: Pick<Enqueuer, "enqueueParseSubmission">;
+  queue: Pick<Enqueuer, "enqueueParseSubmission" | "enqueueHotelCompute">;
   now?: () => Date;
 }
 
@@ -165,6 +165,8 @@ export function createSubmissionService(deps: SubmissionDeps) {
         await tx.submission.update({ where: { id: last.id }, data: { status: "ACCEPTE_AVEC_RESERVE", reviewComment: text, reviewedBy: adminId } });
         await recordAudit(tx, { actorId: adminId, action: "submission.force", entity: "Submission", entityId: last.id, diff: { periodId, version: last.version, comment: text, at: now().toISOString() } });
       });
+      // An accepted deposit feeds the hotel pilot like a validated one; a queue failure never undoes the decision.
+      await queue.enqueueHotelCompute({ periodId }, { dedupeKey: last.id }).catch(() => undefined);
       return { submissionId: last.id };
     },
   };

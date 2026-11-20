@@ -40,6 +40,10 @@ export class MemoryProvider implements EmailProvider {
 export class FakeQueue {
   emails: { job: EmailJob; dedupeKey?: string }[] = [];
   fanouts: { job: FanoutJob; dedupeKey?: string }[] = [];
+  computes: { periodId: string; dedupeKey?: string }[] = [];
+  async enqueueHotelCompute(job: { periodId: string }, options?: { dedupeKey?: string }) {
+    this.computes.push({ ...job, dedupeKey: options?.dedupeKey });
+  }
   async enqueueEmail(job: EmailJob, options?: { dedupeKey?: string }) {
     this.emails.push({ job, dedupeKey: options?.dedupeKey });
   }

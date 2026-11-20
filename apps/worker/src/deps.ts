@@ -16,7 +16,7 @@ export interface WorkerEnv {
 export interface WorkerDeps {
   prisma: PrismaClient;
   provider: EmailProvider;
-  queue: Pick<JobQueue, "enqueueEmail" | "enqueueFanout">;
+  queue: Pick<JobQueue, "enqueueEmail" | "enqueueFanout" | "enqueueHotelCompute">;
   env: WorkerEnv;
   logger: Logger;
   now?: () => Date;

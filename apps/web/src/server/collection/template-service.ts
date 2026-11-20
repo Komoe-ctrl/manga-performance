@@ -1,4 +1,5 @@
 import { buildTemplateWorkbook, getTemplate } from "@manga/core/collection";
+import { CPRA_TEMPLATE_ID, cpraTemplateOptions } from "@manga/db/cpra";
 import { format } from "date-fns";
 import type { PrismaClient } from "@manga/db";
 import { DomainError } from "../domain-error";
@@ -15,7 +16,7 @@ export function createTemplateService(deps: { prisma: PrismaClient; secret: stri
     async buildForPeriod(actor: CollectionActor, periodId: string): Promise<{ buffer: Buffer; filename: string }> {
       const period = await prisma.collectionPeriod.findUnique({
         where: { id: periodId },
-        select: { id: true, periodStart: true, periodEnd: true, dueAt: true, plan: { select: { templateId: true, entity: { select: { id: true, name: true } } } } },
+        select: { id: true, periodStart: true, periodEnd: true, dueAt: true, plan: { select: { templateId: true, entity: { select: { id: true, name: true, clientId: true } } } } },
       });
       if (!period) throw new DomainError("NOT_FOUND", "Période introuvable.");
       await assertEntityInScope(prisma, actor, period.plan.entity.id);
@@ -27,6 +28,7 @@ export function createTemplateService(deps: { prisma: PrismaClient; secret: stri
       const buffer = await buildTemplateWorkbook({
         template,
         entity: period.plan.entity,
+        options: period.plan.templateId === CPRA_TEMPLATE_ID ? await cpraTemplateOptions(prisma, period.plan.entity.clientId) : undefined,
         period: { id: period.id, start: period.periodStart, end: period.periodEnd, dueAt: period.dueAt },
         secret,
       });
