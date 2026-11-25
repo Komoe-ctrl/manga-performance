@@ -12,6 +12,8 @@
     "lint": "eslint packages apps/worker && pnpm --filter @manga/web lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r --workspace-concurrency=1 test",
+    "stack:up": "docker build -f infra/docker/app.Dockerfile --build-arg DATA_SOURCE=mock -t manga-app-dev . && docker compose -f infra/docker-compose.dev.yml up -d",
+    "stack:down": "docker compose -f infra/docker-compose.dev.yml down",
     "db:up": "docker compose -f infra/docker-compose.dev.yml up -d --wait",
     "db:down": "docker compose -f infra/docker-compose.dev.yml down",
     "db:generate": "pnpm --filter @manga/db generate",

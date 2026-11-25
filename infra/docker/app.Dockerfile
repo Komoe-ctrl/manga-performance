@@ -46,6 +46,10 @@ USER node
 WORKDIR /app
 COPY --from=build --chown=node:node /app /app
 COPY --chown=node:node --chmod=755 infra/docker/web-entrypoint.sh /usr/local/bin/web-entrypoint.sh
+# A checkout with Windows line endings would break the shebang ("not found"): normalise them.
+USER root
+RUN sed -i 's/\r$//' /usr/local/bin/web-entrypoint.sh
+USER node
 
 EXPOSE 3000
 # Default command is the web server; compose overrides it for the worker.

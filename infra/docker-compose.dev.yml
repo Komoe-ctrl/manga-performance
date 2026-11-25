@@ -1,4 +1,7 @@
-# Development services. Production compose (caddy, web, worker, scraper) comes in step 11.
+# Development stack: `docker compose -f infra/docker-compose.dev.yml up -d --build` (or `pnpm stack:up`) starts everything
+# (database, storage, web on http://localhost:3000, worker). Every service restarts with Docker, so once Docker
+# is running the whole stack comes back by itself. The web app runs on the demonstration data (DATA_SOURCE=mock).
+# The production stack is infra/docker-compose.yml.
 name: manga-performance-dev
 
 services:
@@ -41,6 +44,55 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/app.Dockerfile
+      args:
+        DATA_SOURCE: mock
+    image: manga-app-dev
+    restart: unless-stopped
+    environment: &dev-app-env
+      # Development values (placeholders are refused when NODE_ENV=production, hence development here).
+      NODE_ENV: development
+      DATA_SOURCE: mock
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://manga:manga_dev_password@postgres:5432/manga
+      BETTER_AUTH_SECRET: dev-only-better-auth-secret-change-me-0123456789
+      APP_URL: http://localhost:3000
+      EMAIL_PROVIDER: brevo
+      BREVO_API_KEY: dev-brevo-key
+      BREVO_WEBHOOK_SECRET: dev-brevo-webhook-secret
+      EMAIL_FROM_TRANSACTIONAL: Cabinet <no-reply@example.com>
+      EMAIL_FROM_MARKETING: Cabinet News <news@example.com>
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: manga-performance
+      S3_ACCESS_KEY: manga
+      S3_SECRET_KEY: manga_dev_password
+      TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+      INTERNAL_API_TOKEN: dev-only-internal-api-token-change-me-0123456789
+      INTERNAL_API_HMAC_SECRET: dev-only-internal-hmac-secret-change-me-0123456789
+      TRACKING_HMAC_SECRET: dev-only-tracking-hmac-secret-change-me-0123456789
+      ADMIN_NOTIFICATION_EMAIL: admin@example.com
+      TZ_DISPLAY: Africa/Abidjan
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    image: manga-app-dev
+    restart: unless-stopped
+    command: ["pnpm", "--filter", "@manga/worker", "start"]
+    environment: *dev-app-env
+    depends_on:
+      web:
+        condition: service_started
 
 volumes:
   pgdata:
