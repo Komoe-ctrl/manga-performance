@@ -56,3 +56,6 @@ apps/web/test-results/
 apps/web/playwright-report/
 apps/web/.next-e2e/
 !.env.production.example
+
+# local tunnel secrets
+infra/.env.ngrok

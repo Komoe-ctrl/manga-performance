@@ -94,6 +94,25 @@ services:
       web:
         condition: service_started
 
+  # HTTPS tunnel so the client can see the site before it is hosted. Needs infra/.env.ngrok (never committed):
+  #   NGROK_AUTHTOKEN=...   NGROK_DOMAIN=your-name.ngrok-free.app   (optional: NGROK_BASIC_AUTH=user:password-of-8+chars)
+  # Without that file the service idles and the rest of the stack is unaffected.
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    env_file:
+      - path: ./.env.ngrok
+        required: false
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$$NGROK_AUTHTOKEN" ] || [ -z "$$NGROK_DOMAIN" ]; then echo "ngrok: infra/.env.ngrok missing, tunnel not started"; sleep infinity; fi
+        if [ -n "$$NGROK_BASIC_AUTH" ]; then exec ngrok http web:3000 --domain="$$NGROK_DOMAIN" --basic-auth="$$NGROK_BASIC_AUTH" --log=stdout; fi
+        exec ngrok http web:3000 --domain="$$NGROK_DOMAIN" --log=stdout
+    depends_on:
+      web:
+        condition: service_started
+
 volumes:
   pgdata:
   miniodata:
