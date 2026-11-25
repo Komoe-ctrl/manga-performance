@@ -75,6 +75,15 @@ export interface InputRow {
 
 export type SheetInput = readonly InputRow[];
 
+/** Ligne du référentiel USALI affiché dans la feuille `Instructions` (avenant §11 ter). */
+export interface UsaliReferenceRow {
+  poste: string;
+  famille: "DEPARTEMENTALE" | "NON_REPARTIE" | "HORS_EXPLOITATION";
+  sousCategorie: string;
+  impact: "GOP/GOPPAR" | "EBITDA" | "RESULTAT_NET";
+  commentaire: string;
+}
+
 export interface PeriodContext {
   /** Premier jour de la période (UTC). */
   periodStart: Date;

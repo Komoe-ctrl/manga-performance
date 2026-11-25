@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin/collecte/entites", label: "Entités et plans" },
   { href: "/admin/collecte/exports", label: "Exports consolidés" },
   { href: "/admin/collecte/pilote", label: "Pilote hôtellerie" },
+  { href: "/admin/collecte/referentiels", label: "Référentiels" },
   { href: "/admin/collecte/parametres", label: "Paramètres" },
 ];
 

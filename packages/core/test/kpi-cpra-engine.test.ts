@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { type NormParam, type ProductParam, computeCpra, resolveNorm } from "../src/kpi/cpra-engine";
+import { type CpraComputeInput, type NormParam, type ProductParam, computeCpra, resolveNorm } from "../src/kpi/cpra-engine";
 
 const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 const norm = (over: Partial<NormParam> = {}): NormParam => ({ entityId: null, validFrom: d("2026-01-01"), normPerClient: 1, nonUserRate: 0, unitCost: 100, ...over });
@@ -152,5 +154,40 @@ describe("computeCpra", () => {
   it("is a pure function: the same input gives the same output", () => {
     const input = { ...base, products: [ph, javel], deliveries: [{ produit: "Javel", uniteLivraison: "Bidon 4 L", quantite: 3 }] };
     expect(JSON.stringify(computeCpra(input))).toBe(JSON.stringify(computeCpra(input)));
+  });
+
+  it("matches the anonymised reference dataset (client Excel, file 02)", () => {
+    const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "fixtures/cpra-reference.json"), "utf8")) as {
+      entityId: string;
+      periodStart: string;
+      longStayFactor: number;
+      population: { pass: number; longSejour: number };
+      products: ProductParam[];
+      deliveries: CpraComputeInput["deliveries"][number][];
+      expected: Record<string, { cpra: number; cpro: number; ecartVolume: number; couverturePct: number; ecartValorise: number; status: string }> & { totalEcartValorise: number };
+    };
+    const input: CpraComputeInput = {
+      entityId: fixture.entityId,
+      periodStart: d(fixture.periodStart),
+      longStayFactor: fixture.longStayFactor,
+      population: fixture.population,
+      products: fixture.products.map((p) => ({ ...p, norms: p.norms.map((n) => ({ ...n, validFrom: d(n.validFrom as unknown as string) })) })),
+      deliveries: fixture.deliveries,
+    };
+    const out = computeCpra(input);
+    expect(out.skipped).toEqual([]);
+    expect(out.results).toHaveLength(2);
+    for (const result of out.results) {
+      const expected = fixture.expected[result.productCode]!;
+      expect(result).toMatchObject({
+        cpra: expected.cpra,
+        cpro: expected.cpro,
+        ecartVolume: expected.ecartVolume,
+        ecartValorise: expected.ecartValorise,
+        status: expected.status,
+      });
+      expect(result.couverturePct).toBeCloseTo(expected.couverturePct, 3);
+    }
+    expect(out.totalEcartValorise).toBe(fixture.expected.totalEcartValorise);
   });
 });

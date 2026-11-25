@@ -95,6 +95,26 @@ describe("generated workbook", () => {
     expect(all).toContain("MRR perdu");
   });
 
+  it("shows the read-only USALI reference in the hotel instructions", async () => {
+    const wb = await open(await build("hotel_mensuel", {
+      reference: {
+        usali: [
+          { poste: "Personnel — chambres", famille: "DEPARTEMENTALE", sousCategorie: "Chambres", impact: "GOP/GOPPAR", commentaire: "Équipe affectée aux chambres." },
+          { poste: "Amortissements", famille: "HORS_EXPLOITATION", sousCategorie: "Amortissements et dépréciations", impact: "EBITDA", commentaire: "Exclu du GOP." },
+        ],
+      },
+    }));
+    const text: string[] = [];
+    wb.getWorksheet("Instructions")!.eachRow((row) => row.eachCell((c) => text.push(String(c.value))));
+    const all = text.join("\n");
+    expect(all).toContain("Référentiel USALI (lecture seule)");
+    expect(all).toContain("charges hors exploitation sont exclues du GOP");
+    expect(all).toContain("Personnel — chambres");
+    expect(all).toContain("Amortissements et dépréciations");
+    // The reference is not a data-entry sheet.
+    expect(wb.worksheets.map((w) => w.name)).not.toContain("USALI");
+  });
+
   it("pre-fills the first row", async () => {
     const wb = await open(await build("hotel_mensuel", { prefill: { Saisie_Mensuelle: { nombreChambres: 40 } } }));
     expect(wb.getWorksheet("Saisie_Mensuelle")!.getCell("A2").value).toBe(40);

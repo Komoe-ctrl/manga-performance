@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { daysInPeriod, formatDateFr } from "./cells";
 import { META_SHEET, signMeta } from "./meta";
-import type { ColumnDef, PeriodContext, SheetDef, TemplateDef } from "./types";
+import type { ColumnDef, PeriodContext, SheetDef, TemplateDef, UsaliReferenceRow } from "./types";
 
 const NAVY = "FF1A2B4A";
 const GOLD = "FFF5B700";
@@ -19,6 +19,8 @@ export interface TemplateBuildInput {
   options?: PeriodContext["options"];
   /** Valeurs pré-remplies sur la première ligne, par feuille puis par clé de colonne. */
   prefill?: Record<string, Record<string, string | number>>;
+  /** Référentiels en lecture seule à afficher dans `Instructions` (USALI pour l'hôtellerie). */
+  reference?: { usali?: readonly UsaliReferenceRow[] };
   secret: string;
   generatedAt?: Date;
 }
@@ -132,6 +134,7 @@ function addInstructions(wb: ExcelJS.Workbook, input: TemplateBuildInput) {
   ws.getColumn(2).width = 28;
   ws.getColumn(3).width = 12;
   ws.getColumn(4).width = 70;
+  ws.getColumn(5).width = 60;
 
   const days = daysInPeriod(input.period.start, input.period.end);
   const lines: [string, string][] = [
@@ -183,6 +186,31 @@ function addInstructions(wb: ExcelJS.Workbook, input: TemplateBuildInput) {
       ws.getCell(row, 3).value = column.required ? "oui" : column.requiredIf ? "selon" : "non";
       ws.getCell(row, 4).value = rules.join(" ; ");
       ws.getCell(row, 4).alignment = { wrapText: true, vertical: "top" };
+    }
+  }
+
+  const usali = input.reference?.usali;
+  if (usali && usali.length > 0) {
+    row += 2;
+    ws.getCell(row, 1).value = "Référentiel USALI (lecture seule)";
+    ws.getCell(row, 1).font = { bold: true, color: { argb: NAVY } };
+    row += 1;
+    ws.getCell(row, 1).value = "Les charges hors exploitation sont exclues du GOP : ne les saisissez pas dans les charges départementales ou non réparties.";
+    ws.getCell(row, 1).alignment = { wrapText: true, vertical: "top" };
+    row += 1;
+    ["Poste de coût", "Famille", "Sous-catégorie USALI", "Impact", "Commentaire"].forEach((h, i) => {
+      const cell = ws.getCell(row, i + 1);
+      cell.value = h;
+      cell.font = { bold: true };
+      cell.border = { bottom: { style: "thin" } };
+    });
+    for (const entry of usali) {
+      row += 1;
+      ["poste", "famille", "sousCategorie", "impact", "commentaire"].forEach((key, i) => {
+        const cell = ws.getCell(row, i + 1);
+        cell.value = entry[key as keyof UsaliReferenceRow];
+        cell.alignment = { wrapText: true, vertical: "top" };
+      });
     }
   }
 }

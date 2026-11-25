@@ -84,6 +84,7 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
   est conservée avec l'instantané des paramètres utilisés (calcul reproductible).
 - Quantités et coûts unitaires sont des `Decimal` ; l'arrondi au FCFA ne porte que sur l'écart valorisé final.
 - Le calcul automatique (`hotel.compute`) lit le dépôt en base, jamais dans le message du job, et est idempotent.
+- Le référentiel USALI est un JSON en lecture seule (`packages/db/seed/usali-mapping.json`), sans donnée réelle ni montant : il est affiché dans les instructions des modèles hôteliers et dans l'admin. Les charges hors exploitation y sont signalées comme exclues du GOP.
 - Écarts à la spec, à connaître : `ProductConversion.factor` est nullable (une unité déclarée sans facteur doit rester
   sélectionnable dans le dépôt, sinon « conversion manquante » serait inatteignable) ; les statuts stockés reprennent
   ceux du moteur (`SOUS`, `SOUS_FORTE`, `SUR`, `SUR_FORTE`) ; un produit sans norme applicable n'est pas calculé et

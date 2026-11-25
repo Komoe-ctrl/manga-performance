@@ -1,5 +1,6 @@
 import { buildTemplateWorkbook, getTemplate } from "@manga/core/collection";
 import { CPRA_TEMPLATE_ID, cpraTemplateOptions } from "@manga/db/cpra";
+import { usaliMapping } from "@manga/db/usali";
 import { format } from "date-fns";
 import type { PrismaClient } from "@manga/db";
 import { DomainError } from "../domain-error";
@@ -29,6 +30,7 @@ export function createTemplateService(deps: { prisma: PrismaClient; secret: stri
         template,
         entity: period.plan.entity,
         options: period.plan.templateId === CPRA_TEMPLATE_ID ? await cpraTemplateOptions(prisma, period.plan.entity.clientId) : undefined,
+        reference: period.plan.templateId === "hotel_mensuel" ? { usali: usaliMapping } : undefined,
         period: { id: period.id, start: period.periodStart, end: period.periodEnd, dueAt: period.dueAt },
         secret,
       });
