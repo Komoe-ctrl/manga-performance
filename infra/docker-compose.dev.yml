@@ -94,6 +94,16 @@ services:
       web:
         condition: service_started
 
+  # HTTPS tunnel without any account: the public address is printed in the logs
+  # (`docker logs manga-performance-dev-tunnel-1`) and changes when the container is recreated.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "--url", "http://web:3000"]
+    depends_on:
+      web:
+        condition: service_started
+
   # HTTPS tunnel so the client can see the site before it is hosted. Needs infra/.env.ngrok (never committed):
   #   NGROK_AUTHTOKEN=...   NGROK_DOMAIN=your-name.ngrok-free.app   (optional: NGROK_BASIC_AUTH=user:password-of-8+chars)
   # Without that file the service idles and the rest of the stack is unaffected.
