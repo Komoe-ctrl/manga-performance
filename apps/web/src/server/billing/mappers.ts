@@ -43,7 +43,7 @@ export function toFrontInvoice(row: InvoiceRow): Invoice {
   const issuedAt = (row.issuedAt ?? row.createdAt).toISOString();
   return {
     id: row.id,
-    number: row.number ?? "Brouillon",
+    number: row.number ?? undefined,
     fneNumber: row.fneNumber ?? undefined,
     clientId: row.client.prospectId,
     lines: row.lines.map((line) => ({

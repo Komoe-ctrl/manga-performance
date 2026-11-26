@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarClock, Download, FileSpreadsheet, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
 import { dueLabel, exportUrl, getClientCollection, monthKey, periodLabel, submitDeposit, templateUrl, VIEWER_ROLE_LABELS, type CollectionViewerRole } from "@/lib/services/collection";
 import { USE_DB } from "@/lib/services/data-source";
@@ -21,9 +22,13 @@ const OPEN: CollectionPeriod["status"][] = ["ATTENDU", "EN_RETARD", "REJETE"];
  * les trois vues ; en production le rôle vient de la session et le serveur filtre par `entityScope`.
  */
 export function ClientCollection() {
-  const [demoRole, setRole] = useState<CollectionViewerRole>("CLIENT_CONTRIBUTEUR");
+  // The client is the session's, always: the demo picker below only switches the role *within that client*.
+  const { session } = useSession();
+  const clientId = session?.role === "client" ? session.clientId : "";
+  const [pickedRole, setRole] = useState<CollectionViewerRole | null>(null);
+  const demoRole: CollectionViewerRole = pickedRole ?? (session?.role === "client" ? session.viewerRole : undefined) ?? "CLIENT_DIRECTION";
   const [version, setVersion] = useState(0);
-  const data = useAsync(() => getClientCollection(demoRole), [demoRole, version]);
+  const data = useAsync(() => (clientId ? getClientCollection(demoRole, clientId) : Promise.resolve({ clients: [], months: [], rows: [] })), [demoRole, clientId, version]);
   // `db`: the role is the session's; the picker below only exists in the demo.
   const sessionRole = data.status === "success" ? data.data.viewerRole : undefined;
   const role: CollectionViewerRole = USE_DB && sessionRole && sessionRole !== "ADMIN" ? sessionRole : demoRole;
@@ -57,17 +62,17 @@ export function ClientCollection() {
       {data.status === "error" && <ErrorState message="Collecte indisponible." onRetry={data.reload} />}
       {data.status === "success" && (
         <>
-          {role !== "CLIENT_ANALYSTE" && <Deposits rows={data.data.rows} role={role} onChanged={() => setVersion((v) => v + 1)} />}
+          {role !== "CLIENT_ANALYSTE" && <Deposits rows={data.data.rows} role={role} clientId={clientId} onChanged={() => setVersion((v) => v + 1)} />}
           {role !== "CLIENT_CONTRIBUTEUR" && <ReadOnlyMatrix rows={data.data.rows} months={data.data.months} analyst={role === "CLIENT_ANALYSTE"} />}
           {/* Direction and analysts only, in read-only mode; the server sends validated versions only. */}
-          {role !== "CLIENT_CONTRIBUTEUR" && data.data.rows.some((r) => r.entity.sector === "HOTELLERIE") && <PilotClient />}
+          {role !== "CLIENT_CONTRIBUTEUR" && data.data.rows.some((r) => r.entity.sector === "HOTELLERIE") && <PilotClient clientId={clientId} />}
         </>
       )}
     </div>
   );
 }
 
-function Deposits({ rows, role, onChanged }: { rows: TrackingRow[]; role: CollectionViewerRole; onChanged: () => void }) {
+function Deposits({ rows, role, clientId, onChanged }: { rows: TrackingRow[]; role: CollectionViewerRole; clientId: string; onChanged: () => void }) {
   const open = rows
     .flatMap((r) => r.periods.filter((p) => OPEN.includes(p.status)).map((p) => ({ row: r, period: p })))
     .sort((a, b) => a.period.dueAt.localeCompare(b.period.dueAt));
@@ -78,7 +83,7 @@ function Deposits({ rows, role, onChanged }: { rows: TrackingRow[]; role: Collec
       <h2 className="text-lg font-bold text-primary">Mes dépôts</h2>
       {open.length === 0 && waiting.length === 0 && <EmptyState message="Rien à déposer pour le moment. Merci !" />}
       {open.map(({ row, period }) => (
-        <DepositCard key={period.id} row={row} period={period} role={role} onChanged={onChanged} />
+        <DepositCard key={period.id} row={row} period={period} role={role} clientId={clientId} onChanged={onChanged} />
       ))}
       {waiting.map(({ row, period }) => (
         <div key={period.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-background p-4">
@@ -90,7 +95,7 @@ function Deposits({ rows, role, onChanged }: { rows: TrackingRow[]; role: Collec
   );
 }
 
-function DepositCard({ row, period, role, onChanged }: { row: TrackingRow; period: CollectionPeriod; role: CollectionViewerRole; onChanged: () => void }) {
+function DepositCard({ row, period, role, clientId, onChanged }: { row: TrackingRow; period: CollectionPeriod; role: CollectionViewerRole; clientId: string; onChanged: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -101,7 +106,7 @@ function DepositCard({ row, period, role, onChanged }: { row: TrackingRow; perio
     if (!file) return;
     setBusy(true);
     try {
-      const s = await submitDeposit(period.id, USE_DB ? file : { name: file.name, size: file.size }, role);
+      const s = await submitDeposit(period.id, USE_DB ? file : { name: file.name, size: file.size }, role, clientId);
       if (s.status === "EN_CONTROLE") toast.success("Fichier reçu : contrôle en cours, le résultat s'affiche dans quelques secondes.");
       else if (s.status === "VALIDE") toast.success("Dépôt validé. Merci !");
       else toast.error("Dépôt rejeté : consultez le rapport de contrôle ci-dessous.");

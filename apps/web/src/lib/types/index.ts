@@ -64,7 +64,8 @@ export interface InvoiceLine {
 }
 export interface Invoice {
   id: string;
-  number: string; // format 2026-001
+  /** Format 2026-001, attribué à l'émission : un brouillon n'a pas de numéro (spec backend §6.4). */
+  number?: string;
   fneNumber?: string; // numéro de Facture Normalisée Électronique (DGI)
   clientId: string;
   lines: InvoiceLine[];
@@ -160,5 +161,6 @@ export interface ClientAccess {
 
 export type Session =
   | { role: "consultant" }
-  | { role: "client"; clientId: string }
+  /** `viewerRole` : rôle de démonstration (direction, contributeur, analyste) ; absent = direction. Le client, lui, ne change jamais. */
+  | { role: "client"; clientId: string; viewerRole?: "CLIENT_DIRECTION" | "CLIENT_CONTRIBUTEUR" | "CLIENT_ANALYSTE" }
   | null;

@@ -1,6 +1,7 @@
 import { consumableResult, cpra, cpro, DEFAULT_COVERAGE_BOUNDS, type ConsumableResult, type CoverageStatus } from "@manga/core/kpi/consumables";
 import { hotelAlerts, hotelKpis, type HotelAlert, type HotelKpis } from "@manga/core/kpi/hotel";
-import { collectionEntities } from "@/lib/mock/collection";
+import { trackingMonths } from "@manga/core/collection/calendar";
+import { collectionEntities, referenceDay } from "@/lib/mock/collection";
 
 /*
  * Pilote hôtellerie, données de démonstration (avenant n°1, §10 et §11 bis). Tout est fictif : 3 hôtels
@@ -8,27 +9,28 @@ import { collectionEntities } from "@/lib/mock/collection";
  * calculés avec les mêmes fonctions pures que le moteur réel (`@manga/core/kpi`).
  */
 
-export const PILOT_MONTHS = [
-  { key: "2026-04", label: "Avril 2026", days: 30 },
-  { key: "2026-05", label: "Mai 2026", days: 31 },
-  { key: "2026-06", label: "Juin 2026", days: 30 },
-  { key: "2026-07", label: "Juillet 2026", days: 31 },
-  { key: "2026-08", label: "Août 2026", days: 31 },
-  { key: "2026-09", label: "Septembre 2026", days: 30 },
-] as const;
-export type PilotMonthKey = (typeof PILOT_MONTHS)[number]["key"];
+const MONTH_NAME = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-/** Les mois jusqu'à août sont validés par le consultant ; septembre attend sa validation (invisible du client). */
-export const VALIDATED_UNTIL: PilotMonthKey = "2026-08";
+/** Les 6 derniers mois clos, comptés à partir d'aujourd'hui (même fenêtre que le suivi de la collecte). */
+export const PILOT_MONTHS: { key: string; label: string; days: number }[] = trackingMonths(referenceDay())
+  .slice(0, 6)
+  .map((m) => ({ key: m.start.toISOString().slice(0, 7), label: capitalize(MONTH_NAME.format(m.start)), days: m.end.getUTCDate() }));
+export type PilotMonthKey = string;
+
+/** Les 5 premiers mois sont validés par le consultant ; le dernier mois clos attend sa validation (invisible du client). */
+export const VALIDATED_UNTIL: PilotMonthKey = PILOT_MONTHS[4]!.key;
 
 export interface PilotHotel {
   id: string;
   name: string;
   rooms: number;
+  /** Client (du CRM) propriétaire de l'hôtel : le client connecté ne voit que les siens. */
+  clientId?: string;
 }
 
 const ROOMS: Record<string, number> = { "ce-1": 48, "ce-2": 72, "ce-3": 30 };
-export const pilotHotels: PilotHotel[] = collectionEntities.filter((e) => e.sector === "HOTELLERIE").map((e) => ({ id: e.id, name: e.name, rooms: ROOMS[e.id] ?? 40 }));
+export const pilotHotels: PilotHotel[] = collectionEntities.filter((e) => e.sector === "HOTELLERIE").map((e) => ({ id: e.id, name: e.name, rooms: ROOMS[e.id] ?? 40, clientId: e.clientId }));
 
 /* ---------- Paramètres CPRA ---------- */
 
@@ -86,7 +88,7 @@ export const initialParams = (): PilotParams => ({
     { productCode: "JAVEL", hotelId: null, validFrom: "2026-01-01", normPerClient: 40 },
     { productCode: "GEL", hotelId: null, validFrom: "2026-01-01", normPerClient: 25 },
     // Norme propre à un hôtel, avec date d'effet : l'historique des mois passés ne change pas.
-    { productCode: "GEL", hotelId: "ce-3", validFrom: "2026-07-01", normPerClient: 30 },
+    { productCode: "GEL", hotelId: "ce-3", validFrom: `${PILOT_MONTHS[3]!.key}-01`, normPerClient: 30 },
     { productCode: "SHAMP", hotelId: null, validFrom: "2026-01-01", normPerClient: 20 },
   ],
   longStayFactor: { "ce-1": 1.1, "ce-2": 1.133, "ce-3": 1.0 },
@@ -129,22 +131,25 @@ function rng(seed: number) {
   };
 }
 
-/** Écarts voulus pour la démonstration : (hôtel|mois|produit) → rapport CPRO / CPRA. `null` : aucune livraison. */
+/**
+ * Écarts voulus pour la démonstration : (hôtel|rang du mois|produit) → rapport CPRO / CPRA. `null` : aucune livraison.
+ * Le rang (0 à 5) compte depuis le plus ancien des 6 mois clos : les cas se déplacent avec le calendrier.
+ */
 const COVERAGE_PLAN: Record<string, number | null> = {
-  "ce-1|2026-06|GEL": 1.32,
-  "ce-1|2026-08|PH": 0.72,
-  "ce-2|2026-05|JAVEL": 1.12,
-  "ce-2|2026-08|SHAMP": 0.88,
-  "ce-3|2026-06|SHAMP": null,
-  "ce-3|2026-09|GEL": 1.24,
+  "ce-1|2|GEL": 1.32,
+  "ce-1|4|PH": 0.72,
+  "ce-2|1|JAVEL": 1.12,
+  "ce-2|4|SHAMP": 0.88,
+  "ce-3|2|SHAMP": null,
+  "ce-3|5|GEL": 1.24,
 };
 /** Livraison en « Paquet » (conversion non renseignée) : le CPRO n'est pas calculable. */
-const PACKET_PLAN = new Set(["ce-2|2026-07|PH"]);
+const PACKET_PLAN = new Set(["ce-2|3|PH"]);
 
 const DELIVERY_UNIT: Record<string, string> = { PH: "Rouleau", JAVEL: "Bidon 5 L", GEL: "Bidon 4 L", SHAMP: "Flacon 500 ml" };
 
-/** Anomalies de KPI : marge GOP basse en août (ce-2), coûts qui progressent plus vite que les revenus en septembre (ce-3). */
-const COST_RATIO: Record<string, number> = { "ce-2|2026-08": 0.74, "ce-3|2026-09": 0.7 };
+/** Anomalies de KPI : marge GOP basse au 5e mois (ce-2), coûts qui progressent plus vite que les revenus au 6e (ce-3). */
+const COST_RATIO: Record<string, number> = { "ce-2|4": 0.74, "ce-3|5": 0.7 };
 
 function buildData(params: PilotParams): Record<string, Record<string, PilotMonthData>> {
   const out: Record<string, Record<string, PilotMonthData>> = {};
@@ -158,7 +163,7 @@ function buildData(params: PilotParams): Record<string, Record<string, PilotMont
 
       const deliveries: PilotDelivery[] = [];
       for (const product of params.products) {
-        const key = `${hotel.id}|${month.key}|${product.code}`;
+        const key = `${hotel.id}|${m}|${product.code}`;
         const planned = COVERAGE_PLAN[key];
         if (planned === null) continue;
         const norm = normFor(params, product.code, hotel.id, month.key) ?? 0;
@@ -178,7 +183,7 @@ function buildData(params: PilotParams): Record<string, Record<string, PilotMont
       const adr = Math.round((46_000 + 14_000 * rand()) / 500) * 500;
       const caChambres = chambresVendues * adr;
       const revenusTotaux = Math.round((caChambres * (1.22 + 0.1 * rand())) / 1000) * 1000;
-      const cost = COST_RATIO[`${hotel.id}|${month.key}`] ?? 0.58 + 0.06 * rand();
+      const cost = COST_RATIO[`${hotel.id}|${m}`] ?? 0.58 + 0.06 * rand();
       const charges = Math.round((revenusTotaux * cost) / 1000) * 1000;
       out[hotel.id]![month.key] = {
         population: { clientsPass, clientsLongSejour },
@@ -265,7 +270,8 @@ export interface ComputeVersion {
   params: PilotParams;
 }
 
-const FIRST_COMPUTE = "2026-10-01T06:00:00.000Z";
+/** Premier calcul : le 1er du mois en cours, à 06:00. */
+const FIRST_COMPUTE = `${trackingMonths(referenceDay()).at(-1)!.start.toISOString().slice(0, 10)}T06:00:00.000Z`;
 
 export const pilotState = {
   /** Brouillon édité dans l'écran des paramètres : n'a aucun effet sur les résultats avant un recalcul. */

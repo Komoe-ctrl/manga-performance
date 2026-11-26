@@ -12,8 +12,8 @@ import { KpiView } from "./kpi-view";
  * Pilote hôtellerie, espace client (avenant §10) : la direction et l'analyste voient les écarts CPRO / CPRA et
  * les KPI de leurs hôtels, en lecture seule, une fois les mois validés par le consultant.
  */
-export function PilotClient() {
-  const data = useAsync(getClientPilotResults);
+export function PilotClient({ clientId }: { clientId: string }) {
+  const data = useAsync(() => getClientPilotResults(clientId), [clientId]);
   const [tab, setTab] = useState<"ecarts" | "kpi">("ecarts");
 
   return (

@@ -1,4 +1,6 @@
 import { computeInvoiceTotals } from "@manga/core/invoice";
+import { REFERENCE_DATE } from "@/lib/constants";
+import { invoiceNumber } from "@/lib/mock/business";
 import type { Invoice } from "@/lib/types";
 import * as billing from "@/server/actions/billing";
 import { USE_DB, unwrap } from "./data-source";
@@ -17,12 +19,19 @@ export const getInvoice = (id: string): Promise<Invoice | null> =>
  * The number, totals and issue date are decided by the server (the issue date is the
  * moment of emission, whatever date the form shows).
  */
+/** Prochain numéro de la démo : AAAA de l'année en cours, suite après le plus grand numéro déjà attribué. */
+function nextMockInvoiceNumber(): string {
+  const year = new Date(REFERENCE_DATE).getUTCFullYear();
+  const used = db.invoices.map((i) => i.number).filter((n): n is string => !!n && n.startsWith(`${year}-`)).map((n) => Number(n.slice(5)));
+  return invoiceNumber(year, Math.max(0, ...used) + 1);
+}
+
 export const createInvoice = (input: Omit<Invoice, "id" | "number" | "remindersSent">): Promise<Invoice> =>
   USE_DB
     ? unwrap(billing.createInvoiceAction(input))
     : latency(() => {
-        const number = `2026-${String(db.invoices.length + 1).padStart(3, "0")}`;
-        const invoice: Invoice = { ...input, id: nextId("inv"), number, remindersSent: 0 };
+        // Only an issued invoice is numbered; a draft stays without number until its emission.
+        const invoice: Invoice = { ...input, id: nextId("inv"), number: input.status === "brouillon" ? undefined : nextMockInvoiceNumber(), remindersSent: 0 };
         db.invoices.unshift(invoice);
         return invoice;
       });
@@ -93,6 +102,8 @@ export const updateInvoice = (
         const inv = db.invoices.find((i) => i.id === id);
         if (!inv) throw new Error("Facture introuvable");
         Object.assign(inv, patch);
+        // Issuing a draft is what numbers it.
+        if (!inv.number && inv.status !== "brouillon") inv.number = nextMockInvoiceNumber();
         (db.invoiceEvents[id] ??= []).push({ label: eventLabel, at: new Date().toISOString() });
         return inv;
       });
@@ -100,7 +111,7 @@ export const updateInvoice = (
 export const nextInvoiceNumber = (): Promise<string> =>
   USE_DB
     ? unwrap(billing.nextInvoiceNumberAction())
-    : latency(() => `2026-${String(db.invoices.length + 1).padStart(3, "0")}`);
+    : latency(() => nextMockInvoiceNumber());
 
 // Ready for the invoice screens (no UI calls them yet): emission, payments, credit notes.
 export const issueInvoice = (id: string) => unwrap(billing.issueInvoiceAction(id));

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { useAsync } from "@/lib/hooks/use-async";
+import { invoiceNumberLabel } from "@/lib/utils/format";
 import { listInvoices, listProspects } from "@/lib/services";
 
 /** Recherche globale du back-office : prospects et factures. */
@@ -23,7 +24,7 @@ export function GlobalSearch() {
     term.length >= 2 && data.status === "success" && data.data
       ? {
           prospects: data.data.prospects.filter((p) => [p.companyName, p.contactName, p.email].some((v) => v?.toLowerCase().includes(term))).slice(0, 5),
-          invoices: data.data.invoices.filter((i) => i.number.includes(term)).slice(0, 3),
+          invoices: data.data.invoices.filter((i) => i.number?.includes(term)).slice(0, 3),
         }
       : null;
 
@@ -51,7 +52,7 @@ export function GlobalSearch() {
           ))}
           {results.invoices.map((i) => (
             <Link key={i.id} href={`/admin/factures/${i.id}`} className="block rounded px-2 py-1.5 hover:bg-muted">
-              Facture {i.number}
+              Facture {invoiceNumberLabel(i)}
             </Link>
           ))}
         </div>

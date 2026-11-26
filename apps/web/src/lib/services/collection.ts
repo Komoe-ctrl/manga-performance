@@ -1,10 +1,13 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { dayOffset } from "@manga/core/collection/calendar";
 import {
   buildCollectionPeriods,
+  collectionAssignments,
   collectionClients,
   collectionEntities,
   collectionMonths,
+  collectionPeople,
   collectionPlans,
   collectionTemplates,
 } from "@/lib/mock/collection";
@@ -124,16 +127,24 @@ export interface CollectionPerson {
   active: boolean;
 }
 
-/** Démo : trois comptes fictifs chez le premier client, un contributeur affecté à la première entité. */
-const demoPeople: CollectionPerson[] = [
-  { id: "cu-1", clientId: "cc-1", name: "Awa Koné", email: "direction@exemple.test", role: "CLIENT_DIRECTION", active: true },
-  { id: "cu-2", clientId: "cc-1", name: "Moussa Traoré", email: "contributeur@exemple.test", role: "CLIENT_CONTRIBUTEUR", active: true },
-  { id: "cu-3", clientId: "cc-1", name: "Fanta Diallo", email: "analyste@exemple.test", role: "CLIENT_ANALYSTE", active: true },
-];
-const demoAssignments: { userId: string; entityId: string }[] = [{ userId: "cu-2", entityId: "ce-1" }];
+/** Démo : direction, contributeur et analyste de chaque client de la collecte (les mêmes que ceux de la connexion de démo). */
+const demoPeople: CollectionPerson[] = structuredClone(collectionPeople);
+const demoAssignments: { userId: string; entityId: string }[] = structuredClone(collectionAssignments);
 
 /** Mois (`AAAA-MM`) d'une période : la clé des colonnes du tableau de suivi. */
 export const monthKey = (p: Pick<CollectionPeriod, "periodStart">) => p.periodStart.slice(0, 7);
+
+/**
+ * Complétude du dernier mois clos : dépôts acceptés sur dépôts attendus. Le « dernier mois clos » est la dernière colonne
+ * dont au moins une période n'est plus « à venir » : il suit donc la date du jour (les statuts viennent du calendrier).
+ */
+export function monthCompleteness(rows: Pick<TrackingRow, "periods">[], months: { key: string; label: string }[]): { key: string; label: string; complete: number; expected: number } | null {
+  const lastClosed = [...months].reverse().find((m) => rows.some((r) => r.periods.find((p) => monthKey(p) === m.key)?.status !== "A_VENIR"));
+  if (!lastClosed) return null;
+  const closed = rows.map((r) => r.periods.find((p) => monthKey(p) === lastClosed.key)).filter((p): p is CollectionPeriod => !!p && p.status !== "A_VENIR");
+  const complete = closed.filter((p) => p.status === "VALIDE" || p.status === "ACCEPTE_AVEC_RESERVE").length;
+  return { ...lastClosed, complete, expected: closed.length };
+}
 
 /** Crée le compte d'un client avec le rôle choisi et envoie l'invitation. `mock` : compte fictif. */
 export const inviteCollectionUser = (input: { clientId: string; name: string; email: string; role: CollectionPerson["role"] }): Promise<void> =>
@@ -220,30 +231,33 @@ export const VIEWER_ROLE_LABELS: Record<CollectionViewerRole, string> = {
   CLIENT_ANALYSTE: "Analyste",
 };
 
-/** Démo : le client connecté est le premier client fictif ; le contributeur n'a que l'hôtel « Les Cocotiers » (affectation). */
-const DEMO_CLIENT_ID = "cc-1";
-const DEMO_CONTRIBUTOR_ENTITIES = ["ce-1"];
-
-/** `entityScope` du mock (avenant §3) : la seule source des entités visibles pour chaque rôle. */
-export function entityScope(role: CollectionViewerRole): string[] {
-  const own = state.entities.filter((e) => e.clientId === DEMO_CLIENT_ID).map((e) => e.id);
-  return role === "CLIENT_CONTRIBUTEUR" ? own.filter((id) => DEMO_CONTRIBUTOR_ENTITIES.includes(id)) : own;
+/**
+ * `entityScope` du mock (avenant §3) : la seule source des entités visibles. Le client vient de la session (jamais d'un
+ * choix libre) ; le rôle de la démo ne change que ce qui est affiché *chez ce client* : le contributeur ne voit que les
+ * entités qui lui sont affectées. Un client inconnu n'a accès à rien.
+ */
+export function entityScope(role: CollectionViewerRole, clientId: string): string[] {
+  const own = state.entities.filter((e) => e.clientId === clientId).map((e) => e.id);
+  if (role !== "CLIENT_CONTRIBUTEUR") return own;
+  const contributors = new Set(demoPeople.filter((p) => p.clientId === clientId && p.role === "CLIENT_CONTRIBUTEUR").map((p) => p.id));
+  const assigned = new Set(demoAssignments.filter((a) => contributors.has(a.userId)).map((a) => a.entityId));
+  return own.filter((id) => assigned.has(id));
 }
 
-/** `db` : la session décide du périmètre (le rôle passé en paramètre ne sert qu'à la démo). */
-export const getClientCollection = (role: CollectionViewerRole): Promise<CollectionOverview> =>
+/** `db` : la session décide du périmètre (ni le rôle ni le client passés ici ne comptent). `mock` : `clientId` est celui de la session de démo. */
+export const getClientCollection = (role: CollectionViewerRole, clientId: string): Promise<CollectionOverview> =>
   USE_DB ? unwrap(actions.getCollectionOverviewAction()) : latency(() => {
-    const scope = entityScope(role);
-    return { clients: collectionClients.filter((c) => c.id === DEMO_CLIENT_ID), months: collectionMonths, rows: rowsFor().filter((r) => scope.includes(r.entity.id)) };
+    const scope = entityScope(role, clientId);
+    return { clients: collectionClients.filter((c) => c.id === clientId), months: collectionMonths, rows: rowsFor().filter((r) => scope.includes(r.entity.id)) };
   });
 
 /** Dépôt simulé : un fichier .xlsx dont le nom contient « rejet » produit un rapport d'erreurs, les autres sont validés. */
-export const submitDeposit = (periodId: string, file: { name: string; size: number } | File, role: CollectionViewerRole): Promise<CollectionSubmission> =>
+export const submitDeposit = (periodId: string, file: { name: string; size: number } | File, role: CollectionViewerRole, clientId: string): Promise<CollectionSubmission> =>
   USE_DB ? depositToStorage(periodId, file as File) : latency(() => {
     if (role === "CLIENT_ANALYSTE") throw new ServiceError("Votre rôle est en lecture seule : vous ne pouvez pas déposer.", "FORBIDDEN");
     const period = state.periods.find((p) => p.id === periodId);
     const row = period && rowsFor().find((r) => r.plan.id === period.planId);
-    if (!period || !row || !entityScope(role).includes(row.entity.id)) throw new ServiceError("Cette période n'est pas dans votre périmètre.", "FORBIDDEN");
+    if (!period || !row || !entityScope(role, clientId).includes(row.entity.id)) throw new ServiceError("Cette période n'est pas dans votre périmètre.", "FORBIDDEN");
     if (!["ATTENDU", "EN_RETARD", "REJETE"].includes(period.status)) throw new ServiceError("Aucun dépôt n'est attendu pour cette période.", "NOT_EXPECTED");
     const lower = file.name.toLowerCase();
     if (lower.endsWith(".xlsm") || lower.endsWith(".xls")) throw new ServiceError("Format refusé : seuls les fichiers .xlsx sont acceptés (ni .xls, ni .xlsm).", "BAD_FORMAT");
@@ -291,10 +305,13 @@ async function depositToStorage(periodId: string, file: File): Promise<Collectio
 
 /** Compte à rebours lisible : « dans 3 jours », « 2 jours de retard ». */
 export function dueLabel(dueAt: string): { text: string; late: boolean } {
-  const days = Math.ceil((new Date(dueAt).getTime() - (USE_DB ? Date.now() : NOW().getTime())) / 86_400_000);
-  if (days < 0) return { text: `${-days} jour${-days > 1 ? "s" : ""} de retard`, late: true };
-  if (days === 0) return { text: "à rendre aujourd'hui", late: false };
-  return { text: `dans ${days} jour${days > 1 ? "s" : ""}`, late: false };
+  // Same day arithmetic as the server (calendar days, due day included): a due date 54 days ago is 54 days late.
+  const now = USE_DB ? new Date() : NOW();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const offset = dayOffset(new Date(dueAt), today);
+  if (offset > 0) return { text: `${offset} jour${offset > 1 ? "s" : ""} de retard`, late: true };
+  if (offset === 0) return { text: "à rendre aujourd'hui", late: false };
+  return { text: `dans ${-offset} jour${-offset > 1 ? "s" : ""}`, late: false };
 }
 
 export const periodLabel = (p: CollectionPeriod) => format(new Date(p.periodStart), "MMMM yyyy", { locale: fr });

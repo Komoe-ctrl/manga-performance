@@ -27,7 +27,7 @@ export function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Facture ${invoice.number}`}
+        title={invoice.number ? `Facture ${invoice.number}` : "Facture — brouillon non numéroté"}
         description={client?.companyName}
         actions={
           <div className="flex flex-wrap items-center gap-2">

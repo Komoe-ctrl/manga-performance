@@ -37,8 +37,15 @@ export const CATEGORY_LABELS: Record<BlogPost["category"], string> = {
   audit: "Audit",
 };
 
-/** Date de référence de la maquette (les fixtures sont relatives à ce jour). */
-export const REFERENCE_DATE = "2026-10-28T09:00:00.000Z";
+/**
+ * « Aujourd'hui » de la démonstration : le jour réel, à 09:00 UTC. Toutes les fixtures (périodes, échéances, dépôts,
+ * factures, relances) sont calculées relativement à cette date et suivent donc le calendrier réel.
+ */
+export const REFERENCE_DATE = (() => {
+  const day = new Date();
+  day.setUTCHours(9, 0, 0, 0);
+  return day.toISOString();
+})();
 
 export const SOURCE_LABELS: Record<ProspectSource, string> = {
   site_formulaire: "Formulaire du site",

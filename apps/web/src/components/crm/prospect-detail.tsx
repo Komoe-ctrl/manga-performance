@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, Download, EyeOff, FileText, Mail, MessageCircle, Phone, ShieldCheck, StickyNote, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
+import { invoiceNumberLabel } from "@/lib/utils/format";
 import {
   addFollowUp,
   addInteraction,
@@ -150,7 +151,7 @@ function ProspectInvoices({ clientId }: { clientId: string }) {
         <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
           <Link href={`/admin/factures/${i.id}`} className="font-medium hover:underline">
             <FileText className="mr-1 inline h-4 w-4" aria-hidden />
-            {i.number}
+            {invoiceNumberLabel(i)}
           </Link>
           <MoneyAmount value={invoiceTotals(i).ttc} />
           <StatusBadge status={i.status} />

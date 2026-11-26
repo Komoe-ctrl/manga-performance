@@ -82,7 +82,7 @@ export function InvoiceForm() {
         dueAt: new Date(v.dueAt).toISOString(),
         status,
       });
-      toast.success(`Facture ${inv.number} ${status === "emise" ? "émise" : "enregistrée en brouillon"}`);
+      toast.success(status === "emise" && inv.number ? `Facture ${inv.number} émise` : "Brouillon enregistré, non numéroté : le numéro est attribué à l'émission.");
       router.push(`/admin/factures/${inv.id}`);
     });
 
@@ -95,7 +95,7 @@ export function InvoiceForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <p className="text-sm sm:col-span-2">
-          Numéro : <strong>{meta.data.number}</strong> (automatique)
+          Numéro attribué à l&apos;émission (prochain : <strong>{meta.data.number}</strong>). Un brouillon n&apos;est pas numéroté.
         </p>
         <Field label="Client *" htmlFor="clientId" error={errors.clientId?.message}>
           <Select id="clientId" {...register("clientId")}>

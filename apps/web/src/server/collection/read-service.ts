@@ -1,3 +1,4 @@
+import { trackingMonths } from "@manga/core/collection/calendar";
 import { getTemplate, TEMPLATES } from "@manga/core/collection";
 import { periodLabelOf } from "@manga/db/collection-jobs";
 import type { PrismaClient } from "@manga/db";
@@ -24,10 +25,8 @@ const MONTH_LABEL = new Intl.DateTimeFormat("fr-FR", { month: "short", year: "nu
 
 /** Les `OVERVIEW_MONTHS` derniers mois se terminant au mois de `now`, du plus ancien au plus récent. */
 export function overviewMonths(now: Date): { key: string; label: string; start: Date }[] {
-  return Array.from({ length: OVERVIEW_MONTHS }, (_, i) => {
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (OVERVIEW_MONTHS - 1 - i), 1));
-    return { key: start.toISOString().slice(0, 7), label: MONTH_LABEL.format(start).replace(".", ""), start };
-  });
+  // The same function as the demonstration data: six closed months, then the current one.
+  return trackingMonths(now, OVERVIEW_MONTHS - 1).map(({ start }) => ({ key: start.toISOString().slice(0, 7), label: MONTH_LABEL.format(start).replace(".", ""), start }));
 }
 
 type StoredIssue = { row?: number | null; columnLabel?: string | null; value?: string | null; message?: string };

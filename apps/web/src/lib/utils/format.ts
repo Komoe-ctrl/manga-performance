@@ -4,6 +4,9 @@ import { fr } from "date-fns/locale";
 const fcfa = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 
 /** 1250000 → « 1 250 000 FCFA » (espaces insécables remplacés par des espaces simples). */
+/** Numéro à afficher : un brouillon n'a pas de numéro, il ne reçoit le sien qu'à l'émission. */
+export const invoiceNumberLabel = (invoice: { number?: string }): string => invoice.number ?? "Brouillon — non numérotée";
+
 export function formatFCFA(amount: number): string {
   return `${fcfa.format(Math.round(amount)).replace(/[  ]/g, " ")} FCFA`;
 }

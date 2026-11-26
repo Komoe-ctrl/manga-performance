@@ -1,3 +1,4 @@
+import { collectionPeople } from "@/lib/mock/collection";
 import type { Deliverable, Message, Prospect } from "@/lib/types";
 import * as space from "@/server/actions/client-space";
 import * as crm from "@/server/actions/crm";
@@ -170,9 +171,19 @@ export const getClientCompany = async (clientId: string): Promise<{ companyName:
 /** Connexion simulée : email d'un client avec accès actif, mot de passe de 4 caractères minimum. */
 export const authenticateClient = (email: string, password: string) =>
   latency(() => {
+    // Demo accounts of the collection clients (direction, contributor, analyst): same client as their company, one role each.
+    const person = collectionPeople.find((p) => p.email === email.trim().toLowerCase());
+    if (person) {
+      if (password.length < 4) return { ok: false as const, reason: "Identifiants invalides." };
+      if (!db.clientAccess.find((a) => a.clientId === person.clientId)?.active) return { ok: false as const, reason: "Accès à l'espace client non activé. Contactez votre consultant." };
+      return { ok: true as const, clientId: person.clientId, viewerRole: person.role };
+    }
     const client = db.prospects.find((p) => p.status === "client" && p.email?.toLowerCase() === email.trim().toLowerCase());
     if (!client || password.length < 4) return { ok: false as const, reason: "Identifiants invalides." };
     const access = db.clientAccess.find((a) => a.clientId === client.id);
     if (!access?.active) return { ok: false as const, reason: "Accès à l'espace client non activé. Contactez votre consultant." };
-    return { ok: true as const, clientId: client.id };
+    return { ok: true as const, clientId: client.id, viewerRole: undefined };
   });
+
+/** Démo uniquement : les comptes fictifs (direction, contributeur, analyste) d'un client, pour pré-remplir la connexion. */
+export const demoAccountsOf = (clientId: string) => collectionPeople.filter((p) => p.clientId === clientId);

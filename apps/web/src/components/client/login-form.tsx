@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { Check, Eye, EyeOff, Lock, Mail, Search } from "lucide-react";
 import { useSession } from "@/lib/auth/session";
 import { useAsync } from "@/lib/hooks/use-async";
-import { USE_DB, authenticateClient, listClients, resolveClientSession, signInClient, verifyTwoFactorCode } from "@/lib/services";
+import { USE_DB, authenticateClient, demoAccountsOf, listClients, resolveClientSession, signInClient, verifyTwoFactorCode } from "@/lib/services";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 
 const DEMO_PASSWORD = "demo1234";
+const DEMO_ROLE_LABEL = { CLIENT_DIRECTION: "Direction", CLIENT_CONTRIBUTEUR: "Contributeur", CLIENT_ANALYSTE: "Analyste" } as const;
 
 /**
  * `DATA_SOURCE=mock` : connexion simulée (email d'un client avec accès actif + mot de passe de 4 caractères minimum).
@@ -69,7 +70,7 @@ export function ClientLoginForm() {
           const res = await authenticateClient(email, password);
           setPending(false);
           if (!res.ok) return setError(res.reason);
-          signIn({ role: "client", clientId: res.clientId });
+          signIn({ role: "client", clientId: res.clientId, ...(res.viewerRole ? { viewerRole: res.viewerRole } : {}) });
           router.push("/espace-client");
         }}
       >
@@ -148,6 +149,25 @@ export function ClientLoginForm() {
                   </span>
                   {selected ? <Check className="h-4 w-4 text-success" aria-hidden /> : !c.accessActive && <span className="text-xs text-muted-foreground">accès inactif</span>}
                 </button>
+                {c.accessActive && demoAccountsOf(c.id).length > 0 && (
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 pl-3" role="group" aria-label={`Comptes de démonstration de ${c.companyName}`}>
+                    <span className="text-xs text-muted-foreground">Se connecter en tant que :</span>
+                    {demoAccountsOf(c.id).map((account) => (
+                      <button
+                        key={account.id}
+                        type="button"
+                        onClick={() => {
+                          setEmail(account.email);
+                          setPassword(DEMO_PASSWORD);
+                          setError(null);
+                        }}
+                        className={cn("rounded-full border px-2.5 py-0.5 text-xs hover:border-accent hover:bg-accent/10", email === account.email ? "border-accent bg-accent/15" : "border-border")}
+                      >
+                        {DEMO_ROLE_LABEL[account.role]}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </li>
             );
           })}

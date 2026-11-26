@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { BellRing, CheckCircle2, Download, FileWarning, Hourglass } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
-import { exportUrl, getCollectionOverview, monthKey, remindPeriods } from "@/lib/services/collection";
+import { exportUrl, getCollectionOverview, monthCompleteness, monthKey, remindPeriods } from "@/lib/services/collection";
 import { USE_DB } from "@/lib/services/data-source";
 import { PERIOD_STATUS_LABELS, SECTOR_LABELS, type PeriodStatus, type Sector } from "@/lib/types/collection";
 import { Button } from "@/components/ui/button";
@@ -32,10 +32,7 @@ export function TrackingBoard() {
   if (data.status === "error") return <ErrorState message="Suivi indisponible." onRetry={data.reload} />;
 
   const { months, clients } = data.data;
-  // Dernier mois terminé = dernière colonne qui n'est plus « à venir » pour au moins une ligne.
-  const lastClosed = [...months].reverse().find((m) => rows.some((r) => r.periods.find((p) => monthKey(p) === m.key)?.status !== "A_VENIR"));
-  const closed = rows.map((r) => r.periods.find((p) => lastClosed && monthKey(p) === lastClosed.key)).filter((p) => p && p.status !== "A_VENIR");
-  const complete = closed.filter((p) => p!.status === "VALIDE" || p!.status === "ACCEPTE_AVEC_RESERVE").length;
+  const completeness = monthCompleteness(rows, months);
   const late = rows.flatMap((r) => r.periods).filter((p) => p.status === "EN_RETARD").length;
   const rejected = rows.flatMap((r) => r.periods).filter((p) => p.status === "REJETE").length;
   const sectors = [...new Set(data.data.rows.map((r) => r.entity.sector))];
@@ -43,7 +40,7 @@ export function TrackingBoard() {
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat icon={<CheckCircle2 className="h-5 w-5 text-success" aria-hidden />} label={`Complétude ${lastClosed?.label ?? ""}`} value={closed.length ? `${Math.round((complete / closed.length) * 100)} %` : "—"} hint={`${complete} dépôt(s) acceptés sur ${closed.length} attendus`} />
+        <Stat icon={<CheckCircle2 className="h-5 w-5 text-success" aria-hidden />} label={`Complétude ${completeness?.label ?? ""}`} value={completeness?.expected ? `${Math.round((completeness.complete / completeness.expected) * 100)} %` : "—"} hint={`${completeness?.complete ?? 0} dépôt(s) acceptés sur ${completeness?.expected ?? 0} attendus`} />
         <Stat icon={<Hourglass className="h-5 w-5 text-danger" aria-hidden />} label="Périodes en retard" value={String(late)} hint="Échéance dépassée, aucun dépôt" />
         <Stat icon={<FileWarning className="h-5 w-5 text-danger" aria-hidden />} label="Rejets en cours" value={String(rejected)} hint="En attente d'un nouveau dépôt" />
       </div>

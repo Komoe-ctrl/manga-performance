@@ -1,3 +1,4 @@
+import { REFERENCE_DATE } from "@/lib/constants";
 import { createRng } from "./random";
 
 export const DEMO_HOTELS = [
@@ -39,9 +40,10 @@ export interface DemoHotelMonth {
   satisfaction: number; // sur 5
 }
 
-/** 24 mois glissants se terminant en oct. 2026. */
+/** 24 mois glissants : les 24 derniers mois clos à partir d'aujourd'hui. */
 export const DEMO_MONTHS: string[] = Array.from({ length: 24 }, (_, i) => {
-  const d = new Date(Date.UTC(2024, 10 + i, 1));
+  const today = new Date(REFERENCE_DATE);
+  const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 24 + i, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 });
 

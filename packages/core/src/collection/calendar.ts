@@ -32,6 +32,22 @@ export function periodContaining(frequency: CollectionFrequency, day: Date): Cal
   return { start, end: addDays(start, 6) };
 }
 
+/** Une période est terminée (donc attendue) dès le lendemain de sa fin. Source unique, côté serveur comme dans la démo. */
+export const isEnded = (period: CalendarPeriod, today: Date): boolean => period.end < today;
+
+/**
+ * Colonnes du suivi : les `closed` derniers mois civils terminés puis le mois en cours (à venir), calculés à partir
+ * de la date du jour. Le même calcul alimente la démo et l'affichage réel.
+ */
+export function trackingMonths(today: Date, closed = 6): CalendarPeriod[] {
+  const current = periodContaining("MENSUELLE", today);
+  const months: CalendarPeriod[] = [];
+  for (let back = closed; back >= 0; back--) {
+    months.push(periodContaining("MENSUELLE", utcDay(current.start.getUTCFullYear(), current.start.getUTCMonth() - back, 1)));
+  }
+  return months;
+}
+
 /**
  * Périodes d'un plan **terminées** avant `today`, de celle qui contient `startsOn` à la dernière
  * terminée. Une période n'est attendue qu'à sa fin. `limit` borne le rattrapage d'un vieux plan.
@@ -39,7 +55,7 @@ export function periodContaining(frequency: CollectionFrequency, day: Date): Cal
 export function endedPeriods(frequency: CollectionFrequency, startsOn: Date, today: Date, limit = 36): CalendarPeriod[] {
   const periods: CalendarPeriod[] = [];
   let current = periodContaining(frequency, startsOn);
-  while (current.end < today) {
+  while (isEnded(current, today)) {
     periods.push(current);
     current = periodContaining(frequency, addDays(current.end, 1));
   }

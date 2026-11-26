@@ -19,7 +19,8 @@
     "./kpi/hotel": "./src/kpi/hotel.ts",
     "./kpi/consumables": "./src/kpi/consumables.ts",
     "./kpi/cpra-engine": "./src/kpi/cpra-engine.ts",
-    "./collection": "./src/collection/index.ts"
+    "./collection": "./src/collection/index.ts",
+    "./collection/calendar": "./src/collection/calendar.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

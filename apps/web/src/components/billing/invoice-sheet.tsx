@@ -8,7 +8,7 @@ export function InvoiceSheet({ invoice, client }: { invoice: Invoice; client: Pr
   const { ht, vat, ttc } = invoiceTotals(invoice);
   return (
     <article
-      aria-label={`Facture ${invoice.number}`}
+      aria-label={invoice.number ? `Facture ${invoice.number}` : "Facture brouillon, non numérotée"}
       className="mx-auto aspect-[210/297] w-full max-w-[794px] overflow-hidden border border-border bg-white text-[13px] text-slate-800 shadow-sm"
     >
       <header className="flex items-start justify-between bg-primary px-8 py-6 text-white">
@@ -24,7 +24,7 @@ export function InvoiceSheet({ invoice, client }: { invoice: Invoice; client: Pr
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-accent">FACTURE</p>
-          <p className="font-semibold">N° {invoice.number}</p>
+          <p className="font-semibold">{invoice.number ? `N° ${invoice.number}` : "Brouillon — non numérotée"}</p>
           {invoice.fneNumber && <p className="text-xs text-slate-300">N° FNE : {invoice.fneNumber}</p>}
         </div>
       </header>

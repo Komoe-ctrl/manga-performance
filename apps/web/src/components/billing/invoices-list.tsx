@@ -12,7 +12,7 @@ import { Input, Select } from "@/components/ui/field";
 import { ExportButtons } from "@/components/shared/export-buttons";
 import { DateLabel, ErrorState, KpiCard, LoadingState, MoneyAmount, StatusBadge } from "@/components/shared";
 import { DataTable, type Column } from "@/components/shared/data-table";
-import { formatFCFA } from "@/lib/utils/format";
+import { formatFCFA, invoiceNumberLabel } from "@/lib/utils/format";
 
 const STATUSES: [InvoiceStatus, string][] = [
   ["brouillon", "Brouillon"],
@@ -58,8 +58,8 @@ export function InvoicesList() {
     {
       id: "number",
       header: "N°",
-      sortValue: (r) => r.number,
-      cell: (r) => <Link href={`/admin/factures/${r.id}`} className="font-medium hover:underline">{r.number}</Link>,
+      sortValue: (r) => r.number ?? "",
+      cell: (r) => <Link href={`/admin/factures/${r.id}`} className="font-medium hover:underline">{invoiceNumberLabel(r)}</Link>,
     },
     { id: "client", header: "Client", sortValue: (r) => r.clientName, cell: (r) => r.clientName },
     { id: "issuedAt", header: "Émise le", sortValue: (r) => r.issuedAt, cell: (r) => <DateLabel value={r.issuedAt} /> },

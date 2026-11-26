@@ -6,8 +6,10 @@ import {
   dueDate,
   dueReminder,
   endedPeriods,
+  isEnded,
   isLate,
   localDay,
+  trackingMonths,
   parseReminderRules,
   periodContaining,
   reminderKind,
@@ -123,5 +125,31 @@ describe("which reminder is due today", () => {
   });
   it("sends the escalation one day late if the job missed it, and keeps the escalation flag", () => {
     expect(dueReminder(rules, 6, ["J+3"])).toMatchObject({ kind: "J+5", escalation: true });
+  });
+});
+
+describe("tracking window, relative to today", () => {
+  const keys = (today: Date) => trackingMonths(today).map((m) => iso(m.start).slice(0, 7));
+
+  it("is the six last closed months then the current one, whatever the day", () => {
+    expect(keys(d(2026, 11, 26))).toEqual(["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"]);
+    expect(keys(d(2026, 10, 28))).toEqual(["2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"]);
+    expect(keys(d(2027, 1, 1))).toEqual(["2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12", "2027-01"]);
+    expect(keys(d(2027, 3, 31))).toEqual(["2026-09", "2026-10", "2026-11", "2026-12", "2027-01", "2027-02", "2027-03"]);
+  });
+
+  it("closes a month the day after its end, never before", () => {
+    const october = periodContaining("MENSUELLE", d(2026, 10, 15));
+    expect(isEnded(october, d(2026, 10, 31))).toBe(false);
+    expect(isEnded(october, d(2026, 11, 1))).toBe(true);
+    // In November, the window shows October as closed and November as still to come.
+    const [last, current] = trackingMonths(d(2026, 11, 26)).slice(-2);
+    expect([isEnded(last!, d(2026, 11, 26)), isEnded(current!, d(2026, 11, 26))]).toEqual([true, false]);
+  });
+
+  it("counts lateness from the real due date, not from a fixed reference day", () => {
+    const due = dueDate(d(2026, 9, 30), 3); // 3 October
+    expect(dayOffset(due, d(2026, 10, 28))).toBe(25);
+    expect(dayOffset(due, d(2026, 11, 26))).toBe(54);
   });
 });

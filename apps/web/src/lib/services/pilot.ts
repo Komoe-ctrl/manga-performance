@@ -141,18 +141,20 @@ export const getPilotResults = (version?: number, clientId?: string): Promise<Pi
  * Vue du client (direction et analyste, lecture seule) : dernière version, mois validés uniquement
  * (défaut de l'avenant : visibles après validation du consultant).
  */
-export const getClientPilotResults = (): Promise<PilotResults> =>
+export const getClientPilotResults = (clientId: string): Promise<PilotResults> =>
   USE_DB
     ? unwrap(actions.getPilotResultsAction({}))
     : latency(() => {
     const current = latest();
+    // Only the signed-in client's own hotels, whatever the browser asks for (`db`: the server decides from the session).
+    const hotels = pilotHotels.filter((h) => h.clientId === clientId);
     const allowed = PILOT_MONTHS.filter((m) => m.key <= VALIDATED_UNTIL).map((m) => m.key as string);
     return {
       version: current.version,
       stale: false,
-      hotels: pilotHotels,
+      hotels,
       months: months.filter((m) => allowed.includes(m.key)),
-      results: resultsFor(current).filter((r) => allowed.includes(r.monthKey)),
+      results: resultsFor(current).filter((r) => allowed.includes(r.monthKey) && hotels.some((h) => h.id === r.hotelId)),
       validatedUntil: VALIDATED_UNTIL,
     };
   });

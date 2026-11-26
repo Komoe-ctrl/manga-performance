@@ -100,7 +100,7 @@ describe("billing actions as an admin", () => {
   it("saves a draft when asked, and records the FNE number given at creation", async () => {
     const { prospectId } = await actAsAdmin();
     const draft = await actions.createInvoiceAction(frontInput(prospectId, { status: "brouillon" }));
-    expect(draft).toMatchObject({ ok: true, data: { number: "Brouillon", status: "brouillon" } });
+    expect(draft).toMatchObject({ ok: true, data: { number: undefined, status: "brouillon" } });
 
     const withFne = await actions.createInvoiceAction(frontInput(prospectId, { fneNumber: "FNE-1" }));
     expect(withFne).toMatchObject({ ok: true, data: { fneNumber: "FNE-1" } });

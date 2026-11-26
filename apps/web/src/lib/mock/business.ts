@@ -30,9 +30,12 @@ const SERVICES = [
 ];
 const STATUSES: InvoiceStatus[] = ["payee", "payee", "payee", "en_attente", "en_retard", "emise", "brouillon"];
 
+/** Numéro AAAA-NNN d'une facture émise : suite par année d'émission, dans l'ordre chronologique. */
+export const invoiceNumber = (year: number, sequence: number) => `${year}-${String(sequence).padStart(3, "0")}`;
+
 function buildInvoices(): Invoice[] {
   const rng = createRng(11);
-  return Array.from({ length: 40 }, (_, i) => {
+  const built = Array.from({ length: 40 }, (_, i) => {
     const issuedOffset = -rng.int(1, 200);
     const status = rng.pick(STATUSES);
     const lines = Array.from({ length: rng.int(1, 3) }, () => {
@@ -41,17 +44,30 @@ function buildInvoices(): Invoice[] {
     });
     return {
       id: `inv${String(i + 1).padStart(3, "0")}`,
-      number: `2026-${String(i + 1).padStart(3, "0")}`,
       fneNumber: status === "payee" || status === "emise" ? `FNE-${rng.int(100000, 999999)}` : undefined,
       clientId: clients[i % clients.length].id,
       lines,
       vatRate: 0.18,
       issuedAt: daysFromToday(issuedOffset),
       dueAt: daysFromToday(issuedOffset + 30),
-      status: status === "en_attente" && issuedOffset < -45 ? "en_retard" : status,
-      remindersSent: status === "en_retard" ? rng.int(0, 2) : 0,
-    };
+      // Late is decided by the due date (issue + 30 days) alone: a late invoice is never due in the future, and an
+      // unpaid one whose due date has passed is always late, whatever the day we are.
+      status: status === "en_attente" || status === "emise" || status === "en_retard" ? (issuedOffset + 30 < 0 ? "en_retard" : status === "en_retard" ? "en_attente" : status) : status,
+      remindersSent: status === "en_retard" || (status !== "payee" && status !== "brouillon" && issuedOffset + 30 < 0) ? rng.int(0, 2) : 0,
+    } satisfies Invoice;
   });
+  // A draft has no number: it gets one only when it is issued (spec backend §6.4).
+  const counters = new Map<number, number>();
+  [...built]
+    .filter((inv) => inv.status !== "brouillon")
+    .sort((a, b) => a.issuedAt.localeCompare(b.issuedAt))
+    .forEach((inv) => {
+      const year = new Date(inv.issuedAt).getUTCFullYear();
+      const sequence = (counters.get(year) ?? 0) + 1;
+      counters.set(year, sequence);
+      (inv as Invoice).number = invoiceNumber(year, sequence);
+    });
+  return built;
 }
 export const invoices: Invoice[] = buildInvoices();
 

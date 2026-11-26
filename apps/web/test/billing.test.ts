@@ -441,7 +441,7 @@ describe("reading invoices", () => {
     const client = await db().client.findUniqueOrThrow({ where: { id: clientId } });
 
     const draft = await service().get(draftId);
-    expect(draft).toMatchObject({ number: "Brouillon", status: "brouillon", clientId: client.prospectId, vatRate: 0.18 });
+    expect(draft).toMatchObject({ number: undefined, status: "brouillon", clientId: client.prospectId, vatRate: 0.18 });
     expect(draft!.lines).toEqual([
       { label: "Audit financier", quantity: 1, unitPrice: 500_000 },
       { label: "Formation", quantity: 1.5, unitPrice: 200_000 },
