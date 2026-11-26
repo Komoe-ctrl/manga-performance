@@ -736,7 +736,9 @@ model HotelKpiResult {
 
   @@unique([periodId, version])
   @@index([submissionId, version])
+}
 
+// ---------------------------------------------------------------------------
 // Références clients et témoignages (site public, gérés dans /admin/references)
 // ---------------------------------------------------------------------------
 
