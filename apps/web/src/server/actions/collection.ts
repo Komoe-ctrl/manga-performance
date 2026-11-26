@@ -226,3 +226,13 @@ export async function getCpraResultsAction(input: unknown) {
   const data = parseInput(z.object({ periodId: id, version: z.number().int().positive().optional() }), input);
   return runAdmin(() => getCollection().cpra.results(data.periodId, data.version));
 }
+
+export async function recomputeHotelKpisAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id, note: z.string().max(200).default("") }), input);
+  return runAdmin((admin) => getCollection().hotelKpis.recompute(data.periodId, data.note, admin.userId));
+}
+
+export async function getHotelKpiResultsAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id, version: z.number().int().positive().optional() }), input);
+  return runAdmin(() => getCollection().hotelKpis.results(data.periodId, data.version));
+}

@@ -585,6 +585,7 @@ model CollectionPeriod {
   lastReminderAt DateTime?      @db.Timestamptz(3)
   submissions    Submission[]
   cpraResults    CpraResult[]
+  hotelKpiResults HotelKpiResult[]
 
   @@unique([planId, periodStart])
   @@index([status, dueAt])
@@ -614,6 +615,7 @@ model Submission {
   reviewedBy      String?
 
   cpraResults CpraResult[]
+  hotelKpiResults HotelKpiResult[]
 
   @@unique([periodId, version])
 }
@@ -702,5 +704,29 @@ model CpraResult {
   version        Int
 
   @@unique([periodId, productId, version])
+  @@index([submissionId])
+}
+
+/// Résultat figé des KPI d'un hôtel pour une période. Un recalcul crée une nouvelle version, l'ancienne est conservée.
+model HotelKpiResult {
+  id             String           @id @default(cuid(2))
+  periodId       String
+  period         CollectionPeriod @relation(fields: [periodId], references: [id])
+  submissionId   String
+  submission     Submission       @relation(fields: [submissionId], references: [id])
+  version        Int
+  /// `HotelKpis` : chambresDisponibles, gop, revpar, trevpar, goppar, marge, occupation, ADR, OTA.
+  kpis           Json
+  /// `HotelAlert[]` calculés avec les seuils du client et le mois précédent.
+  alerts         Json
+  /// KPI du mois précédent utilisés pour `COSTS_OUTPACE`, ou null.
+  previous       Json?
+  /// Valeurs brutes, jours et libellés manquants : le calcul reste reproductible.
+  paramsSnapshot Json
+  note           String?
+  computedBy     String?
+  computedAt     DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@unique([periodId, version])
   @@index([submissionId])
 }

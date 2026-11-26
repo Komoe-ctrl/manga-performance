@@ -85,6 +85,8 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
 - Quantités et coûts unitaires sont des `Decimal` ; l'arrondi au FCFA ne porte que sur l'écart valorisé final.
 - Le calcul automatique (`hotel.compute`) lit le dépôt en base, jamais dans le message du job, et est idempotent.
 - Le référentiel USALI est un JSON en lecture seule (`packages/db/seed/usali-mapping.json`), sans donnée réelle ni montant : il est affiché dans les instructions des modèles hôteliers et dans l'admin. Les charges hors exploitation y sont signalées comme exclues du GOP.
+- Les KPI de `hotel_mensuel` sont calculés côté serveur à partir du dépôt retenu, jamais saisis : le résultat est versionné avec son instantané, les alertes et les KPI du mois précédent. Le recalcul est une action d'administration (`runAdmin`) ; le calcul automatique reste idempotent.
+- Les alertes KPI déclenchent un email au consultant uniquement (`ADMIN_NOTIFICATION_EMAIL`), avec dédoublage par version calculée. Aucune alerte n'est envoyée au client, conformément au §11 bis de l'avenant.
 - Écarts à la spec, à connaître : `ProductConversion.factor` est nullable (une unité déclarée sans facteur doit rester
   sélectionnable dans le dépôt, sinon « conversion manquante » serait inatteignable) ; les statuts stockés reprennent
   ceux du moteur (`SOUS`, `SOUS_FORTE`, `SUR`, `SUR_FORTE`) ; un produit sans norme applicable n'est pas calculé et

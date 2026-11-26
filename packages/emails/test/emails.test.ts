@@ -45,6 +45,22 @@ const jobs: EmailJob[] = [
     to: "admin@example.com",
     data: { weekOf: "2026-11-16", expected: 10, received: 7, late: [{ client: "Groupe Lagune", entity: "Hôtel Lagune", period: "octobre 2026", daysLate: 4 }], rejected: [{ client: "Baobab BTP", entity: "Chantier Nord", period: "octobre 2026" }], adminUrl: url },
   },
+  {
+    template: "hotel-kpi-alert",
+    to: "admin@example.com",
+    data: {
+      entityName: "Hôtel Lagune",
+      clientName: "Groupe Lagune",
+      periodLabel: "01/10/2026 – 31/10/2026",
+      alerts: [{ code: "GOP_MARGIN_LOW", level: "alert", message: "Marge GOP inférieure à 30 %." }],
+      revpar: 30_000,
+      trevpar: 50_000,
+      gop: 60_000_000,
+      goppar: 20_000,
+      gopMarginPct: 40,
+      adminUrl: url,
+    },
+  },
 ];
 
 describe("templates", () => {
@@ -101,6 +117,23 @@ describe("templates", () => {
     expect(digest.text).toContain("En retard (1)");
     expect(digest.text).toContain("Baobab BTP");
     expect(digest.text).toContain("vendredi 6 novembre 2026");
+  });
+
+  it("sends KPI alerts to the consultant only, with the figures and a dash for missing ones", async () => {
+    const job = jobs.find((j) => j.template === "hotel-kpi-alert")! as Extract<EmailJob, { template: "hotel-kpi-alert" }>;
+    const alert = await renderEmail(job, FALLBACK_CABINET);
+    expect(alert.subject).toContain("Alertes KPI hôtelier");
+    expect(alert.text).toContain("réservé au consultant");
+    expect(alert.text).toContain("Marge GOP inférieure à 30 %.");
+    expect(alert.text).toContain("30 000 FCFA");
+    expect(alert.text).toContain("40,0 %");
+
+    const missing = await renderEmail(
+      { ...job, data: { ...job.data, revpar: null, trevpar: null, goppar: null, gopMarginPct: null } },
+      FALLBACK_CABINET,
+    );
+    expect(missing.text).toContain("RevPAR : —");
+    expect(missing.text).not.toMatch(/NaN|Infinity/);
   });
 });
 
