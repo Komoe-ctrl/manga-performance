@@ -98,7 +98,7 @@ Les variables d'environnement sont validées au démarrage (`packages/core/src/e
 - **Blog** : le JSON TipTap est la source de vérité ; le HTML est généré **et assaini** (liste blanche stricte,
   `sanitize-html`) à chaque enregistrement. Slug translittéré et unique, figé une fois l'article publié.
   Publier, modifier un article publié ou le supprimer rafraîchit `/blog`, l'article, l'accueil et le sitemap
-  (`revalidatePath`). Les couvertures PNG/JPG vont sous `public/blog/`, **seul préfixe public** du bucket
+  (`revalidatePath`). Les couvertures PNG/JPG vont sous `public/blog/` et les logos des références sous `public/references/`, **seuls préfixes publics** du bucket
   (`pnpm storage:setup` applique la politique de lecture ; le reste reste privé).
 - **Newsletter** en double opt-in (`POST /api/newsletter/subscribe`, lien de confirmation à usage unique de 48 h),
   désinscription en un clic par lien signé (`List-Unsubscribe` + `List-Unsubscribe-Post`). Une confirmation crée

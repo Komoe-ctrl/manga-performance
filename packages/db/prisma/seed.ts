@@ -4,6 +4,7 @@ import { textToTiptap } from "@manga/core/rich-text";
 import { SEQUENCE_TEMPLATES } from "@manga/emails/sequence-templates";
 import { createTokenStore } from "../src/auth-tokens";
 import { createPrismaClient, type PrismaClient } from "../src/index";
+import { seedStarterReference } from "../src/references";
 
 // The repository-level .env is the single source of configuration.
 try {
@@ -70,6 +71,7 @@ async function main() {
   try {
     await seedAdmin(prisma, adminEmail, appUrl);
     await seedSequences(prisma);
+    console.log((await seedStarterReference(prisma)) ? "FELKAT created as a draft reference (not published)." : "FELKAT already exists: skipped.");
   } finally {
     await prisma.$disconnect();
   }

@@ -324,3 +324,43 @@ export const scrapeFinishSchema = z.strictObject({
 });
 
 export type ScrapeResultItem = z.output<typeof scrapeResultItemSchema>;
+
+// ---------------------------------------------------------------------------
+// Références clients et témoignages (site public)
+// ---------------------------------------------------------------------------
+
+/** Only web addresses: never `javascript:` or `data:` in a link shown to the public. */
+const isWebUrl = (value: string) => /^https?:\/\/[^\s/$.?#][^\s]*$/i.test(value);
+
+export const referenceInputSchema = z.object({
+  name: text(120).min(1),
+  sector: text(80).min(1),
+  description: text(500).min(1),
+  /** Key of a logo uploaded under `public/references/`. */
+  logoKey: z.string().max(300).nullish(),
+  /** Optional: an empty field means no link. */
+  url: z
+    .string()
+    .trim()
+    .max(300)
+    .nullish()
+    .refine((value) => !value || isWebUrl(value), "Adresse web invalide (https://…).")
+    .transform((value) => value || null),
+  displayOrder: z.number().int().min(0).max(9999).default(0),
+  published: z.boolean(),
+  /** The client agrees to be named: required to publish. */
+  clientAuthorization: z.boolean(),
+});
+
+export const testimonialInputSchema = z.object({
+  quote: text(800).min(1),
+  author: text(120).min(1),
+  authorRole: text(120).min(1),
+  referenceId: id,
+  published: z.boolean(),
+  /** The author's written permission: required to publish. */
+  writtenAuthorization: z.boolean(),
+});
+
+export type ReferenceInput = z.input<typeof referenceInputSchema>;
+export type TestimonialInput = z.input<typeof testimonialInputSchema>;

@@ -113,6 +113,9 @@ export function attachmentDisposition(filename: string): string {
 /** Blog covers live under the only public prefix of the bucket (spec, 6.8). */
 export const PUBLIC_BLOG_PREFIX = "public/blog/";
 
+/** Client logos shown on the public site: the second (and last) public prefix of the bucket. */
+export const PUBLIC_REFERENCES_PREFIX = "public/references/";
+
 /** Public files are images only: nothing that a browser could execute. */
 export const PUBLIC_IMAGE_KINDS: readonly FileKind[] = ["png", "jpg"];
 
@@ -123,4 +126,13 @@ export function newPublicBlogKey(extension: string): string {
 /** True for `public/blog/{name}`: one level, no escape. */
 export function isBlogCoverKey(key: string): boolean {
   return key.startsWith(PUBLIC_BLOG_PREFIX) && !key.includes("..") && !key.slice(PUBLIC_BLOG_PREFIX.length).includes("/") && key.length > PUBLIC_BLOG_PREFIX.length;
+}
+
+export function newPublicReferenceLogoKey(extension: string): string {
+  return `${PUBLIC_REFERENCES_PREFIX}${randomBytes(18).toString("base64url")}.${extension}`;
+}
+
+/** True for `public/references/{name}`: one level, no escape. */
+export function isReferenceLogoKey(key: string): boolean {
+  return key.startsWith(PUBLIC_REFERENCES_PREFIX) && !key.includes("..") && !key.slice(PUBLIC_REFERENCES_PREFIX.length).includes("/") && key.length > PUBLIC_REFERENCES_PREFIX.length;
 }

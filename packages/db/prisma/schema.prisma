@@ -76,21 +76,21 @@ enum PaymentMethod {
 /// Better Auth tables (user, session, account, verification, twoFactor) plus our own
 /// fields on user: role, clientId, and the login lockout counters.
 model User {
-  id               String      @id @default(cuid(2))
+  id               String             @id @default(cuid(2))
   name             String
-  email            String      @unique @db.Citext
-  emailVerified    Boolean     @default(false)
+  email            String             @unique @db.Citext
+  emailVerified    Boolean            @default(false)
   image            String?
-  role             Role        @default(CLIENT_DIRECTION)
+  role             Role               @default(CLIENT_DIRECTION)
   clientId         String?
-  client           Client?     @relation(fields: [clientId], references: [id])
-  twoFactorEnabled Boolean     @default(false)
-  failedLoginCount Int         @default(0)
-  lockedUntil      DateTime?   @db.Timestamptz(3)
+  client           Client?            @relation(fields: [clientId], references: [id])
+  twoFactorEnabled Boolean            @default(false)
+  failedLoginCount Int                @default(0)
+  lockedUntil      DateTime?          @db.Timestamptz(3)
   /// Set when the firm disables a client's access to the portal.
-  disabledAt       DateTime?   @db.Timestamptz(3)
-  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+  disabledAt       DateTime?          @db.Timestamptz(3)
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
   sessions         Session[]
   accounts         Account[]
   twoFactors       TwoFactor[]
@@ -571,15 +571,15 @@ model CollectionPlan {
 }
 
 model CollectionPeriod {
-  id             String           @id @default(cuid(2))
+  id             String         @id @default(cuid(2))
   planId         String
-  plan           CollectionPlan   @relation(fields: [planId], references: [id])
-  periodStart    DateTime         @db.Timestamptz(3)
-  periodEnd      DateTime         @db.Timestamptz(3)
-  dueAt          DateTime         @db.Timestamptz(3)
-  status         PeriodStatus     @default(ATTENDU)
-  remindersSent  Int              @default(0)
-  lastReminderAt DateTime?        @db.Timestamptz(3)
+  plan           CollectionPlan @relation(fields: [planId], references: [id])
+  periodStart    DateTime       @db.Timestamptz(3)
+  periodEnd      DateTime       @db.Timestamptz(3)
+  dueAt          DateTime       @db.Timestamptz(3)
+  status         PeriodStatus   @default(ATTENDU)
+  remindersSent  Int            @default(0)
+  lastReminderAt DateTime?      @db.Timestamptz(3)
   submissions    Submission[]
 
   @@unique([planId, periodStart])
@@ -610,4 +610,48 @@ model Submission {
   reviewedBy      String?
 
   @@unique([periodId, version])
+}
+
+// ---------------------------------------------------------------------------
+// Références clients et témoignages (site public, gérés dans /admin/references)
+// ---------------------------------------------------------------------------
+
+/// Un client dont on peut citer le nom. Publiable seulement avec son autorisation (contrainte SQL).
+model Reference {
+  id                  String        @id @default(cuid(2))
+  name                String
+  sector              String
+  description         String
+  /// Logo téléversé sous `public/references/` (PNG ou JPG).
+  logoKey             String?
+  url                 String?
+  displayOrder        Int           @default(0)
+  published           Boolean       @default(false)
+  /// Le client autorise la citation de son nom et de son logo : obligatoire pour publier.
+  clientAuthorization Boolean       @default(false)
+  testimonials        Testimonial[]
+  createdAt           DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime      @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?     @db.Timestamptz(3)
+
+  @@index([published, displayOrder])
+}
+
+/// Citation d'un client, rattachée à une référence. Publiable seulement avec l'autorisation écrite (contrainte SQL).
+model Testimonial {
+  id                   String    @id @default(cuid(2))
+  quote                String
+  author               String
+  authorRole           String
+  referenceId          String
+  reference            Reference @relation(fields: [referenceId], references: [id])
+  /// Autorisation écrite de l'auteur de la citation : obligatoire pour publier.
+  writtenAuthorization Boolean   @default(false)
+  published            Boolean   @default(false)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt            DateTime? @db.Timestamptz(3)
+
+  @@index([referenceId])
+  @@index([published])
 }

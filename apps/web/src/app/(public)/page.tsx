@@ -5,11 +5,12 @@ import { BlogList } from "@/components/public/blog";
 import { NewsletterForm } from "@/components/public/newsletter-form";
 import { Marquee, HeroVisual } from "@/components/public/motion";
 import { CountUp, Typewriter } from "@/components/public/motion-client";
-import { MoreLabel, MoreLink } from "@/components/shared/more-link";
+import { MoreLabel } from "@/components/shared/more-link";
+import { TrustedBySection } from "@/components/public/references";
 import { Section } from "@/components/public/section";
 import { AboutTeaser, Formulas, ProblemChips } from "@/components/public/profile-sections";
 import { consultant, sectors } from "@/lib/content/profile";
-import { contactInfo, socialLinks, keyFigures, references, services, testimonials } from "@/lib/content/site";
+import { contactInfo, socialLinks, keyFigures, services } from "@/lib/content/site";
 
 export const metadata: Metadata = {
   title: "Audit, Data et Contrôle de Gestion à Abidjan",
@@ -111,23 +112,7 @@ export default function HomePage() {
         </dl>
       </Section>
 
-      <Section title="Références et témoignages">
-        <div className="reveal grid gap-4 md:grid-cols-3">
-          {references.slice(0, 2).map((r) => (
-            <div key={r.sector} className="card-lift rounded-lg border border-border p-4">
-              <p className="text-xs font-medium text-warning">{r.sector}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{r.result}</p>
-            </div>
-          ))}
-          {testimonials.slice(0, 1).map((t) => (
-            <blockquote key={t.author} className="card-lift rounded-lg bg-muted p-4 text-sm">
-              <p>{t.quote}</p>
-              <footer className="mt-2 text-xs text-muted-foreground">— {t.author}</footer>
-            </blockquote>
-          ))}
-        </div>
-        <MoreLink href="/references" className="mt-5">Toutes les références</MoreLink>
-      </Section>
+      <TrustedBySection />
 
       <Section title="Derniers articles" tone="muted">
         <div className="reveal">
