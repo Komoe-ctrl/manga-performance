@@ -236,3 +236,25 @@ export async function getHotelKpiResultsAction(input: unknown) {
   const data = parseInput(z.object({ periodId: id, version: z.number().int().positive().optional() }), input);
   return runAdmin(() => getCollection().hotelKpis.results(data.periodId, data.version));
 }
+
+// ---- pilote hôtellerie : écrans réels et visibilité client après validation -------------------
+
+/** Admin : tous les résultats ; direction et analyste : seulement les versions validées de leur client. */
+export async function getPilotResultsAction(input: unknown) {
+  const data = parseInput(z.object({ clientId: id.optional() }), input ?? {});
+  return runAdminOrClient(async (session) => {
+    if (session.role === "ADMIN") {
+      if (data.clientId && !(await getPrisma().client.findUnique({ where: { id: data.clientId }, select: { id: true } }))) throw new DomainError("NOT_FOUND", "Client introuvable.");
+      return getCollection().pilot.results({ clientId: data.clientId ?? null, clientOnly: false });
+    }
+    // Le contributeur n'a pas accès aux résultats : le périmètre vient de la session, jamais du navigateur.
+    if (session.role === "CLIENT_CONTRIBUTEUR") throw new DomainError("FORBIDDEN", "Accès réservé à la direction et à l'analyste.");
+    return getCollection().pilot.results({ clientId: session.clientId, clientOnly: true });
+  });
+}
+
+/** Validation du consultant : la dernière version calculée devient visible côté client. */
+export async function validatePilotPeriodAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id }), input);
+  return runAdmin((admin) => getCollection().pilot.validate(data.periodId, admin.userId));
+}

@@ -59,8 +59,8 @@ export function ClientCollection() {
         <>
           {role !== "CLIENT_ANALYSTE" && <Deposits rows={data.data.rows} role={role} onChanged={() => setVersion((v) => v + 1)} />}
           {role !== "CLIENT_CONTRIBUTEUR" && <ReadOnlyMatrix rows={data.data.rows} months={data.data.months} analyst={role === "CLIENT_ANALYSTE"} />}
-          {/* Pilot results are demo data until the database wiring (steps B8 to B10). */}
-          {role !== "CLIENT_CONTRIBUTEUR" && !USE_DB && data.data.rows.some((r) => r.entity.sector === "HOTELLERIE") && <PilotClient />}
+          {/* Direction and analysts only, in read-only mode; the server sends validated versions only. */}
+          {role !== "CLIENT_CONTRIBUTEUR" && data.data.rows.some((r) => r.entity.sector === "HOTELLERIE") && <PilotClient />}
         </>
       )}
     </div>

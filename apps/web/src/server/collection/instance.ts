@@ -6,6 +6,7 @@ import { createCpraService } from "./cpra-service";
 import { createEntityService } from "./entity-service";
 import { createHotelKpiService } from "./hotel-kpi-service";
 import { createPlanService } from "./plan-service";
+import { createPilotService } from "./pilot-service";
 import { createCollectionReadService } from "./read-service";
 import { createSubmissionService } from "./submission-service";
 
@@ -24,6 +25,7 @@ export function getCollection() {
     plans: createPlanService({ prisma }),
     cpra: createCpraService({ prisma }),
     hotelKpis: createHotelKpiService({ prisma, queue, notification: { to: env.ADMIN_NOTIFICATION_EMAIL, appUrl: env.APP_URL } }),
+    pilot: createPilotService({ prisma }),
     submissions: createSubmissionService({ prisma, storage: getStorage(env), queue }),
   };
 }

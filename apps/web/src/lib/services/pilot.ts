@@ -10,7 +10,9 @@ import {
   type PilotHotel,
   type PilotParams,
 } from "@/lib/mock/pilot";
-import { ServiceError } from "./data-source";
+import * as actions from "@/server/actions/collection";
+import type { CpraParamsView } from "@/server/collection/cpra-service";
+import { ServiceError, USE_DB, unwrap } from "./data-source";
 import { latency } from "./store";
 
 /*
@@ -19,15 +21,39 @@ import { latency } from "./store";
  * remplacera ces fonctions sans changer leurs signatures.
  */
 
+export type { EcartRow, HotelMonthResult, PilotHotel } from "@/lib/mock/pilot";
+
+/** Période calculée du pilote : le consultant valide chaque version avant exposition au client. */
+export interface PilotPeriodInfo {
+  id: string;
+  hotelId: string;
+  hotelName: string;
+  clientId: string;
+  clientName: string;
+  monthKey: string;
+  monthLabel: string;
+  templateId: string;
+  version: number | null;
+  computedAt: string | null;
+  computedBy: string | null;
+  note: string | null;
+  validatedAt: string | null;
+  status: string;
+}
+
 export interface PilotResults {
   version: number;
-  /** Les paramètres ont été modifiés depuis ce calcul : un recalcul est nécessaire. */
+  /** Les paramètres ont été modifiés depuis ce calcul : un recalcul est nécessaire (démo). */
   stale: boolean;
   hotels: PilotHotel[];
   months: { key: string; label: string }[];
   results: HotelMonthResult[];
   /** Mois visibles du client (validés par le consultant). */
   validatedUntil: string;
+  /** Présent en mode `db` : périodes, versions et état de validation. */
+  clients?: { id: string; name: string }[];
+  clientId?: string | null;
+  periods?: PilotPeriodInfo[];
 }
 
 export interface PilotVersionInfo {
@@ -43,6 +69,26 @@ const months = PILOT_MONTHS.map(({ key, label }) => ({ key, label }));
 
 export const getPilotParams = (): Promise<PilotParams> => latency(() => structuredClone(pilotState.draft));
 
+/** Paramètres réels du pilote (mode `db`) : catalogue, conversions, normes datées et facteurs long séjour. */
+export const getPilotParamsDb = (clientId?: string): Promise<CpraParamsView> =>
+  USE_DB ? unwrap(actions.getCpraParamsAction({ clientId: clientId ?? "" })) : Promise.reject(new ServiceError("Paramètres disponibles avec la base de données.", "VALIDATION"));
+
+/** Corrige un facteur de conversion manquant (le badge rouge disparaît au recalcul). */
+export const savePilotConversion = (productId: string, deliveryUnit: string, factor: number | null): Promise<void> =>
+  USE_DB ? unwrap(actions.setCpraConversionAction({ productId, deliveryUnit, factor })).then(() => undefined) : Promise.reject(new ServiceError("Enregistrement disponible avec la base de données.", "VALIDATION"));
+
+export const savePilotProduct = (input: { clientId: string; code: string; label: string; referenceUnit: "unite" | "ml"; active?: boolean }): Promise<{ id: string }> =>
+  USE_DB ? unwrap(actions.saveCpraProductAction(input)) : Promise.reject(new ServiceError("Enregistrement disponible avec la base de données.", "VALIDATION"));
+
+export const addPilotNorm = (input: { productId: string; entityId: string | null; validFrom: string; normPerClient: number; nonUserRate: number; unitCostFcfa: number }): Promise<void> =>
+  USE_DB ? unwrap(actions.addCpraNormAction(input)).then(() => undefined) : Promise.reject(new ServiceError("Enregistrement disponible avec la base de données.", "VALIDATION"));
+
+export const setPilotLongStayFactor = (input: { entityId: string; validFrom: string; factor: number }): Promise<void> =>
+  USE_DB ? unwrap(actions.setLongStayFactorAction(input)).then(() => undefined) : Promise.reject(new ServiceError("Enregistrement disponible avec la base de données.", "VALIDATION"));
+
+export const savePilotBounds = (input: { clientId: string; strongUnder: number; under: number; overFrom: number; strongOver: number }): Promise<void> =>
+  USE_DB ? unwrap(actions.saveCpraBoundsAction(input)).then(() => undefined) : Promise.reject(new ServiceError("Enregistrement disponible avec la base de données.", "VALIDATION"));
+
 /** Enregistre le brouillon des paramètres. Les résultats ne changent qu'au prochain recalcul. */
 export const savePilotParams = (params: PilotParams): Promise<void> =>
   latency(() => {
@@ -57,7 +103,11 @@ export const savePilotParams = (params: PilotParams): Promise<void> =>
   });
 
 export const getPilotVersions = (): Promise<PilotVersionInfo[]> =>
-  latency(() => pilotState.versions.map(({ version, at, by, note }) => ({ version, at, by, note })).reverse());
+  USE_DB
+    ? getPilotResults().then((data) =>
+        [...new Map((data.periods ?? []).filter((p) => p.version !== null && p.computedAt).map((p) => [p.version!, { version: p.version!, at: p.computedAt!, by: p.computedBy ?? "", note: p.note ?? "" }])).values()].sort((a, b) => b.version - a.version),
+      )
+    : latency(() => pilotState.versions.map(({ version, at, by, note }) => ({ version, at, by, note })).reverse());
 
 /** Recalcul explicite : une nouvelle version est créée, les anciennes restent consultables (avenant §9). */
 export const recomputePilot = (note: string): Promise<number> =>
@@ -67,19 +117,34 @@ export const recomputePilot = (note: string): Promise<number> =>
     return version;
   });
 
-export const getPilotResults = (version?: number): Promise<PilotResults> =>
-  latency(() => {
-    const chosen = version ? pilotState.versions.find((v) => v.version === version) : latest();
-    if (!chosen) throw new ServiceError("Version de calcul introuvable.", "NOT_FOUND");
-    return { version: chosen.version, stale: !same(pilotState.draft, chosen.params), hotels: pilotHotels, months, results: resultsFor(chosen), validatedUntil: VALIDATED_UNTIL };
-  });
+/** Recalcul d'une période réelle : le moteur CPRA ou celui des KPI selon le modèle du plan. */
+export const recomputePilotPeriod = async (periodId: string, templateId: string, note: string): Promise<{ version: number }> => {
+  if (!USE_DB) throw new ServiceError("Recalcul disponible avec la base de données.", "VALIDATION");
+  if (templateId === "hotel_consommables_cpro") return unwrap(actions.recomputeCpraAction({ periodId, note }));
+  return unwrap(actions.recomputeHotelKpisAction({ periodId, note }));
+};
+
+/** Validation du consultant : la version devient visible dans l'espace client. */
+export const validatePilotPeriod = (periodId: string): Promise<void> =>
+  USE_DB ? unwrap(actions.validatePilotPeriodAction({ periodId })).then(() => undefined) : Promise.reject(new ServiceError("Validation disponible avec la base de données.", "VALIDATION"));
+
+export const getPilotResults = (version?: number, clientId?: string): Promise<PilotResults> =>
+  USE_DB
+    ? unwrap(actions.getPilotResultsAction({ clientId }))
+    : latency(() => {
+        const chosen = version ? pilotState.versions.find((v) => v.version === version) : latest();
+        if (!chosen) throw new ServiceError("Version de calcul introuvable.", "NOT_FOUND");
+        return { version: chosen.version, stale: !same(pilotState.draft, chosen.params), hotels: pilotHotels, months, results: resultsFor(chosen), validatedUntil: VALIDATED_UNTIL };
+      });
 
 /**
  * Vue du client (direction et analyste, lecture seule) : dernière version, mois validés uniquement
  * (défaut de l'avenant : visibles après validation du consultant).
  */
 export const getClientPilotResults = (): Promise<PilotResults> =>
-  latency(() => {
+  USE_DB
+    ? unwrap(actions.getPilotResultsAction({}))
+    : latency(() => {
     const current = latest();
     const allowed = PILOT_MONTHS.filter((m) => m.key <= VALIDATED_UNTIL).map((m) => m.key as string);
     return {

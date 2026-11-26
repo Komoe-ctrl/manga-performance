@@ -702,9 +702,13 @@ model CpraResult {
   computedBy     String?
   computedAt     DateTime         @default(now()) @db.Timestamptz(3)
   version        Int
+  /// Validation du consultant : les résultats ne sont visibles par le client qu'après validation (avenant §10).
+  validatedAt    DateTime?        @db.Timestamptz(3)
+  validatedBy    String?
 
   @@unique([periodId, productId, version])
   @@index([submissionId])
+  @@index([periodId, version])
 }
 
 /// Résultat figé des KPI d'un hôtel pour une période. Un recalcul crée une nouvelle version, l'ancienne est conservée.
@@ -726,7 +730,10 @@ model HotelKpiResult {
   note           String?
   computedBy     String?
   computedAt     DateTime         @default(now()) @db.Timestamptz(3)
+  /// Validation du consultant : les KPI ne sont visibles par le client qu'après validation (avenant §10).
+  validatedAt    DateTime?        @db.Timestamptz(3)
+  validatedBy    String?
 
   @@unique([periodId, version])
-  @@index([submissionId])
+  @@index([submissionId, version])
 }

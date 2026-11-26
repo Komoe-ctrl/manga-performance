@@ -20,14 +20,17 @@ const ALERT_STYLE: Record<HotelAlertLevel, { icon: typeof Info; tone: string; la
  * KPI hôteliers (avenant §10 et §11 bis) : par hôtel et par mois, cartes avec comparaison au mois précédent,
  * alertes, structure des coûts. Le GOP est calculé par la plateforme, jamais saisi.
  */
-export function KpiView({ data }: { data: PilotResults }) {
-  const [hotel, setHotel] = useState(data.hotels[0]!.id);
-  const [month, setMonth] = useState(data.months.at(-1)?.key ?? "");
+export function KpiView({ data, showAlerts = true }: { data: PilotResults; showAlerts?: boolean }) {
+  // En base, un mois peut n'avoir que des écarts CPRO / CPRA : on ne propose que les mois avec KPI.
+  const hotels = data.hotels.filter((h) => data.results.some((r) => r.hotelId === h.id && r.hasKpis !== false));
+  const months = data.months.filter((m) => data.results.some((r) => r.monthKey === m.key && r.hasKpis !== false));
+  const [hotel, setHotel] = useState(hotels[0]?.id ?? "");
+  const [month, setMonth] = useState(months.at(-1)?.key ?? "");
 
-  const index = data.months.findIndex((m) => m.key === month);
-  const current = data.results.find((r) => r.hotelId === hotel && r.monthKey === month);
-  const previous = index > 0 ? data.results.find((r) => r.hotelId === hotel && r.monthKey === data.months[index - 1]!.key) : undefined;
-  if (!current) return null;
+  const index = months.findIndex((m) => m.key === month);
+  const current = data.results.find((r) => r.hotelId === hotel && r.monthKey === month && r.hasKpis !== false);
+  const previous = index > 0 ? data.results.find((r) => r.hotelId === hotel && r.monthKey === months[index - 1]!.key && r.hasKpis !== false) : undefined;
+  if (!current || hotels.length === 0 || months.length === 0) return null;
   const k = current.kpis;
   const p = previous?.kpis;
 
@@ -55,12 +58,12 @@ export function KpiView({ data }: { data: PilotResults }) {
       <div className="flex flex-wrap items-end gap-3">
         <Field label="Hôtel" htmlFor="kpi-hotel">
           <Select id="kpi-hotel" value={hotel} onChange={(e) => setHotel(e.target.value)}>
-            {data.hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+            {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
           </Select>
         </Field>
         <Field label="Mois" htmlFor="kpi-month">
           <Select id="kpi-month" value={month} onChange={(e) => setMonth(e.target.value)}>
-            {data.months.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+            {months.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
           </Select>
         </Field>
         <p className="ml-auto text-sm text-muted-foreground">{num(k.chambresDisponibles)} chambres disponibles sur la période</p>
@@ -90,25 +93,27 @@ export function KpiView({ data }: { data: PilotResults }) {
         })}
       </ul>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section aria-label="Alertes" className="space-y-2 rounded-xl border border-border bg-muted/30 p-4">
-          <h3 className="font-semibold text-primary">Alertes du mois</h3>
-          {current.alerts.length === 0 && <p className="text-sm text-success">Aucune alerte : les indicateurs sont dans les seuils.</p>}
-          <ul className="space-y-2">
-            {current.alerts.map((a) => {
-              const { icon: Icon, tone, label } = ALERT_STYLE[a.level];
-              return (
-                <li key={a.code} className={cn("flex gap-3 rounded-lg border p-3", tone)}>
-                  <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
-                    <p className="text-sm text-foreground">{a.message}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+      <div className={cn("grid gap-4", showAlerts && "lg:grid-cols-2")}>
+        {showAlerts && (
+          <section aria-label="Alertes" className="space-y-2 rounded-xl border border-border bg-muted/30 p-4">
+            <h3 className="font-semibold text-primary">Alertes du mois</h3>
+            {current.alerts.length === 0 && <p className="text-sm text-success">Aucune alerte : les indicateurs sont dans les seuils.</p>}
+            <ul className="space-y-2">
+              {current.alerts.map((a) => {
+                const { icon: Icon, tone, label } = ALERT_STYLE[a.level];
+                return (
+                  <li key={a.code} className={cn("flex gap-3 rounded-lg border p-3", tone)}>
+                    <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
+                      <p className="text-sm text-foreground">{a.message}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         <figure className="rounded-xl border border-border bg-background p-4">
           <figcaption className="mb-2 font-semibold text-primary">Structure des revenus d&apos;exploitation</figcaption>
