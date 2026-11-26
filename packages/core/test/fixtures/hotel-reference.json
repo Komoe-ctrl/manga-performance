@@ -1,0 +1,27 @@
+{
+  "note": "Exemple anonymisé du fichier 03 du client : 100 chambres sur 30 jours, 2 250 nuitées.",
+  "entityId": "hotel-reference",
+  "periodStart": "2026-10-01",
+  "input": {
+    "nombreChambres": 100,
+    "chambresVendues": 2250,
+    "caChambres": 90000000,
+    "revenusTotaux": 150000000,
+    "chargesDepartementales": 60000000,
+    "chargesNonReparties": 30000000,
+    "commissionsOta": 13500000,
+    "jours": 30
+  },
+  "expected": {
+    "chambresDisponibles": 3000,
+    "gop": 60000000,
+    "revpar": 30000,
+    "trevpar": 50000,
+    "goppar": 20000,
+    "gopMarginPct": 40,
+    "tauxOccupationPct": 75,
+    "adr": 40000,
+    "poidsOtaPct": 15
+  },
+  "alertCodes": ["ANNEXES_STRONG"]
+}

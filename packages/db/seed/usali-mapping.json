@@ -1,0 +1,20 @@
+[
+  { "poste": "Personnel — chambres", "famille": "DEPARTEMENTALE", "sousCategorie": "Chambres", "impact": "GOP/GOPPAR", "commentaire": "Comprend les salaires et charges du personnel affecté aux chambres." },
+  { "poste": "Fournitures et blanchisserie — chambres", "famille": "DEPARTEMENTALE", "sousCategorie": "Chambres", "impact": "GOP/GOPPAR", "commentaire": "Linge, amenités et produits d'entretien de la chambre." },
+  { "poste": "Personnel — restauration", "famille": "DEPARTEMENTALE", "sousCategorie": "Restauration et boissons", "impact": "GOP/GOPPAR", "commentaire": "Équipe cuisine, salle et bar." },
+  { "poste": "Coût des matières — restauration", "famille": "DEPARTEMENTALE", "sousCategorie": "Restauration et boissons", "impact": "GOP/GOPPAR", "commentaire": "Achats de denrées et boissons consommées." },
+  { "poste": "Personnel — autres départements", "famille": "DEPARTEMENTALE", "sousCategorie": "Autres départements d'exploitation", "impact": "GOP/GOPPAR", "commentaire": "Spa, fitness, boutique, locations de salles." },
+  { "poste": "Commissions OTA et frais de distribution", "famille": "DEPARTEMENTALE", "sousCategorie": "Frais de distribution", "impact": "GOP/GOPPAR", "commentaire": "Commissions versées aux agences en ligne et aux tour-opérateurs." },
+  { "poste": "Marketing et ventes", "famille": "NON_REPARTIE", "sousCategorie": "Frais généraux et administratifs", "impact": "GOP/GOPPAR", "commentaire": "Publicité, promotions et force de vente." },
+  { "poste": "Personnel d'administration", "famille": "NON_REPARTIE", "sousCategorie": "Frais généraux et administratifs", "impact": "GOP/GOPPAR", "commentaire": "Direction, comptabilité, ressources humaines, réception." },
+  { "poste": "Entretien et maintenance", "famille": "NON_REPARTIE", "sousCategorie": "Frais de propriété et entretien", "impact": "GOP/GOPPAR", "commentaire": "Maintenance courante, contrats de service et petits travaux." },
+  { "poste": "Énergie et fluides", "famille": "NON_REPARTIE", "sousCategorie": "Frais de propriété et entretien", "impact": "GOP/GOPPAR", "commentaire": "Électricité, eau, gaz et climatisation." },
+  { "poste": "Assurances", "famille": "NON_REPARTIE", "sousCategorie": "Frais de propriété et entretien", "impact": "GOP/GOPPAR", "commentaire": "Assurances multirisques et responsabilité civile." },
+  { "poste": "Impôts et taxes d'exploitation", "famille": "NON_REPARTIE", "sousCategorie": "Impôts et taxes", "impact": "GOP/GOPPAR", "commentaire": "Taxes locales et redevances liées à l'exploitation." },
+  { "poste": "Loyers", "famille": "NON_REPARTIE", "sousCategorie": "Loyers et charges locatives", "impact": "GOP/GOPPAR", "commentaire": "Loyers des locaux et du matériel pris en location." },
+  { "poste": "Frais informatiques et télécommunications", "famille": "NON_REPARTIE", "sousCategorie": "Frais généraux et administratifs", "impact": "GOP/GOPPAR", "commentaire": "Logiciels, PMS, abonnements et lignes." },
+  { "poste": "Amortissements", "famille": "HORS_EXPLOITATION", "sousCategorie": "Amortissements et dépréciations", "impact": "EBITDA", "commentaire": "Exclu du GOP : financier et comptable, non décaissé." },
+  { "poste": "Intérêts et frais financiers", "famille": "HORS_EXPLOITATION", "sousCategorie": "Produits et charges financiers", "impact": "RESULTAT_NET", "commentaire": "Exclu du GOP et de l'EBITDA." },
+  { "poste": "Impôt sur les sociétés", "famille": "HORS_EXPLOITATION", "sousCategorie": "Impôt sur le résultat", "impact": "RESULTAT_NET", "commentaire": "Exclu du GOP et de l'EBITDA." },
+  { "poste": "Produits et charges exceptionnels", "famille": "HORS_EXPLOITATION", "sousCategorie": "Éléments exceptionnels", "impact": "RESULTAT_NET", "commentaire": "Cessions d'actifs, litiges et éléments non récurrents." }
+]

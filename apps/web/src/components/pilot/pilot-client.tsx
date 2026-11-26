@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAsync } from "@/lib/hooks/use-async";
 import { getClientPilotResults } from "@/lib/services/pilot";
 import { cn } from "@/lib/utils/cn";
-import { ErrorState, LoadingState } from "@/components/shared";
+import { EmptyState, ErrorState, LoadingState } from "@/components/shared";
 import { EcartsView } from "./ecarts-view";
 import { KpiView } from "./kpi-view";
 
@@ -31,7 +31,8 @@ export function PilotClient() {
       </div>
       {data.status === "loading" && <LoadingState />}
       {data.status === "error" && <ErrorState message="Résultats indisponibles." onRetry={data.reload} />}
-      {data.status === "success" && (tab === "ecarts" ? <EcartsView data={data.data} /> : <KpiView data={data.data} />)}
+      {data.status === "success" && data.data.results.length === 0 && <EmptyState message="Aucun résultat validé pour le moment. Un mois apparaît après sa validation par votre consultant." />}
+      {data.status === "success" && data.data.results.length > 0 && (tab === "ecarts" ? <EcartsView data={data.data} /> : <KpiView data={data.data} showAlerts={false} />)}
     </section>
   );
 }

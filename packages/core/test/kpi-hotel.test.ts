@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_COVERAGE_BOUNDS, basePonderee, consumableResult, cpra, cpro } from "../src/kpi/consumables";
-import { hotelAlerts, hotelKpis, type HotelInput } from "../src/kpi/hotel";
+import { hotelAlerts, hotelKpis, type HotelInput, type HotelKpis } from "../src/kpi/hotel";
 
 const month: HotelInput = {
   nombreChambres: 40,
@@ -50,6 +52,17 @@ describe("hotelKpis", () => {
     const loss = hotelKpis({ ...month, chargesDepartementales: 50_000_000 });
     expect(loss.gop).toBe(-2_000_000);
     expect(loss.gopMarginPct).toBeLessThan(0);
+  });
+
+  it("matches the anonymised client example (RevPAR 30 000, TRevPAR 50 000, GOP 60 M, GOPPAR 20 000, margin 40 %)", () => {
+    const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "fixtures/hotel-reference.json"), "utf8")) as {
+      input: HotelInput;
+      expected: Partial<HotelKpis>;
+      alertCodes: string[];
+    };
+    const kpis = hotelKpis(fixture.input);
+    expect(kpis).toMatchObject(fixture.expected);
+    expect(hotelAlerts(kpis).map((a) => a.code)).toEqual(fixture.alertCodes);
   });
 });
 

@@ -9,6 +9,7 @@ import { handleEmailSend } from "./jobs/email-send";
 import { handleFanout } from "./jobs/fanout";
 import { runMarkOverdue, runPaymentReminders } from "./jobs/invoices";
 import { runMarkLate, runOpenPeriods, runReminders, runWeeklyDigest } from "./jobs/collection";
+import { handleHotelCompute } from "./jobs/hotel-compute";
 import { handleParseSubmission } from "./jobs/parse-submission";
 import { runPurgeUnconfirmed, runSequenceDispatch } from "./jobs/sequences";
 import { createS3Reader } from "./storage";
@@ -59,6 +60,9 @@ await boss.work(QUEUES.collectionParseSubmission, { includeMetadata: true }, asy
   for (const job of jobs) {
     await handleParseSubmission({ ...(job.data as { submissionId: string }), finalAttempt: job.retryCount >= job.retryLimit }, { ...deps, storage });
   }
+});
+await boss.work(QUEUES.hotelCompute, async (jobs) => {
+  for (const job of jobs) await handleHotelCompute(job.data as { periodId: string }, deps);
 });
 await boss.work(QUEUES.collectionOpenPeriods, async () => {
   await runOpenPeriods(deps);

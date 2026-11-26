@@ -8,6 +8,9 @@
     "./queue": "./src/queue.ts",
     "./billing-jobs": "./src/billing-jobs.ts",
     "./collection-jobs": "./src/collection-jobs.ts",
+    "./cpra": "./src/cpra.ts",
+    "./hotel-kpi": "./src/hotel-kpi.ts",
+    "./usali": "./src/usali.ts",
     "./marketing": "./src/marketing.ts"
   },
   "scripts": {

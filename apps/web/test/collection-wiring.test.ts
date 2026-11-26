@@ -229,7 +229,7 @@ describe("downloading an original file", () => {
   it("gives a short-lived link within the scope, and a 404 outside", async () => {
     const s = await seed();
     const storage = new MemoryStorage();
-    const service = createSubmissionService({ prisma: db(), storage, queue: { enqueueParseSubmission: async () => undefined } });
+    const service = createSubmissionService({ prisma: db(), storage, queue: { enqueueParseSubmission: async () => undefined, enqueueHotelCompute: async () => undefined } });
     const mine = await s.period(s.planA1.id, 10);
     const theirs = await s.period(s.planB1.id, 10);
     const make = (periodId: string, key: string) => db().submission.create({ data: { periodId, version: 1, templateId: "hotel_mensuel", templateVersion: 1, storageKey: key, originalName: "Octobre 2026.xlsx", sizeBytes: 1, checksum: "x", uploadedBy: "u", status: "VALIDE" } });

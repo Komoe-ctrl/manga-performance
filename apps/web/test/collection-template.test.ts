@@ -9,9 +9,13 @@ const day = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d))
 const PERIOD = { id: "period-oct", start: day(2026, 10, 1), end: day(2026, 10, 31), dueAt: day(2026, 11, 3) };
 const CTX: PeriodContext = { periodStart: PERIOD.start, periodEnd: PERIOD.end };
 
-async function fill(buffer: Buffer, edit: (wb: ExcelJS.Workbook) => void): Promise<Buffer> {
+async function openWorkbook(buffer: Buffer): Promise<ExcelJS.Workbook> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+  return wb;
+}
+async function fill(buffer: Buffer, edit: (wb: ExcelJS.Workbook) => void): Promise<Buffer> {
+  const wb = await openWorkbook(buffer);
   edit(wb);
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
@@ -60,6 +64,28 @@ describe("template route service", () => {
     expect(ok.errors).toEqual([]);
     const wrong = await checkWorkbook({ buffer: filled, template: getTemplate("hotel_mensuel")!, expected: { entityId: s.a1.id, periodId: s.p2.id }, ctx: CTX, secret: SECRET });
     expect(wrong.errors.map((e) => e.code)).toEqual(["META_WRONG_PERIOD"]);
+  });
+
+  it("adds the USALI reference to the hotel template but not to the consommables one", async () => {
+    const s = await seed();
+    const hotel = await openWorkbook((await service().buildForPeriod(actor(s.direction), s.p1.id)).buffer);
+    const instructions: string[] = [];
+    hotel.getWorksheet("Instructions")!.eachRow((row) => row.eachCell((c) => instructions.push(String(c.value))));
+    expect(instructions.join("\n")).toContain("Référentiel USALI (lecture seule)");
+    expect(instructions.join("\n")).toContain("Sous-catégorie USALI");
+
+    const consommables = await db().collectionPeriod.create({
+      data: {
+        planId: (await db().collectionPlan.create({ data: { entityId: s.a1.id, templateId: "hotel_consommables_cpro", startsOn: day(2026, 1, 1) } })).id,
+        periodStart: PERIOD.start,
+        periodEnd: PERIOD.end,
+        dueAt: PERIOD.dueAt,
+      },
+    });
+    const wb = await openWorkbook((await service().buildForPeriod(actor(s.direction), consommables.id)).buffer);
+    const other: string[] = [];
+    wb.getWorksheet("Instructions")!.eachRow((row) => row.eachCell((c) => other.push(String(c.value))));
+    expect(other.join("\n")).not.toContain("Référentiel USALI");
   });
 
   it("lets an assigned contributor download theirs and answers 404 for another entity of the same client", async () => {

@@ -181,3 +181,80 @@ const rulesSchema = z.object({
 export async function saveReminderRulesAction(input: unknown) {
   return runAdmin((admin) => getCollection().plans.saveReminderRules(parseInput(rulesSchema, input), admin.userId));
 }
+
+// ---- pilote hôtellerie : paramètres CPRA et recalcul (admin) -----------------------------
+
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+export async function getCpraParamsAction(input: unknown) {
+  const { clientId } = parseInput(z.object({ clientId: id }), input);
+  return runAdmin(() => getCollection().cpra.getParams(clientId));
+}
+
+export async function saveCpraProductAction(input: unknown) {
+  const data = parseInput(z.object({ clientId: id, code: z.string().max(20), label: z.string().max(80), referenceUnit: z.enum(["unite", "ml"]), active: z.boolean().optional() }), input);
+  return runAdmin((admin) => getCollection().cpra.saveProduct(data, admin.userId));
+}
+
+export async function setCpraConversionAction(input: unknown) {
+  const data = parseInput(z.object({ productId: id, deliveryUnit: z.string().max(40), factor: z.number().nullable() }), input);
+  return runAdmin((admin) => getCollection().cpra.setConversion(data, admin.userId));
+}
+
+export async function addCpraNormAction(input: unknown) {
+  const data = parseInput(z.object({ productId: id, entityId: id.nullable(), validFrom: day, normPerClient: z.number(), nonUserRate: z.number(), unitCostFcfa: z.number() }), input);
+  return runAdmin((admin) => getCollection().cpra.addNorm(data, admin.userId));
+}
+
+export async function setLongStayFactorAction(input: unknown) {
+  const data = parseInput(z.object({ entityId: id, validFrom: day, factor: z.number() }), input);
+  return runAdmin((admin) => getCollection().cpra.setLongStayFactor(data, admin.userId));
+}
+
+export async function saveCpraBoundsAction(input: unknown) {
+  const data = parseInput(z.object({ clientId: id, strongUnder: z.number(), under: z.number(), overFrom: z.number(), strongOver: z.number() }), input);
+  const { clientId, ...bounds } = data;
+  return runAdmin((admin) => getCollection().cpra.saveBounds(clientId, bounds, admin.userId));
+}
+
+export async function recomputeCpraAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id, note: z.string().max(200).default("") }), input);
+  return runAdmin((admin) => getCollection().cpra.recompute(data.periodId, data.note, admin.userId));
+}
+
+export async function getCpraResultsAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id, version: z.number().int().positive().optional() }), input);
+  return runAdmin(() => getCollection().cpra.results(data.periodId, data.version));
+}
+
+export async function recomputeHotelKpisAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id, note: z.string().max(200).default("") }), input);
+  return runAdmin((admin) => getCollection().hotelKpis.recompute(data.periodId, data.note, admin.userId));
+}
+
+export async function getHotelKpiResultsAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id, version: z.number().int().positive().optional() }), input);
+  return runAdmin(() => getCollection().hotelKpis.results(data.periodId, data.version));
+}
+
+// ---- pilote hôtellerie : écrans réels et visibilité client après validation -------------------
+
+/** Admin : tous les résultats ; direction et analyste : seulement les versions validées de leur client. */
+export async function getPilotResultsAction(input: unknown) {
+  const data = parseInput(z.object({ clientId: id.optional() }), input ?? {});
+  return runAdminOrClient(async (session) => {
+    if (session.role === "ADMIN") {
+      if (data.clientId && !(await getPrisma().client.findUnique({ where: { id: data.clientId }, select: { id: true } }))) throw new DomainError("NOT_FOUND", "Client introuvable.");
+      return getCollection().pilot.results({ clientId: data.clientId ?? null, clientOnly: false });
+    }
+    // Le contributeur n'a pas accès aux résultats : le périmètre vient de la session, jamais du navigateur.
+    if (session.role === "CLIENT_CONTRIBUTEUR") throw new DomainError("FORBIDDEN", "Accès réservé à la direction et à l'analyste.");
+    return getCollection().pilot.results({ clientId: session.clientId, clientOnly: true });
+  });
+}
+
+/** Validation du consultant : la dernière version calculée devient visible côté client. */
+export async function validatePilotPeriodAction(input: unknown) {
+  const data = parseInput(z.object({ periodId: id }), input);
+  return runAdmin((admin) => getCollection().pilot.validate(data.periodId, admin.userId));
+}

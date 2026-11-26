@@ -14,9 +14,15 @@ export const QUEUES = {
   collectionMarkLate: "collection.mark-late",
   collectionReminders: "collection.reminders",
   collectionWeeklyDigest: "collection.weekly-digest",
+  hotelCompute: "hotel.compute",
 } as const;
 
 /** Payload of `collection.parse-submission`: the submission is read from the database, never from the job. */
+/** Payload of `hotel.compute`: the accepted deposit of the period is read from the database. */
+export interface HotelComputeJob {
+  periodId: string;
+}
+
 export interface ParseSubmissionJob {
   submissionId: string;
 }
@@ -107,6 +113,20 @@ export const templateSchemas = {
     rejected: z.array(z.object({ client: text(200), entity: text(200), period: text(60) })).max(100),
     adminUrl: url,
   }),
+  /** Alertes KPI hôtelier : consultant seulement, jamais le client (avenant §11 bis). */
+  "hotel-kpi-alert": z.object({
+    entityName: text(200),
+    clientName: text(200),
+    periodLabel: text(60),
+    alerts: z.array(z.object({ code: text(40), level: text(20), message: text(300) })).min(1).max(20),
+    /** Les indicateurs peuvent être absents (division par zéro) : l'email affiche alors « — ». */
+    revpar: z.number().nullable(),
+    trevpar: z.number().nullable(),
+    gop: z.number(),
+    goppar: z.number().nullable(),
+    gopMarginPct: z.number().nullable(),
+    adminUrl: url,
+  }),
 } as const;
 
 export type TemplateName = keyof typeof templateSchemas;
@@ -131,6 +151,7 @@ export const emailJobSchema = z.discriminatedUnion("template", [
   job("collection-rejected"),
   job("collection-repeated-rejection"),
   job("collection-weekly-digest"),
+  job("hotel-kpi-alert"),
   // A marketing email also carries the enrolment it belongs to, for tracking and stop rules.
   z.object({
     template: z.literal("marketing"),

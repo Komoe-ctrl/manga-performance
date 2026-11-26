@@ -222,6 +222,8 @@ export interface HotelMonthResult {
   alerts: HotelAlert[];
   /** Structure des charges du mois, pour le graphique (FCFA). */
   structure: { chargesDepartementales: number; chargesNonReparties: number; gop: number };
+  /** En mode `db` : un mois peut n'avoir que des écarts CPRO / CPRA, sans dépôt KPI. */
+  hasKpis?: boolean;
 }
 
 export function computeHotelMonth(params: PilotParams, data: PilotMonthData, hotelId: string, monthKey: string, previous: { revpar: number | null; goppar: number | null } | null): HotelMonthResult {

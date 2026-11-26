@@ -1,6 +1,7 @@
 import { checkWorkbook, getTemplate, type NormalizedRow, type PeriodContext } from "@manga/core/collection";
 import type { Prisma } from "@manga/db";
 import { periodLabelOf } from "@manga/db/collection-jobs";
+import { CPRA_TEMPLATE_ID, cpraTemplateOptions } from "@manga/db/cpra";
 import type { WorkerDeps } from "../deps";
 
 /** Lecture d'un objet du bucket privé (le worker ne présigne rien : il lit directement). */
@@ -83,7 +84,7 @@ export async function handleParseSubmission(job: ParseJob, deps: ParseDeps): Pro
       templateId: true,
       periodId: true,
       uploadedBy: true,
-      period: { select: { id: true, planId: true, periodStart: true, periodEnd: true, dueAt: true, plan: { select: { entityId: true, entity: { select: { name: true, client: { select: { legalName: true } } } } } } } },
+      period: { select: { id: true, planId: true, periodStart: true, periodEnd: true, dueAt: true, plan: { select: { entityId: true, entity: { select: { name: true, clientId: true, client: { select: { legalName: true } } } } } } } },
     },
   });
   if (!submission || submission.status !== "EN_CONTROLE") return;
@@ -118,6 +119,8 @@ export async function handleParseSubmission(job: ParseJob, deps: ParseDeps): Pro
       periodStart: submission.period.periodStart,
       periodEnd: submission.period.periodEnd,
       previous: (previous?.rows as Record<string, NormalizedRow[]> | null) ?? undefined,
+      // The hotel template draws its product and unit lists from the client's catalogue.
+      ...(submission.templateId === CPRA_TEMPLATE_ID ? { options: await cpraTemplateOptions(prisma, submission.period.plan.entity.clientId) } : {}),
     };
 
     const result = await checkWorkbook({
@@ -143,6 +146,13 @@ export async function handleParseSubmission(job: ParseJob, deps: ParseDeps): Pro
       prisma.collectionPeriod.updateMany({ where: { id: submission.periodId, status: "EN_CONTROLE" }, data: { status } }),
     ]);
     logger.info({ submissionId: submission.id, status, errors: result.errors.length, warnings: result.warnings.length }, "submission checked");
+
+    if (result.ok && submission.templateId === CPRA_TEMPLATE_ID) {
+      // Idempotent job; a failure to queue must not undo the validation (the consultant can recompute).
+      await deps.queue.enqueueHotelCompute({ periodId: submission.periodId }, { dedupeKey: submission.id }).catch((error: unknown) =>
+        logger.error({ submissionId: submission.id, errorName: error instanceof Error ? error.name : "unknown" }, "cpra computation not queued"),
+      );
+    }
 
     if (!result.ok) {
       // The result is saved: a failure to notify must not undo it, nor make the job run again.

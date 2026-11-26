@@ -14,7 +14,9 @@ export async function resetDatabase(): Promise<void> {
   await db().$executeRawUnsafe(
     `TRUNCATE TABLE "User", "Session", "Account", "Verification", "TwoFactor", "Client", "Prospect",
       "Notification", "AuditLog", "Interaction", "FollowUp", "Setting", "InvoiceCounter",
-      "EmailEvent", "Suppression", "NewsletterSubscriber", "SequenceEnrollment", "SequenceStep", "EmailSequence" CASCADE`,
+      "EmailEvent", "Suppression", "NewsletterSubscriber", "SequenceEnrollment", "SequenceStep", "EmailSequence",
+      "HotelKpiResult", "CpraResult", "ProductConversion", "CpraNorm", "EntityCpraSetting", "ClientProduct",
+      "Submission", "CollectionPeriod", "CollectionPlan", "Entity" CASCADE`,
   );
 }
 
@@ -40,6 +42,10 @@ export class MemoryProvider implements EmailProvider {
 export class FakeQueue {
   emails: { job: EmailJob; dedupeKey?: string }[] = [];
   fanouts: { job: FanoutJob; dedupeKey?: string }[] = [];
+  computes: { periodId: string; dedupeKey?: string }[] = [];
+  async enqueueHotelCompute(job: { periodId: string }, options?: { dedupeKey?: string }) {
+    this.computes.push({ ...job, dedupeKey: options?.dedupeKey });
+  }
   async enqueueEmail(job: EmailJob, options?: { dedupeKey?: string }) {
     this.emails.push({ job, dedupeKey: options?.dedupeKey });
   }

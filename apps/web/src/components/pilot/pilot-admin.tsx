@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
-import { EmptyState, ErrorState, LoadingState } from "@/components/shared";
+import { ErrorState, LoadingState } from "@/components/shared";
 import { CpraSettings } from "./cpra-settings";
+import { PilotAdminDb } from "./pilot-admin-db";
 import { EcartsView } from "./ecarts-view";
 import { KpiView } from "./kpi-view";
 
@@ -24,9 +25,8 @@ type Tab = (typeof TABS)[number]["id"];
 
 /** Pilote hôtellerie, côté consultant (avenant §10) : écarts, KPI, paramètres, recalcul versionné. */
 export function PilotAdmin() {
-  // Until the engine is wired to the database (steps B8 to B10), the pilot only exists as a demonstration.
-  if (USE_DB) return <EmptyState message="Le pilote hôtellerie est disponible en démonstration. Son branchement sur les dépôts réels arrive avec le moteur CPRA." />;
-  return <PilotAdminDemo />;
+  // `db` : dépôts réels, versions calculées et validation par le consultant. `mock` : démonstration.
+  return USE_DB ? <PilotAdminDb /> : <PilotAdminDemo />;
 }
 
 function PilotAdminDemo() {

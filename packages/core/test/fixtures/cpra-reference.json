@@ -1,0 +1,39 @@
+{
+  "note": "Exemple chiffré reconstruit à partir des formules du fichier 02 du client, calculé à la main. Ce n'est PAS le jeu de référence du client : la preuve « identique au fichier Excel » reste à faire avec son fichier anonymisé. Aucune donnée réelle.",
+  "entityId": "hotel-reference",
+  "periodStart": "2026-06-01",
+  "longStayFactor": 1.1,
+  "population": { "pass": 1000, "longSejour": 200 },
+  "products": [
+    {
+      "id": "p-ph",
+      "code": "PH",
+      "label": "PH (Papier hygiénique)",
+      "referenceUnit": "unite",
+      "active": true,
+      "conversions": [
+        { "deliveryUnit": "Rouleau", "factor": 1 },
+        { "deliveryUnit": "Paquet", "factor": null }
+      ],
+      "norms": [{ "entityId": null, "validFrom": "2026-01-01", "normPerClient": 1, "nonUserRate": 0.15, "unitCost": 76.5 }]
+    },
+    {
+      "id": "p-javel",
+      "code": "JAVEL",
+      "label": "Javel",
+      "referenceUnit": "ml",
+      "active": true,
+      "conversions": [{ "deliveryUnit": "Bidon 4 L", "factor": 4000 }],
+      "norms": [{ "entityId": null, "validFrom": "2026-01-01", "normPerClient": 9.55, "nonUserRate": 0, "unitCost": 0.6667 }]
+    }
+  ],
+  "deliveries": [
+    { "produit": "PH (Papier hygiénique)", "uniteLivraison": "Rouleau", "quantite": 1100 },
+    { "produit": "Javel", "uniteLivraison": "Bidon 4 L", "quantite": 3 }
+  ],
+  "expected": {
+    "PH": { "cpra": 1037, "cpro": 1100, "ecartVolume": 63, "couverturePct": 106.0752, "ecartValorise": 4820, "status": "SUR" },
+    "JAVEL": { "cpra": 11651, "cpro": 12000, "ecartVolume": 349, "couverturePct": 102.9954, "ecartValorise": 233, "status": "CONFORME" },
+    "totalEcartValorise": 5053
+  }
+}

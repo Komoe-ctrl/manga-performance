@@ -217,6 +217,31 @@ function CollectionWeeklyDigest({ data, cabinet }: { data: Data<"collection-week
   );
 }
 
+function HotelKpiAlert({ data, cabinet }: { data: Data<"hotel-kpi-alert">; cabinet: Cabinet }) {
+  const money = (value: number | null) => (value === null ? "—" : formatFcfa(Math.round(value)));
+  const margin = data.gopMarginPct === null ? "—" : `${data.gopMarginPct.toFixed(1).replace(".", ",")} %`;
+  return (
+    <Layout preview={`${data.alerts.length} alerte(s) KPI : ${data.entityName}`} cabinet={cabinet}>
+      <Title>Alertes KPI hôtelier</Title>
+      <P>
+        Le calcul des KPI de <strong>{data.entityName}</strong> ({data.clientName}, {data.periodLabel}) a déclenché{" "}
+        {plural(data.alerts.length, "alerte", "alertes")}. Ce message est réservé au consultant : aucune alerte n&apos;est envoyée au client.
+      </P>
+      <Text style={{ margin: "18px 0 6px", fontSize: 15, fontWeight: 700, color: COLORS.navy }}>Alertes</Text>
+      {data.alerts.map((alert) => (
+        <Text key={`${alert.code}-${alert.message}`} style={{ margin: "0 0 6px", fontSize: 14, lineHeight: "20px" }}>
+          • [{alert.level}] {alert.message}
+        </Text>
+      ))}
+      <Text style={{ margin: "18px 0 6px", fontSize: 15, fontWeight: 700, color: COLORS.navy }}>Indicateurs</Text>
+      <Text style={{ margin: "0 0 6px", fontSize: 14, lineHeight: "20px" }}>
+        RevPAR : {money(data.revpar)} · TRevPAR : {money(data.trevpar)} · GOP : {money(data.gop)} · GOPPAR : {money(data.goppar)} · Marge GOP : {margin}
+      </Text>
+      <Cta href={data.adminUrl}>Ouvrir le suivi de collecte</Cta>
+    </Layout>
+  );
+}
+
 function Marketing({ data, cabinet }: { data: Data<"marketing">; cabinet: Cabinet }) {
   return (
     <Layout preview={data.subject} cabinet={cabinet}>
@@ -262,6 +287,8 @@ export function buildEmail(job: EmailJob, cabinet: Cabinet): BuiltEmail {
       return { subject: `${job.data.rejections} rejets : ${job.data.entityName}, ${job.data.periodLabel}`, element: <CollectionRepeatedRejection data={job.data} cabinet={cabinet} /> };
     case "collection-weekly-digest":
       return { subject: `Collecte : récapitulatif de la semaine du ${formatDay(job.data.weekOf)}`, element: <CollectionWeeklyDigest data={job.data} cabinet={cabinet} /> };
+    case "hotel-kpi-alert":
+      return { subject: `Alertes KPI hôtelier : ${job.data.entityName}, ${job.data.periodLabel}`, element: <HotelKpiAlert data={job.data} cabinet={cabinet} /> };
     case "daily-digest":
       return {
         subject: `Relances du jour : ${plural(job.data.today.length, "à faire", "à faire")}, ${plural(job.data.overdue.length, "en retard", "en retard")}`,
