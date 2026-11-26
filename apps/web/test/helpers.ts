@@ -20,7 +20,7 @@ export async function resetDatabase(): Promise<void> {
       "Invoice", "InvoiceLine", "Deliverable", "DeliverableDownload", "Message", "Notification",
       "AuditLog", "Interaction", "FollowUp", "SequenceEnrollment", "SequenceStep", "EmailSequence",
       "Entity", "EntityAssignment", "CollectionPlan", "CollectionPeriod", "Submission",
-      "Setting", "InvoiceCounter", "EmailEvent", "Suppression", "NewsletterSubscriber", "BlogPost", "ScrapeResult", "ScrapeJob", rate_limiter CASCADE`,
+      "Reference", "Testimonial", "Setting", "InvoiceCounter", "EmailEvent", "Suppression", "NewsletterSubscriber", "BlogPost", "ScrapeResult", "ScrapeJob", rate_limiter CASCADE`,
   );
 }
 

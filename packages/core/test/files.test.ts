@@ -5,7 +5,11 @@ import {
   attachmentDisposition,
   detectFileKind,
   extensionOf,
+  isBlogCoverKey,
   isKeyOfClient,
+  isReferenceLogoKey,
+  newPublicBlogKey,
+  newPublicReferenceLogoKey,
   kindFromExtension,
   newStorageKey,
   sanitizeFilename,
@@ -142,5 +146,23 @@ describe("attachmentDisposition", () => {
   });
   it("covers every supported kind", () => {
     expect(Object.keys(FILE_KINDS)).toEqual(["pdf", "xlsx", "docx", "png", "jpg"]);
+  });
+});
+
+describe("public image keys", () => {
+  it("keeps each public prefix to one level and never lets a key cross into the other", () => {
+    const logo = newPublicReferenceLogoKey("png");
+    expect(logo).toMatch(/^public\/references\/[A-Za-z0-9_-]{24}\.png$/);
+    expect(isReferenceLogoKey(logo)).toBe(true);
+    expect(isBlogCoverKey(logo)).toBe(false);
+    const cover = newPublicBlogKey("jpg");
+    expect(isBlogCoverKey(cover)).toBe(true);
+    expect(isReferenceLogoKey(cover)).toBe(false);
+  });
+
+  it("refuses escapes, nested paths and the bare prefix", () => {
+    for (const key of ["public/references/", "public/references/a/b.png", "public/references/../x.png", "public/references/..%2f.png".replace("%2f", "/"), "clients/x/logo.png", "/public/references/a.png"]) {
+      expect(isReferenceLogoKey(key)).toBe(false);
+    }
   });
 });

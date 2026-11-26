@@ -1,6 +1,7 @@
 import { contactInfo, DEFAULT_WHATSAPP_MESSAGE } from "@/lib/content/site";
 import * as m from "@/lib/mock/business";
 import * as p from "@/lib/mock/prospects";
+import * as r from "@/lib/mock/references";
 
 /** Store en mémoire (non persisté au rechargement, volontairement). */
 export const db = {
@@ -15,6 +16,8 @@ export const db = {
   deliverables: structuredClone(m.deliverables),
   messages: structuredClone(m.messages),
   blogPosts: structuredClone(m.blogPosts),
+  references: structuredClone(r.references),
+  testimonials: structuredClone(r.testimonials),
   settings: {
     cabinetName: "MANGA PERFORMANCE",
     address: "Abidjan, Côte d'Ivoire",
