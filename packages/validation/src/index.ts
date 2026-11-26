@@ -96,6 +96,21 @@ export const addFollowUpSchema = z.object({
   rule: z.enum(followUpRules).default("manuel"),
 });
 
+const faqItemSchema = z.object({ question: text(200), answer: text(1000) });
+const servicePageSchema = z.object({
+  caseStudy: z.object({ client: text(120), summary: text(1000) }),
+  faq: z.array(faqItemSchema).max(6),
+});
+
+/** Contenu public édité dans l'admin : un champ vide = non fourni = non affiché sur le site. */
+export const publicPagesSchema = z.object({
+  legalForm: text(300),
+  publicationDirector: text(200),
+  host: text(300),
+  privacyText: text(5000),
+  services: z.record(z.string().max(60), servicePageSchema).refine((value) => Object.keys(value).length <= 12, "Trop de pages."),
+});
+
 export const settingsSchema = z.object({
   cabinetName: text(120).min(1),
   address: text(300),
@@ -108,6 +123,9 @@ export const settingsSchema = z.object({
   bankDetails: text(2000),
   whatsappNumber: text(40),
   whatsappMessage: text(500),
+  /** Chiffres clés de l'accueil (par ex. « 10+ ») : un champ vide masque le chiffre. */
+  keyFigures: z.object({ experience: text(30), missions: text(30), sectors: text(30) }),
+  publicPages: publicPagesSchema,
 });
 
 export type CreateProspectInput = z.input<typeof createProspectSchema>;

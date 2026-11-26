@@ -1,6 +1,7 @@
 import { settingsSchema, type Settings } from "@manga/validation";
 import type { PrismaClient } from "@manga/db";
 import { contactInfo, DEFAULT_WHATSAPP_MESSAGE } from "@/lib/content/site";
+import { DEFAULT_KEY_FIGURES, defaultPublicPages } from "@/lib/content/public-profile";
 
 const KEY = "cabinet";
 
@@ -19,6 +20,8 @@ export const DEFAULT_SETTINGS: Settings = {
   bankDetails: "[À fournir par le client]",
   whatsappNumber: contactInfo.whatsappNumber,
   whatsappMessage: DEFAULT_WHATSAPP_MESSAGE,
+  keyFigures: DEFAULT_KEY_FIGURES,
+  publicPages: defaultPublicPages(),
 };
 
 /** Cabinet settings: one JSON value, validated by zod on the way in and out. */

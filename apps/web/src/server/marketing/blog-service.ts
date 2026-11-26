@@ -1,7 +1,9 @@
 import { slugify, uniqueSlug } from "@manga/core";
-import { htmlToText, RichTextError, tiptapToHtml } from "@manga/core/rich-text";
+import { RichTextError, tiptapToHtml } from "@manga/core/rich-text";
 import type { Prisma, PrismaClient } from "@manga/db";
 import type { BlogPostInput } from "@manga/validation";
+import { toPublicPost } from "@/lib/content/blog";
+import { excerptFromContent } from "@/lib/content/provided";
 import type { BlogPost } from "@/lib/types";
 import { DomainError } from "../domain-error";
 import { createUploadService, type UploadTicket } from "../files/upload-service";
@@ -76,7 +78,8 @@ export function createBlogService({ prisma, storage, publicBaseUrl, revalidate, 
         if (error instanceof RichTextError) throw new BlogError("INVALID", error.message);
         throw error;
       }
-      const excerpt = input.excerpt?.trim() || htmlToText(html).slice(0, 180);
+      // Sans extrait saisi : les 160 premiers caractères du contenu.
+      const excerpt = input.excerpt?.trim() || excerptFromContent(html);
       const existing = id ? await prisma.blogPost.findFirst({ where: { id, deletedAt: null } }) : null;
       if (id && !existing) throw new BlogError("NOT_FOUND", "Article introuvable.");
 
@@ -136,13 +139,14 @@ export function createBlogService({ prisma, storage, publicBaseUrl, revalidate, 
 
     async listPublished(): Promise<BlogPost[]> {
       const rows = await prisma.blogPost.findMany({ where: { deletedAt: null, status: "PUBLISHED" }, orderBy: { publishedAt: "desc" } });
-      return rows.map(toFront);
+      // An article without real content is not shown to the public.
+      return rows.map(toFront).map(toPublicPost).filter((post): post is BlogPost => post !== null);
     },
 
     /** Only published articles: drafts are invisible to the public whatever they ask for. */
     async getPublished(idOrSlug: string): Promise<BlogPost | null> {
       const row = await prisma.blogPost.findFirst({ where: { ...byIdOrSlug(idOrSlug), status: "PUBLISHED" } });
-      return row ? toFront(row) : null;
+      return row ? toPublicPost(toFront(row)) : null;
     },
   };
 }

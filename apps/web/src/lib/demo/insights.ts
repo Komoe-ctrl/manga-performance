@@ -1,7 +1,7 @@
 import type { CostPostId, DemoHotelMonth, DemoRecord } from "@/lib/services";
 import { aggregate } from "./compute";
 
-/** Un écart supérieur à ce seuil (en %) entre le prévu et le pratiqué est dit « significatif ». */
+/** Un écart supérieur à ce seuil (en %) entre le réalisé et le budget est dit « significatif ». */
 export const SIGNIFICANT_GAP_PCT = 5;
 
 interface Source {
@@ -34,9 +34,9 @@ export function productMix(src: Source, hotelId: string, months: string[], produ
   return rows.map((r) => ({ ...r, share: total ? (r.ca / total) * 100 : 0 }));
 }
 
-/** Prévu et pratiqué par poste, pour le graphique « budget contre réel ». */
-export function budgetVsActual(gaps: { post: string; cpro: number; cpra: number }[]) {
-  return gaps.map((g) => ({ post: g.post, prevu: g.cpro, reel: g.cpra }));
+/** Budget et réalisé par poste, pour le graphique « budget contre réalisé ». */
+export function budgetVsActual(gaps: { post: string; budget: number; actual: number }[]) {
+  return gaps.map((g) => ({ post: g.post, budget: g.budget, realise: g.actual }));
 }
 
 /** Synthèse par hôtel : résultat, marge et écart au prévisionnel. */
@@ -55,81 +55,6 @@ export function hotelSummary(src: Source & { hotels: readonly { id: string; name
     };
   });
   return rows.sort((a, b) => b.marge - a.marge).map((r, i) => ({ ...r, rang: i + 1 }));
-}
-
-export type InsightLevel = "alerte" | "vigilance" | "positif";
-export interface Insight {
-  level: InsightLevel;
-  title: string;
-  detail: string;
-}
-
-const fcfa = (v: number) => `${Math.round(Math.abs(v)).toLocaleString("fr-FR").replace(/ /g, " ")} FCFA`;
-const pct = (v: number) => `${v.toFixed(1).replace(".", ",")} %`;
-
-interface Totals {
-  marginRate: number;
-  satisfaction: number;
-  breakEvenReached: boolean;
-}
-
-/**
- * Lecture automatique des chiffres, comme le ferait un contrôleur de gestion : ce qui se dégrade,
- * ce qui va bien, où regarder en premier. Règles simples et affichées dans la méthodologie.
- */
-export function buildInsights(input: {
-  cur: Totals;
-  prev: Totals;
-  gaps: { post: string; gap: number; gapPct: number }[];
-  hotels: { hotel: string; marge: number }[];
-  scopeIsAllHotels: boolean;
-}): Insight[] {
-  const { cur, prev, gaps, hotels, scopeIsAllHotels } = input;
-  const out: Insight[] = [];
-
-  const marginDelta = cur.marginRate - prev.marginRate;
-  out.push(
-    marginDelta >= 0.5
-      ? { level: "positif", title: "Marge brute en amélioration", detail: `${pct(cur.marginRate)}, soit ${pct(marginDelta).replace(" %", "")} pt de plus que la période précédente.` }
-      : marginDelta <= -0.5
-        ? { level: "alerte", title: "Marge brute en recul", detail: `${pct(cur.marginRate)}, soit ${pct(Math.abs(marginDelta)).replace(" %", "")} pt de moins que la période précédente : chercher la cause avant la prochaine clôture.` }
-        : { level: "vigilance", title: "Marge brute stable", detail: `${pct(cur.marginRate)}, sans mouvement notable par rapport à la période précédente.` },
-  );
-
-  const worst = [...gaps].sort((a, b) => b.gapPct - a.gapPct)[0];
-  if (worst && worst.gapPct > SIGNIFICANT_GAP_PCT) {
-    out.push({ level: "alerte", title: `Dérive des charges : ${worst.post}`, detail: `${pct(worst.gapPct)} au-dessus du prévisionnel (+${fcfa(worst.gap)}). Au-delà de ${SIGNIFICANT_GAP_PCT} %, l'écart est dit significatif.` });
-  } else if (worst && worst.gapPct > 3) {
-    out.push({ level: "vigilance", title: `Poste à surveiller : ${worst.post}`, detail: `${pct(worst.gapPct)} au-dessus du prévisionnel : sous le seuil de ${SIGNIFICANT_GAP_PCT} %, mais la tendance est à suivre.` });
-  } else {
-    out.push({ level: "positif", title: "Charges maîtrisées", detail: `Aucun poste ne dépasse de plus de 3 % son prévisionnel sur la période.` });
-  }
-
-  const significant = gaps.filter((g) => g.gapPct > SIGNIFICANT_GAP_PCT).length;
-  if (significant > 1) {
-    out.push({ level: "alerte", title: `${significant} postes en écart significatif`, detail: "Plusieurs postes dérivent en même temps : revoir le budget et les engagements de dépenses." });
-  }
-
-  out.push(
-    cur.breakEvenReached
-      ? { level: "positif", title: "Point mort atteint sur la période", detail: "Le chiffre d'affaires couvre les charges fixes et variables avant la fin de la période." }
-      : { level: "alerte", title: "Point mort non atteint", detail: "Le chiffre d'affaires ne couvre pas encore l'ensemble des charges sur la période." },
-  );
-
-  const satisfactionDelta = cur.satisfaction - prev.satisfaction;
-  if (satisfactionDelta <= -0.2) {
-    out.push({ level: "vigilance", title: "Satisfaction clients en baisse", detail: `${cur.satisfaction.toFixed(1)} / 5, en recul de ${Math.abs(satisfactionDelta).toFixed(1)} pt : à rapprocher des écarts d'entretien et de personnel.` });
-  }
-
-  if (scopeIsAllHotels && hotels.length > 1) {
-    const sorted = [...hotels].sort((a, b) => a.marge - b.marge);
-    const low = sorted[0];
-    const high = sorted[sorted.length - 1];
-    if (high.marge - low.marge >= 1) {
-      out.push({ level: "vigilance", title: `Écart de performance entre établissements`, detail: `${low.hotel.split(" (")[0]} (${pct(low.marge)}) est en retrait de ${(high.marge - low.marge).toFixed(1).replace(".", ",")} pt sur ${high.hotel.split(" (")[0]} (${pct(high.marge)}).` });
-    }
-  }
-  return out;
 }
 
 const RECOMMENDATIONS: Record<CostPostId, string> = {

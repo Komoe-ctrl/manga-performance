@@ -2,13 +2,10 @@
 
 import { referenceInputSchema, testimonialInputSchema, uploadRequestSchema } from "@manga/validation";
 import { z } from "zod";
-import { createLogger } from "@manga/core";
-import { DomainError } from "../domain-error";
 import { getReferences } from "../references/instance";
-import { parseInput, runAdmin, type Result } from "./result";
+import { parseInput, runAdmin, runPublic } from "./result";
 
 const idSchema = z.string().min(1).max(64);
-const logger = createLogger({ service: "web" });
 const optionalId = (id: unknown) => (id === null || id === undefined ? undefined : parseInput(idSchema, id));
 
 // ---- back-office (every action starts with `requireAdmin()` through `runAdmin`) -------
@@ -48,16 +45,6 @@ export async function deleteTestimonialAction(id: unknown) {
 }
 
 // ---- public site: published and authorized content only, no session needed ----------
-
-async function runPublic<T>(operation: () => Promise<T>): Promise<Result<T>> {
-  try {
-    return { ok: true, data: await operation() };
-  } catch (error) {
-    if (error instanceof DomainError) return { ok: false, code: error.code, error: error.message };
-    logger.error({ errorName: error instanceof Error ? error.name : "unknown" }, "public action failure");
-    return { ok: false, code: "INTERNAL", error: "Une erreur est survenue." };
-  }
-}
 
 export async function listPublicReferencesAction() {
   return runPublic(() => getReferences().listPublicReferences());

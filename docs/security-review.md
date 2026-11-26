@@ -106,7 +106,17 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
   une clé hors de ce dossier (fichier d'un autre client, couverture du blog) est refusée. L'ancien fichier est supprimé
   quand le logo est remplacé ou retiré.
 - Toute modification passe par des Server Actions d'administration (`runAdmin`) et est journalisée.
-- FELKAT est créée par la migration en **brouillon** (ni publiée ni autorisée, sans logo, description à compléter).
+- FELKAT est créée par la migration en **brouillon** (ni publiée ni autorisée, sans logo), avec son secteur et sa
+  description ; aucun numéro de téléphone n'est enregistré.
+
+## Contenu public non fourni
+
+- Le site public n'affiche **jamais** un texte provisoire (`[À fournir par le client]`…) : un élément dont le contenu
+  n'est pas fourni est masqué (références, témoignages, articles sans vrai contenu, mentions légales, cas client, FAQ),
+  et l'admin le montre avec le badge « Contenu manquant ». Un test parcourt le code du site public pour s'en assurer.
+- Les informations publiques éditables (chiffres clés, mentions légales, cas client, FAQ) sont lues par une action
+  publique qui ne renvoie **que** cette projection : jamais la TVA, les coordonnées bancaires ou le reste des paramètres.
+- Les données structurées `FAQPage` sont échappées (`<` en `<`) : une réponse ne peut pas fermer la balise script.
 
 ## Points à valider ou à surveiller
 

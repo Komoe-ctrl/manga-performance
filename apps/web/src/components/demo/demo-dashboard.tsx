@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format, addDays, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   Bar,
@@ -17,8 +17,10 @@ import {
 } from "recharts";
 import { useAsync } from "@/lib/hooks/use-async";
 import { getDemoDashboard } from "@/lib/services";
-import { aggregate, byHotel, monthlySeries, periods, variances, variation, type Filters, type Granularity } from "@/lib/demo/compute";
-import { SIGNIFICANT_GAP_PCT, actionPlan, budgetVsActual, buildInsights, costMix, hotelSummary, productMix } from "@/lib/demo/insights";
+import { aggregate, byHotel, monthlySeries, periods, variances, type Filters, type Granularity } from "@/lib/demo/compute";
+import { demoHotelReading } from "@/lib/demo/hotel-kpis";
+import { SIGNIFICANT_GAP_PCT, actionPlan, budgetVsActual, costMix, hotelSummary, productMix } from "@/lib/demo/insights";
+import { demoConsumables } from "@/lib/mock/pilot";
 import { COST_POSTS, DEMO_PRODUCTS } from "@/lib/mock/demo-dashboard";
 import { formatFCFA } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -27,7 +29,9 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { ErrorState, LoadingState } from "@/components/shared";
 import { LeadModal } from "./lead-modal";
-import { ActionPlan, BudgetChart, CostMixChart, HotelTable, InsightsPanel, Methodology, ProductMixChart } from "./demo-sections";
+import { EcartsView } from "@/components/pilot/ecarts-view";
+import { ActionPlan, BudgetChart, CostMixChart, HotelTable, Methodology, ProductMixChart } from "./demo-sections";
+import { ConsultantReading, HotelKpiCards } from "./hotel-kpis";
 
 const NAVY = "#1A2B4A";
 const GOLD = "#F5B700";
@@ -63,7 +67,7 @@ export function DemoDashboard() {
     const prev = aggregate(d, filters, p.previous);
     const gaps = variances(d, filters, p.current);
     const summary = hotelSummary(d, filters.productId, p.current);
-    const payroll = gaps.find((g) => g.id === "personnel")?.cpra ?? 0;
+    const payroll = gaps.find((g) => g.id === "personnel")?.actual ?? 0;
     return {
       cur,
       prev,
@@ -74,14 +78,10 @@ export function DemoDashboard() {
       mix: costMix(d, filters, p.current, COST_POSTS),
       products: productMix(d, filters.hotelId, p.current, DEMO_PRODUCTS),
       budget: budgetVsActual(gaps),
-      insights: buildInsights({ cur, prev, gaps, hotels: summary, scopeIsAllHotels: filters.hotelId === "all" }),
+      reading: demoHotelReading(d, filters.hotelId, p.current, p.previous),
       actions: actionPlan(gaps),
-      result: cur.revenue - cur.charges,
-      prevResult: prev.revenue - prev.charges,
       payrollRatio: cur.revenue ? (payroll / cur.revenue) * 100 : 0,
       significantGaps: gaps.filter((g) => g.gapPct > SIGNIFICANT_GAP_PCT).length,
-      lastMonth: p.current[p.current.length - 1],
-      firstMonth: p.current[0],
     };
   }, [data, filters]);
 
@@ -89,13 +89,12 @@ export function DemoDashboard() {
   if (data.status === "error") return <ErrorState message="Impossible de charger la démo." onRetry={data.reload} />;
   if (!view) return null;
 
-  const { cur, prev } = view;
-  const { hotels, products } = data.data;
+  const { cur } = view;
+  const { hotels } = data.data;
   const set = <K extends keyof Filters>(k: K, v: Filters[K]) => setFilters((f) => ({ ...f, [k]: v }));
 
-  const breakEvenDate = cur.breakEvenReached
-    ? format(addDays(parseISO(`${view.firstMonth}-01`), cur.breakEvenDays), "d MMM yyyy", { locale: fr })
-    : "non atteint sur la période";
+  // The consumables block always shows the six last closed months of the three fictitious hotels.
+  const consumables = { version: 1, stale: false, ...demoConsumables(), validatedUntil: "" };
 
   return (
     <div className="space-y-8">
@@ -114,15 +113,6 @@ export function DemoDashboard() {
           </Select>
         </label>
         <label className="text-sm">
-          <span className="mb-1 block font-medium">Produit</span>
-          <Select value={filters.productId} onChange={(e) => set("productId", e.target.value)}>
-            <option value="all">Tous</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </Select>
-        </label>
-        <label className="text-sm">
           <span className="mb-1 block font-medium">Période</span>
           <Select value={filters.granularity} onChange={(e) => set("granularity", e.target.value as Granularity)}>
             <option value="mois">Dernier mois</option>
@@ -135,42 +125,15 @@ export function DemoDashboard() {
         </div>
       </div>
 
-      <section aria-label="Indicateurs clés" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Marge brute" value={`${cur.marginRate.toFixed(1)} %`} delta={cur.marginRate - prev.marginRate} unit="pts" />
-        <Kpi
-          label="CA par collaborateur"
-          value={formatFCFA(cur.revenuePerStaff)}
-          delta={variation(cur.revenuePerStaff, prev.revenuePerStaff)}
-        />
-        {/* TODO: formules du point mort et du taux de couverture à confirmer par le client */}
-        <Kpi
-          label="Point mort"
-          value={formatFCFA(cur.breakEven)}
-          delta={variation(cur.breakEven, prev.breakEven)}
-          hint={`Atteint : ${breakEvenDate}`}
-        />
-        <Kpi
-          label="Taux de satisfaction"
-          value={`${cur.satisfaction.toFixed(1)} / 5`}
-          delta={cur.satisfaction - prev.satisfaction}
-          unit="pt"
-        />
-      </section>
-      <section aria-label="Résultat et ratios" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Résultat de la période" value={formatFCFA(view.result)} delta={variation(view.result, view.prevResult)} />
-        <Kpi label="Charges / CA" value={`${(cur.revenue ? (cur.charges / cur.revenue) * 100 : 0).toFixed(1)} %`} hint="Plus ce ratio est bas, meilleure est la marge." />
-        <Kpi label="Masse salariale / CA" value={`${view.payrollRatio.toFixed(1)} %`} hint="Premier poste de charges : à comparer au budget." />
-        <Kpi
-          label="Postes en écart significatif"
-          value={`${view.significantGaps} / ${view.gaps.length}`}
-          hint={`Seuil : ${SIGNIFICANT_GAP_PCT} % au-dessus du prévisionnel.`}
-        />
-      </section>
-      <p className="-mt-4 text-xs text-muted-foreground">
-        Taux de couverture des charges : {cur.coverageRate.toFixed(0)} % (formule provisoire, à confirmer).
-      </p>
+      <HotelKpiCards kpis={view.reading.kpis} previous={view.reading.previous} />
 
-      <InsightsPanel insights={view.insights} />
+      <ConsultantReading alerts={view.reading.alerts} />
+
+      <section aria-label="Maîtrise des coûts" className="grid gap-4 sm:grid-cols-3">
+        <Kpi label="Charges / revenus" value={`${(cur.revenue ? (cur.charges / cur.revenue) * 100 : 0).toFixed(1).replace(".", ",")} %`} hint="Plus ce ratio est bas, meilleure est la marge." />
+        <Kpi label="Masse salariale / revenus" value={`${view.payrollRatio.toFixed(1).replace(".", ",")} %`} hint="Premier poste de charges : à comparer au budget." />
+        <Kpi label="Postes en écart significatif" value={`${view.significantGaps} / ${view.gaps.length}`} hint={`Seuil : ${SIGNIFICANT_GAP_PCT} % au-dessus du budget.`} />
+      </section>
 
       <section aria-label="Graphiques" className="grid gap-6 lg:grid-cols-2">
         <figure className="rounded-lg border border-border p-4 lg:col-span-2">
@@ -208,7 +171,7 @@ export function DemoDashboard() {
         </figure>
 
         <figure className="rounded-lg border border-border p-4">
-          <figcaption className="mb-2 font-semibold text-primary">Tendance de la marge (%)</figcaption>
+          <figcaption className="mb-2 font-semibold text-primary">Tendance de la GOP Margin (%)</figcaption>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={view.series}>
@@ -216,7 +179,7 @@ export function DemoDashboard() {
                 <XAxis dataKey="month" tickFormatter={monthLabel} fontSize={12} />
                 <YAxis unit=" %" fontSize={12} width={48} domain={["auto", "auto"]} />
                 <Tooltip labelFormatter={(m) => monthLabel(String(m))} formatter={(v) => `${v} %`} />
-                <Line type="monotone" dataKey="marge" name="Marge" stroke={NAVY} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="marge" name="GOP Margin" stroke={NAVY} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -229,29 +192,27 @@ export function DemoDashboard() {
 
       <HotelTable rows={view.summary} />
 
-      <section aria-label="Analyse des écarts">
-        <h2 className="mb-1 text-lg font-bold text-primary">Analyse des écarts</h2>
-        {/* TODO: définitions et formules de CPro / CPra à confirmer par le client */}
-        <p className="mb-3 text-xs text-muted-foreground">
-          CPro (prévisionnel) / CPra (pratiqué) — libellés provisoires, définitions à confirmer.
-        </p>
+      <section aria-label="Écarts par poste de charge">
+        <h2 className="mb-1 text-lg font-bold text-primary">Écarts par poste de charge</h2>
+        <p className="mb-3 text-xs text-muted-foreground">Budget et réalisé de la période, poste par poste. Un écart positif est une dépense au-dessus du budget.</p>
         <div className="relative overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
+            <caption className="sr-only">Budget, réalisé et écart par poste de charge</caption>
             <thead className="bg-muted text-left">
               <tr>
-                <th className="px-3 py-2">Poste</th>
-                <th className="px-3 py-2 text-right">CPro</th>
-                <th className="px-3 py-2 text-right">CPra</th>
-                <th className="px-3 py-2 text-right">Écart</th>
-                <th className="px-3 py-2 text-right">Écart %</th>
+                <th scope="col" className="px-3 py-2">Poste</th>
+                <th scope="col" className="px-3 py-2 text-right">Budget</th>
+                <th scope="col" className="px-3 py-2 text-right">Réalisé</th>
+                <th scope="col" className="px-3 py-2 text-right">Écart</th>
+                <th scope="col" className="px-3 py-2 text-right">Écart %</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {view.gaps.map((g) => (
                 <tr key={g.post}>
                   <td className="px-3 py-2">{g.post}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right">{formatFCFA(g.cpro)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right">{formatFCFA(g.cpra)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right">{formatFCFA(g.budget)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right">{formatFCFA(g.actual)}</td>
                   <td className={cn("whitespace-nowrap px-3 py-2 text-right font-medium", g.gap > 0 ? "text-danger" : "text-success")}>
                     {g.gap > 0 ? "+" : ""}{formatFCFA(g.gap)}
                   </td>
@@ -263,6 +224,16 @@ export function DemoDashboard() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section aria-labelledby="consumables-title" className="space-y-3">
+        <div>
+          <h2 id="consumables-title" className="text-lg font-bold text-primary">Consommables : écarts CPRO / CPRA</h2>
+          <p className="text-sm text-muted-foreground">
+            CPRO : ce qui a été livré. CPRA : la consommation théorique selon la norme et la population accueillie. La couverture est CPRO ÷ CPRA ; l&apos;écart valorisé est positif en cas de sur-distribution.
+          </p>
+        </div>
+        <EcartsView data={consumables} fixedHotel={filters.hotelId} />
       </section>
 
       <ActionPlan items={view.actions} />

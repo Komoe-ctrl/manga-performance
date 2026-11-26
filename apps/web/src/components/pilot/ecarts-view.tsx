@@ -12,8 +12,9 @@ const ALL = "all";
  * Écarts CPRO / CPRA (avenant §10) : hôtels × produits pour un mois, total des écarts valorisés, couverture
  * et écarts valorisés en graphiques, évolution sur 6 mois. Lecture seule côté client.
  */
-export function EcartsView({ data }: { data: PilotResults }) {
-  const [hotel, setHotel] = useState(ALL);
+export function EcartsView({ data, fixedHotel }: { data: PilotResults; /** Filtre d'hôtel imposé par la page (la démo publique) : le sélecteur local disparaît. */ fixedHotel?: string }) {
+  const [pickedHotel, setHotel] = useState(ALL);
+  const hotel = fixedHotel ?? pickedHotel;
   const [month, setMonth] = useState(data.months.at(-1)?.key ?? "");
 
   const hotels = data.hotels.filter((h) => hotel === ALL || h.id === hotel);
@@ -44,12 +45,14 @@ export function EcartsView({ data }: { data: PilotResults }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end gap-3">
-        <Field label="Hôtel" htmlFor="ecart-hotel">
-          <Select id="ecart-hotel" value={hotel} onChange={(e) => setHotel(e.target.value)}>
-            <option value={ALL}>Tous les hôtels</option>
-            {data.hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-          </Select>
-        </Field>
+        {fixedHotel === undefined && (
+          <Field label="Hôtel" htmlFor="ecart-hotel">
+            <Select id="ecart-hotel" value={hotel} onChange={(e) => setHotel(e.target.value)}>
+              <option value={ALL}>Tous les hôtels</option>
+              {data.hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+            </Select>
+          </Field>
+        )}
         <Field label="Mois" htmlFor="ecart-month">
           <Select id="ecart-month" value={month} onChange={(e) => setMonth(e.target.value)}>
             {data.months.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}

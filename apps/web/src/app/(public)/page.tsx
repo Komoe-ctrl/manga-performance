@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { BlogList } from "@/components/public/blog";
+import { LatestPosts } from "@/components/public/blog";
 import { NewsletterForm } from "@/components/public/newsletter-form";
 import { Marquee, HeroVisual } from "@/components/public/motion";
-import { CountUp, Typewriter } from "@/components/public/motion-client";
+import { Typewriter } from "@/components/public/motion-client";
 import { MoreLabel } from "@/components/shared/more-link";
+import { KeyFigures } from "@/components/public/key-figures";
 import { TrustedBySection } from "@/components/public/references";
 import { Section } from "@/components/public/section";
 import { AboutTeaser, Formulas, ProblemChips } from "@/components/public/profile-sections";
 import { consultant, sectors } from "@/lib/content/profile";
-import { contactInfo, socialLinks, keyFigures, services } from "@/lib/content/site";
+import { contactInfo, socialLinks, services } from "@/lib/content/site";
 
 export const metadata: Metadata = {
   title: "Audit, Data et Contrôle de Gestion à Abidjan",
@@ -101,24 +102,11 @@ export default function HomePage() {
 
       <Formulas />
 
-      <Section tone="muted">
-        <dl className="reveal grid grid-cols-2 gap-6 text-center md:grid-cols-4">
-          {keyFigures.map((f) => (
-            <div key={f.label}>
-              <dd className="text-4xl font-extrabold text-primary md:text-5xl"><CountUp value={f.value} /></dd>
-              <dt className="mt-1 text-sm text-muted-foreground">{f.label}</dt>
-            </div>
-          ))}
-        </dl>
-      </Section>
+      <KeyFigures />
 
       <TrustedBySection />
 
-      <Section title="Derniers articles" tone="muted">
-        <div className="reveal">
-          <BlogList limit={3} />
-        </div>
-      </Section>
+      <LatestPosts />
 
       <Section title="Restez informé" intro="Recevez nos conseils de pilotage et de gestion, sans spam.">
         <div className="reveal">

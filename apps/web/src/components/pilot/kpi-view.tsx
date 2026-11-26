@@ -9,7 +9,7 @@ import { Field, Select } from "@/components/ui/field";
 import { cn } from "@/lib/utils/cn";
 import { CHART_COLORS, fcfa, num, pct } from "./format";
 
-const ALERT_STYLE: Record<HotelAlertLevel, { icon: typeof Info; tone: string; label: string }> = {
+export const ALERT_STYLE: Record<HotelAlertLevel, { icon: typeof Info; tone: string; label: string }> = {
   alert: { icon: AlertTriangle, tone: "border-danger/30 bg-danger/5 text-danger", label: "À traiter" },
   watch: { icon: Eye, tone: "border-warning/30 bg-warning/5 text-warning", label: "À surveiller" },
   info: { icon: CheckCircle2, tone: "border-success/30 bg-success/5 text-success", label: "Information" },

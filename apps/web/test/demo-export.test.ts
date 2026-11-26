@@ -33,10 +33,10 @@ describe("GET /api/exports/demo (public, fictitious data)", () => {
 
   it("applies the same filters as the screen", async () => {
     const all = (await sheetOf(await call("hotelId=all"))).getWorksheet("Dashboard de démonstration")!;
-    const one = (await sheetOf(await call("hotelId=h1&productId=chambres&granularity=mois"))).getWorksheet("Dashboard de démonstration")!;
+    const one = (await sheetOf(await call("hotelId=ce-1&productId=chambres&granularity=mois"))).getWorksheet("Dashboard de démonstration")!;
     expect(one.getRow(2).getCell(2).value).toBeLessThan(all.getRow(2).getCell(2).value as number);
-    const text = JSON.stringify((await sheetOf(await call("hotelId=h2&granularity=annee"))).getWorksheet("Filtres")!.getSheetValues());
-    expect(text).toContain("Résidence Les Palmes");
+    const text = JSON.stringify((await sheetOf(await call("hotelId=ce-2&granularity=annee"))).getWorksheet("Filtres")!.getSheetValues());
+    expect(text).toContain("Hôtel Baie Sereine");
     expect(text).toContain("Dernière année");
   });
 

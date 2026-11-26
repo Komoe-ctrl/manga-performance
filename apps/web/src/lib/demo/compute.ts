@@ -35,13 +35,6 @@ export function aggregate(src: Source, f: Pick<Filters, "hotelId" | "productId">
   const staff = [...staffByHotel.values()].reduce((s, a) => s + a.reduce((x, y) => x + y, 0) / a.length, 0);
   const satisfaction = hm.length ? hm.reduce((s, h) => s + h.satisfaction, 0) / hm.length : 0;
 
-  // TODO: formules du point mort et du taux de couverture à confirmer par le client.
-  // Hypothèse provisoire : 60 % des charges sont fixes, 40 % variables.
-  const fixed = charges * 0.6;
-  const variableRatio = revenue ? (charges * 0.4) / revenue : 0;
-  const breakEven = variableRatio < 1 ? fixed / (1 - variableRatio) : 0;
-  const reachedShare = revenue ? breakEven / revenue : 0; // part de la période nécessaire pour l'atteindre
-
   return {
     revenue,
     charges,
@@ -49,10 +42,6 @@ export function aggregate(src: Source, f: Pick<Filters, "hotelId" | "productId">
     marginRate: revenue ? ((revenue - charges) / revenue) * 100 : 0,
     revenuePerStaff: staff ? revenue / staff : 0,
     satisfaction,
-    breakEven,
-    breakEvenReached: reachedShare <= 1,
-    breakEvenDays: Math.round(reachedShare * months.length * 30),
-    coverageRate: charges ? (revenue / charges) * 100 : 0, // TODO: formule à confirmer
   };
 }
 
@@ -91,8 +80,9 @@ export function variances(
     (r) => set.has(r.month) && (f.hotelId === "all" || r.hotelId === f.hotelId) && (f.productId === "all" || r.productId === f.productId),
   );
   return src.costPosts.map((p) => {
-    const cpro = records.reduce((s, r) => s + r.costs[p.id].planned, 0);
-    const cpra = records.reduce((s, r) => s + r.costs[p.id].actual, 0);
-    return { id: p.id, post: p.name, cpro, cpra, gap: cpra - cpro, gapPct: cpro ? ((cpra - cpro) / cpro) * 100 : 0 };
+    // Budget and actual: « CPRO / CPRA » is reserved to the consumables (delivered / theoretical).
+    const budget = records.reduce((s, r) => s + r.costs[p.id].planned, 0);
+    const actual = records.reduce((s, r) => s + r.costs[p.id].actual, 0);
+    return { id: p.id, post: p.name, budget, actual, gap: actual - budget, gapPct: budget ? ((actual - budget) / budget) * 100 : 0 };
   });
 }

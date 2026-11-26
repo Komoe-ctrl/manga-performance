@@ -1,8 +1,8 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Eye, ListChecks } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { SIGNIFICANT_GAP_PCT, type Insight, type InsightLevel } from "@/lib/demo/insights";
+import { SIGNIFICANT_GAP_PCT } from "@/lib/demo/insights";
 import { formatFCFA } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
@@ -12,38 +12,6 @@ const GOLD = "#F5B700";
 const POST_COLORS = ["#1A2B4A", "#3B5B8F", "#7A93BB", "#F5B700", "#C98F00", "#94A3B8"];
 const millions = (v: number) => `${Math.round(v / 1_000_000)} M`;
 const pct = (v: number, digits = 1) => `${v.toFixed(digits).replace(".", ",")} %`;
-
-const LEVEL: Record<InsightLevel, { icon: typeof AlertTriangle; tone: string; label: string }> = {
-  alerte: { icon: AlertTriangle, tone: "border-danger/30 bg-danger/5 text-danger", label: "À traiter" },
-  vigilance: { icon: Eye, tone: "border-warning/30 bg-warning/5 text-warning", label: "À surveiller" },
-  positif: { icon: CheckCircle2, tone: "border-success/30 bg-success/5 text-success", label: "Satisfaisant" },
-};
-
-export function InsightsPanel({ insights }: { insights: Insight[] }) {
-  const order: InsightLevel[] = ["alerte", "vigilance", "positif"];
-  const sorted = [...insights].sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level));
-  return (
-    <section aria-labelledby="insights-title" className="rounded-xl border border-border bg-muted/30 p-5">
-      <h2 id="insights-title" className="text-lg font-bold text-primary">Lecture du consultant</h2>
-      <p className="mb-4 text-sm text-muted-foreground">Ce que disent les chiffres de la période choisie, du plus urgent au plus rassurant.</p>
-      <ul className="grid gap-3 md:grid-cols-2">
-        {sorted.map((i) => {
-          const { icon: Icon, tone, label } = LEVEL[i.level];
-          return (
-            <li key={i.title} className={cn("flex gap-3 rounded-lg border p-3", tone)}>
-              <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
-                <p className="font-semibold text-foreground">{i.title}</p>
-                <p className="text-sm text-muted-foreground">{i.detail}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
 
 export function CostMixChart({ data }: { data: { post: string; value: number; share: number }[] }) {
   return (
@@ -96,10 +64,10 @@ export function ProductMixChart({ data }: { data: { product: string; ca: number;
   );
 }
 
-export function BudgetChart({ data }: { data: { post: string; prevu: number; reel: number }[] }) {
+export function BudgetChart({ data }: { data: { post: string; budget: number; realise: number }[] }) {
   return (
     <figure className="rounded-lg border border-border p-4 lg:col-span-2">
-      <figcaption className="mb-2 font-semibold text-primary">Prévisionnel contre pratiqué, par poste de charge</figcaption>
+      <figcaption className="mb-2 font-semibold text-primary">Budget contre réalisé, par poste de charge</figcaption>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
@@ -108,8 +76,8 @@ export function BudgetChart({ data }: { data: { post: string; prevu: number; ree
             <YAxis tickFormatter={millions} fontSize={12} width={48} />
             <Tooltip formatter={(v) => formatFCFA(Number(v))} />
             <Legend />
-            <Bar dataKey="prevu" name="Prévu (CPro)" fill="#94A3B8" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="reel" name="Pratiqué (CPra)" fill={GOLD} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="budget" name="Budget" fill="#94A3B8" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="realise" name="Réalisé" fill={GOLD} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -121,17 +89,17 @@ export function HotelTable({ rows }: { rows: { id: string; hotel: string; ca: nu
   return (
     <section aria-labelledby="hotels-title">
       <h2 id="hotels-title" className="mb-1 text-lg font-bold text-primary">Synthèse par établissement</h2>
-      <p className="mb-3 text-xs text-muted-foreground">Classement par marge brute sur la période. L&apos;écart au prévisionnel compare les charges pratiquées au budget.</p>
+      <p className="mb-3 text-xs text-muted-foreground">Classement par GOP Margin sur la période. L&apos;écart compare les charges réalisées au budget.</p>
       <div className="relative overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <caption className="sr-only">Résultat, marge et écart au prévisionnel par établissement</caption>
+          <caption className="sr-only">GOP, GOP Margin et écart au budget par établissement</caption>
           <thead className="bg-muted text-left">
             <tr>
               <th scope="col" className="px-3 py-2">Rang</th>
               <th scope="col" className="px-3 py-2">Établissement</th>
               <th scope="col" className="px-3 py-2 text-right">CA</th>
-              <th scope="col" className="px-3 py-2 text-right">Résultat</th>
-              <th scope="col" className="px-3 py-2 text-right">Marge</th>
+              <th scope="col" className="px-3 py-2 text-right">GOP</th>
+              <th scope="col" className="px-3 py-2 text-right">GOP Margin</th>
               <th scope="col" className="px-3 py-2 text-right">Écart charges</th>
               <th scope="col" className="px-3 py-2 text-right">Satisfaction</th>
             </tr>
@@ -191,12 +159,16 @@ export function Methodology() {
       </summary>
       <dl className="mt-3 grid gap-x-8 gap-y-3 text-sm md:grid-cols-2">
         {[
-          ["Marge brute", "(Chiffre d'affaires − charges pratiquées) ÷ chiffre d'affaires."],
-          ["CPro / CPra", "Charges prévues (budget) et charges pratiquées (réalisé), par poste de dépense. Libellés provisoires, à confirmer avec le client."],
-          ["Écart significatif", `Écart de plus de ${SIGNIFICANT_GAP_PCT} % entre le pratiqué et le prévu sur un poste : il déclenche une alerte et une action.`],
-          ["Point mort", "Chiffre d'affaires à partir duquel les charges sont couvertes. Hypothèse provisoire : 60 % de charges fixes, 40 % de variables."],
-          ["Taux de couverture", "Chiffre d'affaires ÷ charges pratiquées. Formule provisoire, à confirmer."],
-          ["Période de comparaison", "Chaque indicateur est comparé à la période précédente de même durée (mois, trimestre ou année)."],
+          ["RevPAR", "Chiffre d'affaires chambres ÷ chambres disponibles (chambres × jours)."],
+          ["TRevPAR", "Revenus totaux d'exploitation ÷ chambres disponibles."],
+          ["GOP", "Revenus totaux − charges départementales − charges non réparties. Calculé, jamais saisi."],
+          ["GOPPAR", "GOP ÷ chambres disponibles."],
+          ["GOP Margin", "GOP ÷ revenus totaux. Alerte sous 30 %, à surveiller entre 30 et 35 %."],
+          ["Taux d'occupation et ADR", "Chambres vendues ÷ chambres disponibles ; chiffre d'affaires chambres ÷ chambres vendues."],
+          ["CPRO / CPRA", "Réservés aux consommables : CPRO = quantité livrée, CPRA = consommation théorique (norme × clients servis). Couverture = CPRO ÷ CPRA ; conforme entre 95 et 105 %."],
+          ["Budget et réalisé", "Pour les charges, le budget est ce qui était prévu et le réalisé ce qui a été dépensé, par poste."],
+          ["Écart significatif", `Écart de plus de ${SIGNIFICANT_GAP_PCT} % entre le réalisé et le budget sur un poste : il déclenche une action.`],
+          ["Période de comparaison", "Chaque indicateur est comparé à la période précédente de même durée. Les taux varient en points, les montants en pourcentage."],
         ].map(([term, definition]) => (
           <div key={term}>
             <dt className="font-medium">{term}</dt>

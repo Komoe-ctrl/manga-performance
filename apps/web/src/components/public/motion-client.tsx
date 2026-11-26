@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { COUNT_UP_MS, countUpAt, parseCountUp } from "@/lib/utils/count-up";
 
 const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -52,39 +53,49 @@ export function Typewriter({ phrases, className }: { phrases: string[]; classNam
   );
 }
 
-/** Compteur animé au premier affichage à l'écran (« 10+ » → 0…10 puis « + »). */
+/**
+ * Compteur animé au premier affichage à l'écran (« 10+ » → 0…10 puis « + »). Sans animation (mouvement réduit, texte non
+ * numérique, animation terminée), c'est toujours la valeur configurée qui est affichée, jamais une valeur intermédiaire.
+ */
 export function CountUp({ value }: { value: string }) {
-  const match = value.match(/^(\d+)(.*)$/);
-  const target = match ? Number(match[1]) : null;
-  const [n, setN] = useState(target ?? 0);
+  const parsed = parseCountUp(value);
+  const target = parsed?.target ?? null;
+  // `null` = pas d'animation en cours : on montre la vraie valeur.
+  const [animated, setAnimated] = useState<number | null>(null);
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el || target === null || prefersReducedMotion()) return;
+    let frame = 0;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
         observer.disconnect();
         const start = performance.now();
         const step = (now: number) => {
-          const t = Math.min(1, (now - start) / 1400);
-          setN(Math.round(target * (1 - Math.pow(1 - t, 3))));
-          if (t < 1) requestAnimationFrame(step);
+          const elapsed = now - start;
+          if (elapsed >= COUNT_UP_MS) return setAnimated(null);
+          setAnimated(countUpAt(target, elapsed));
+          frame = requestAnimationFrame(step);
         };
-        requestAnimationFrame(step);
+        frame = requestAnimationFrame(step);
       },
       { threshold: 0.6 },
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      setAnimated(null);
+    };
   }, [target]);
 
-  if (target === null) return <span>{value}</span>;
+  if (!parsed) return <span>{value}</span>;
   return (
     <span ref={ref}>
-      {n}
-      {match![2]}
+      {animated ?? parsed.target}
+      {parsed.suffix}
     </span>
   );
 }

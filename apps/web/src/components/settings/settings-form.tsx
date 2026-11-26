@@ -1,16 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { BellRing, Building2, ExternalLink, MessageCircle, Receipt, Undo2 } from "lucide-react";
+import { BellRing, Building2, ExternalLink, FileText, MessageCircle, Receipt, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAsync } from "@/lib/hooks/use-async";
 import { getSettings, saveSettings, type Settings } from "@/lib/services";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { ErrorState, LoadingState } from "@/components/shared";
+import { MissingBadge } from "@/components/shared/missing-badge";
+import { TBD, services } from "@/lib/content/site";
+import { FAQ_SLOTS } from "@/lib/content/public-profile";
+import { isProvided } from "@/lib/content/provided";
 
 const SECTIONS = [
   { id: "profil", label: "Profil du cabinet", icon: Building2 },
+  { id: "pages", label: "Pages publiques", icon: FileText },
   { id: "relances", label: "Règles de relance", icon: BellRing },
   { id: "facturation", label: "Facturation", icon: Receipt },
   { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
@@ -39,6 +44,15 @@ function Form({ initial }: { initial: Settings }) {
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
   const dirty = JSON.stringify(s) !== JSON.stringify(saved);
+
+  const page = (slug: string) => s.publicPages.services[slug] ?? { caseStudy: { client: "", summary: "" }, faq: [] };
+  const setPublic = (patch: Partial<Settings["publicPages"]>) => set("publicPages", { ...s.publicPages, ...patch });
+  const setService = (slug: string, next: Settings["publicPages"]["services"][string]) => setPublic({ services: { ...s.publicPages.services, [slug]: next } });
+  const setFaq = (slug: string, index: number, field: "question" | "answer", value: string) => {
+    const faq = Array.from({ length: FAQ_SLOTS }, (_, i) => page(slug).faq[i] ?? { question: "", answer: "" });
+    faq[index] = { ...faq[index]!, [field]: value };
+    setService(slug, { ...page(slug), faq });
+  };
 
   const vatError = Number.isNaN(s.vatPercent) || s.vatPercent < 0 || s.vatPercent > 100 ? "Saisissez un taux entre 0 et 100." : undefined;
   const whatsappLink = s.whatsappNumber ? `https://wa.me/${s.whatsappNumber}?text=${encodeURIComponent(s.whatsappMessage)}` : null;
@@ -93,6 +107,72 @@ function Form({ initial }: { initial: Settings }) {
               {s.logoName && <Button type="button" variant="ghost" size="sm" onClick={() => set("logoName", "")}>Retirer</Button>}
             </div>
           </div>
+        </Section>
+
+        <Section id="pages" title="Pages publiques" description="Ce que le site public affiche. Un champ vide n'est pas affiché : le texte provisoire n'est visible que dans cet écran, avec le badge « Contenu manquant »." icon={FileText}>
+          <fieldset className="space-y-3 rounded-lg border border-border p-3">
+            <legend className="px-1 text-sm font-semibold text-primary">Chiffres clés de l&apos;accueil</legend>
+            {/* TODO(client): valeurs à confirmer. Le cahier des charges indiquait « 10+ ans ». */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Années d'expérience" htmlFor="kf-exp"><Input id="kf-exp" placeholder="10+" value={s.keyFigures.experience} onChange={(e) => set("keyFigures", { ...s.keyFigures, experience: e.target.value })} /></Field>
+              <Field label="Missions réalisées" htmlFor="kf-missions"><Input id="kf-missions" placeholder="50+" value={s.keyFigures.missions} onChange={(e) => set("keyFigures", { ...s.keyFigures, missions: e.target.value })} /></Field>
+              <Field label="Secteurs accompagnés" htmlFor="kf-sectors"><Input id="kf-sectors" placeholder="7" value={s.keyFigures.sectors} onChange={(e) => set("keyFigures", { ...s.keyFigures, sectors: e.target.value })} /></Field>
+            </div>
+            <p className="text-xs text-muted-foreground">Un nombre suivi d&apos;un signe, par exemple « 10+ ». Le compteur de l&apos;accueil se termine sur cette valeur. Un champ vide masque le chiffre.</p>
+          </fieldset>
+
+          <fieldset className="space-y-3 rounded-lg border border-border p-3">
+            <legend className="px-1 text-sm font-semibold text-primary">Mentions légales et confidentialité</legend>
+            {([
+              ["legalForm", "Forme juridique, RCCM, capital", "st-legal"],
+              ["publicationDirector", "Directeur de la publication", "st-director"],
+              ["host", "Hébergeur", "st-host"],
+            ] as const).map(([key, label, id]) => (
+              <Field key={key} label={label} htmlFor={id}>
+                <Input id={id} placeholder={TBD} value={s.publicPages[key]} onChange={(e) => setPublic({ [key]: e.target.value })} />
+                {!isProvided(s.publicPages[key]) && <MissingBadge className="mt-1" />}
+              </Field>
+            ))}
+            <Field label="Texte juridique définitif de la politique de confidentialité" htmlFor="st-privacy">
+              <Textarea id="st-privacy" className="min-h-24" placeholder={TBD} value={s.publicPages.privacyText} onChange={(e) => setPublic({ privacyText: e.target.value })} />
+              {!isProvided(s.publicPages.privacyText) && <MissingBadge className="mt-1" />}
+            </Field>
+          </fieldset>
+
+          {services.map((service) => {
+            const content = page(service.slug);
+            const caseMissing = !isProvided(content.caseStudy.client) || !isProvided(content.caseStudy.summary);
+            return (
+              <fieldset key={service.slug} className="space-y-3 rounded-lg border border-border p-3">
+                <legend className="px-1 text-sm font-semibold text-primary">Page « {service.title} »</legend>
+                <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+                  <Field label="Cas client : client" htmlFor={`case-client-${service.slug}`}>
+                    <Input id={`case-client-${service.slug}`} placeholder={TBD} value={content.caseStudy.client} onChange={(e) => setService(service.slug, { ...content, caseStudy: { ...content.caseStudy, client: e.target.value } })} />
+                  </Field>
+                  <Field label="Cas client : résumé" htmlFor={`case-summary-${service.slug}`}>
+                    <Textarea id={`case-summary-${service.slug}`} className="min-h-16" placeholder={TBD} value={content.caseStudy.summary} onChange={(e) => setService(service.slug, { ...content, caseStudy: { ...content.caseStudy, summary: e.target.value } })} />
+                  </Field>
+                </div>
+                {caseMissing && <MissingBadge />}
+                <p className="pt-1 text-sm font-medium">FAQ (3 à 4 questions, données structurées pour les moteurs de recherche)</p>
+                {Array.from({ length: FAQ_SLOTS }, (_, i) => {
+                  const item = content.faq[i] ?? { question: "", answer: "" };
+                  const missing = !isProvided(item.question) || !isProvided(item.answer);
+                  return (
+                    <div key={i} className="grid gap-2 sm:grid-cols-2">
+                      <Field label={`Question ${i + 1}`} htmlFor={`faq-q-${service.slug}-${i}`}>
+                        <Input id={`faq-q-${service.slug}-${i}`} placeholder={TBD} value={item.question} onChange={(e) => setFaq(service.slug, i, "question", e.target.value)} />
+                      </Field>
+                      <Field label={`Réponse ${i + 1}`} htmlFor={`faq-a-${service.slug}-${i}`}>
+                        <Textarea id={`faq-a-${service.slug}-${i}`} className="min-h-10" placeholder={TBD} value={item.answer} onChange={(e) => setFaq(service.slug, i, "answer", e.target.value)} />
+                      </Field>
+                      {missing && <div className="sm:col-span-2"><MissingBadge /></div>}
+                    </div>
+                  );
+                })}
+              </fieldset>
+            );
+          })}
         </Section>
 
         <Section id="relances" title="Règles de relance" description="Rappels internes planifiés automatiquement après le premier contact avec un prospect." icon={BellRing}>

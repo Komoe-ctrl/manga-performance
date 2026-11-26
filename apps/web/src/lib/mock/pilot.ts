@@ -296,3 +296,12 @@ export function resultsFor(version: ComputeVersion): HotelMonthResult[] {
   }
   return out;
 }
+
+/**
+ * Résultats de la démo publique : le premier calcul (paramètres d'origine, jamais ceux que le consultant édite dans
+ * l'écran de démonstration du back-office), pour les trois hôtels fictifs et les six derniers mois clos.
+ */
+export function demoConsumables(): { hotels: PilotHotel[]; months: { key: string; label: string }[]; results: HotelMonthResult[] } {
+  const first: ComputeVersion = { version: 1, at: FIRST_COMPUTE, by: "Calcul automatique", note: "", params: initialParams() };
+  return { hotels: pilotHotels, months: PILOT_MONTHS.map(({ key, label }) => ({ key, label })), results: resultsFor(first) };
+}

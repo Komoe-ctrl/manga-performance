@@ -1,11 +1,18 @@
 import { REFERENCE_DATE } from "@/lib/constants";
 import { createRng } from "./random";
 
+/**
+ * Les trois hôtels fictifs sont ceux du pilote et de la collecte (mêmes identifiants, mêmes noms) : la démo publique et
+ * l'espace du consultant parlent des mêmes établissements. Un test garde les deux listes alignées.
+ */
 export const DEMO_HOTELS = [
-  { id: "h1", name: "Hôtel Lagune Ivoire (Cocody)" },
-  { id: "h2", name: "Résidence Les Palmes (Marcory)" },
-  { id: "h3", name: "Hôtel Baie de San-Pédro" },
+  { id: "ce-1", name: "Hôtel Les Cocotiers" },
+  { id: "ce-2", name: "Hôtel Baie Sereine" },
+  { id: "ce-3", name: "Hôtel Cap Lumière" },
 ] as const;
+
+/** Nombre de chambres de chaque hôtel fictif. */
+export const DEMO_ROOMS: Record<string, number> = { "ce-1": 52, "ce-2": 44, "ce-3": 32 };
 
 export const DEMO_PRODUCTS = [
   { id: "chambres", name: "Chambres" },
@@ -29,7 +36,7 @@ export interface DemoRecord {
   productId: string;
   month: string; // YYYY-MM
   revenue: number;
-  /** Coûts par poste : prévu (CPro) et pratiqué (CPra). */
+  /** Coûts par poste : budget (`planned`) et réalisé (`actual`). */
   costs: Record<CostPostId, { planned: number; actual: number }>;
 }
 
@@ -38,6 +45,8 @@ export interface DemoHotelMonth {
   month: string;
   staff: number;
   satisfaction: number; // sur 5
+  /** Chambres vendues dans le mois (le taux d'occupation et l'ADR en découlent). */
+  roomsSold: number;
 }
 
 /** 24 mois glissants : les 24 derniers mois clos à partir d'aujourd'hui. */
@@ -56,16 +65,21 @@ const HOTEL_FACTOR = [1.15, 0.9, 0.7];
 
 function build() {
   const rng = createRng(404);
+  const occupancyRng = createRng(909);
   const records: DemoRecord[] = [];
   const hotelMonths: DemoHotelMonth[] = [];
   DEMO_HOTELS.forEach((hotel, hi) => {
     DEMO_MONTHS.forEach((month, mi) => {
       const season = 1 + 0.15 * Math.sin((mi / 12) * 2 * Math.PI) + mi * 0.004;
+      const [year, monthNumber] = month.split("-").map(Number);
+      const available = DEMO_ROOMS[hotel.id]! * new Date(Date.UTC(year!, monthNumber!, 0)).getUTCDate();
       hotelMonths.push({
         hotelId: hotel.id,
         month,
         staff: 38 + hi * 6 + rng.int(-2, 2),
         satisfaction: Math.round((4 + rng.next() * 0.7 - hi * 0.1) * 10) / 10,
+        // Own generator: adding the occupancy never moves the revenue and cost figures drawn above.
+        roomsSold: Math.round(available * (0.64 + 0.1 * Math.sin((mi / 12) * 2 * Math.PI) + 0.12 * occupancyRng.next() - hi * 0.02)),
       });
       DEMO_PRODUCTS.forEach((product) => {
         const revenue = Math.round(BASE_REVENUE[product.id] * HOTEL_FACTOR[hi] * season * (0.92 + rng.next() * 0.16));

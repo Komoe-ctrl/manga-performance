@@ -10,6 +10,9 @@ import type { BlogPost } from "@/lib/types";
 import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/utils/cn";
 import { DateLabel, ErrorState, LoadingState, StatusBadge } from "@/components/shared";
+import { MissingBadge } from "@/components/shared/missing-badge";
+import { hasRealContent } from "@/lib/content/blog";
+import { hasPlaceholder } from "@/lib/content/provided";
 import { DataTable, type Column } from "@/components/shared/data-table";
 
 const columns: Column<BlogPost>[] = [
@@ -17,7 +20,12 @@ const columns: Column<BlogPost>[] = [
     id: "title",
     header: "Titre",
     sortValue: (b) => b.title,
-    cell: (b) => <Link href={`/admin/blog/${b.id}`} className="font-medium hover:underline">{b.title}</Link>,
+    cell: (b) => (
+      <span className="flex flex-wrap items-center gap-2">
+        <Link href={`/admin/blog/${b.id}`} className="font-medium hover:underline">{b.title}</Link>
+        {(!hasRealContent(b) || hasPlaceholder(b.excerpt)) && <MissingBadge />}
+      </span>
+    ),
   },
   { id: "category", header: "Catégorie", sortValue: (b) => CATEGORY_LABELS[b.category], cell: (b) => CATEGORY_LABELS[b.category] },
   { id: "status", header: "Statut", sortValue: (b) => b.status, cell: (b) => <StatusBadge status={b.status} /> },

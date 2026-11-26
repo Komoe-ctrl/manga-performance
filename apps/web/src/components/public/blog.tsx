@@ -10,6 +10,7 @@ import { CATEGORY_LABELS } from "@/lib/constants";
 import type { BlogPost } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
+import { Section } from "./section";
 import { DateLabel, EmptyState, ErrorState, LoadingState } from "@/components/shared";
 
 function PostCard({ post }: { post: BlogPost }) {
@@ -31,6 +32,21 @@ function PostCard({ post }: { post: BlogPost }) {
   );
 }
 
+/** Accueil : les derniers articles. Toute la section disparaît tant qu'aucun article n'est publié. */
+export function LatestPosts() {
+  const posts = useAsync(publishedPosts);
+  if (posts.status !== "success" || posts.data.length === 0) return null;
+  return (
+    <Section title="Derniers articles" tone="muted">
+      <div className="reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {posts.data.slice(0, 3).map((p) => (
+          <PostCard key={p.id} post={p} />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 export function BlogList({ limit, filterable = false }: { limit?: number; filterable?: boolean }) {
   const posts = useAsync(publishedPosts);
   const [category, setCategory] = useState<BlogPost["category"] | "all">("all");
@@ -38,6 +54,8 @@ export function BlogList({ limit, filterable = false }: { limit?: number; filter
 
   if (posts.status === "loading") return <LoadingState />;
   if (posts.status === "error") return <ErrorState message="Impossible de charger les articles." onRetry={posts.reload} />;
+  // Nothing published (or nothing with real content yet): no search box, no filters, no empty category.
+  if (posts.data.length === 0) return <EmptyState message="Aucun article publié pour le moment." />;
 
   const shown = posts.data
     .filter((p) => category === "all" || p.category === category)

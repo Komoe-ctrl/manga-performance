@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageIntro, Section } from "@/components/public/section";
-import { contactInfo, TBD } from "@/lib/content/site";
+import { PrivacyFullText } from "@/components/public/legal-details";
+import { contactInfo } from "@/lib/content/site";
 
 export const metadata: Metadata = { title: "Politique de confidentialité", robots: { index: false } };
 
@@ -16,9 +17,7 @@ export default function Page() {
             données à caractère personnel.
           </p>
           <p>Vous pouvez demander l&apos;accès, la rectification ou la suppression de vos données à tout moment en écrivant à <a href={`mailto:${contactInfo.email}`} className="underline">{contactInfo.email}</a>.</p>
-          <p>
-            <strong>Texte juridique définitif :</strong> {TBD}
-          </p>
+          <PrivacyFullText />
         </div>
       </Section>
     </>

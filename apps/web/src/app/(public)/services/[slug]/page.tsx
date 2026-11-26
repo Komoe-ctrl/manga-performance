@@ -5,6 +5,9 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { PageIntro, Section } from "@/components/public/section";
 import { WhatsAppButton } from "@/components/public/whatsapp";
+import { ServiceCaseStudy, ServiceFaq } from "@/components/public/service-extras";
+import { ServiceExample } from "@/components/public/service-example";
+import { sectors } from "@/lib/content/profile";
 import { services } from "@/lib/content/site";
 
 export function generateStaticParams() {
@@ -16,9 +19,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const s = services.find((x) => x.slug === slug);
   if (!s) return {};
   return {
+    // One title and one description per page (never the same text twice across the four services).
     title: s.title,
-    description: s.short,
-    openGraph: { title: `${s.title} | MANGA PERFORMANCE`, description: s.short, type: "website", locale: "fr_FR" },
+    description: s.seoDescription,
+    alternates: { canonical: `/services/${s.slug}` },
+    openGraph: { title: `${s.title} | MANGA PERFORMANCE`, description: s.seoDescription, type: "website", locale: "fr_FR", url: `/services/${s.slug}` },
   };
 }
 
@@ -63,6 +68,17 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 ))}
               </ul>
             </div>
+            <ServiceExample title={s.title} deliverables={s.deliverables} demo={s.demo} />
+            <div>
+              <h2 className="text-xl font-bold text-primary">Secteurs couverts</h2>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {sectors.map((sector) => (
+                  <li key={sector} className="rounded-full border border-border bg-muted/40 px-3 py-1 text-sm">{sector}</li>
+                ))}
+              </ul>
+            </div>
+            <ServiceCaseStudy slug={s.slug} />
+            <ServiceFaq slug={s.slug} />
           </div>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">

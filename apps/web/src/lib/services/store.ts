@@ -1,4 +1,5 @@
 import { contactInfo, DEFAULT_WHATSAPP_MESSAGE } from "@/lib/content/site";
+import { DEFAULT_KEY_FIGURES, defaultPublicPages } from "@/lib/content/public-profile";
 import * as m from "@/lib/mock/business";
 import * as p from "@/lib/mock/prospects";
 import * as r from "@/lib/mock/references";
@@ -30,6 +31,8 @@ export const db = {
     bankDetails: "[À fournir par le client]",
     whatsappNumber: contactInfo.whatsappNumber,
     whatsappMessage: DEFAULT_WHATSAPP_MESSAGE,
+    keyFigures: { ...DEFAULT_KEY_FIGURES },
+    publicPages: defaultPublicPages(),
   },
   invoiceEvents: {} as Record<string, { label: string; at: string }[]>,
   subscribers: structuredClone(m.subscribers),

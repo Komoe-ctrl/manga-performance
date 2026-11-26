@@ -20,6 +20,17 @@ export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.ou
 
 const logger = createLogger({ service: "web" });
 
+/** Lecture publique (site vitrine) : pas de session, mais jamais d'erreur interne exposée. Les actions qui l'utilisent ne renvoient que du contenu publiable. */
+export async function runPublic<T>(operation: () => Promise<T>): Promise<Result<T>> {
+  try {
+    return { ok: true, data: await operation() };
+  } catch (error) {
+    if (error instanceof DomainError) return { ok: false, code: error.code, error: error.message };
+    logger.error({ errorName: error instanceof Error ? error.name : "unknown" }, "public action failure");
+    return { ok: false, code: "INTERNAL", error: "Une erreur est survenue." };
+  }
+}
+
 const AUTH_MESSAGES: Record<AuthorizationError["code"], string> = {
   UNAUTHENTICATED: "Session expirée. Reconnectez-vous.",
   SESSION_EXPIRED: "Session expirée. Reconnectez-vous.",

@@ -28,6 +28,10 @@ export interface ServiceContent {
   problem: string;
   approach: string[];
   deliverables: string[];
+  /** Description de la page pour les moteurs de recherche : propre à chaque service (≤ 160 caractères). */
+  seoDescription: string;
+  /** Onglet de la démo qui illustre ce service, quand il en existe un. */
+  demo?: { label: string; href: string };
 }
 
 export const services: ServiceContent[] = [
@@ -39,6 +43,7 @@ export const services: ServiceContent[] = [
     problem: "Votre projet est solide, mais le dossier de financement ne rassure pas les banques : hypothèses floues, prévisions peu argumentées.",
     approach: ["Cadrage du projet et des hypothèses", "Modélisation financière sur 3 à 5 ans", "Relecture avec vous avant dépôt"],
     deliverables: ["Business plan rédigé (PDF)", "Modèle financier (Excel)", "Synthèse pour les financeurs"],
+    seoDescription: "Business plan bancable à Abidjan : hypothèses argumentées, modèle financier sur 3 à 5 ans et synthèse pour convaincre banques et investisseurs.",
   },
   {
     slug: "tableaux-de-bord-kpi",
@@ -48,6 +53,8 @@ export const services: ServiceContent[] = [
     problem: "Vous décidez avec des chiffres arrivés trop tard, dispersés dans plusieurs fichiers.",
     approach: ["Choix des indicateurs avec la direction", "Consolidation des sources de données", "Mise en forme et formation à l'usage"],
     deliverables: ["Tableau de bord interactif", "Dictionnaire des indicateurs", "Guide d'utilisation"],
+    seoDescription: "Tableaux de bord KPI sur mesure : indicateurs choisis avec la direction, données consolidées, dictionnaire des indicateurs et formation à l'usage.",
+    demo: { label: "Voir un exemple de tableau de bord dans la démo", href: "/demo" },
   },
   {
     slug: "tresorerie",
@@ -57,6 +64,7 @@ export const services: ServiceContent[] = [
     problem: "Votre activité est rentable sur le papier, mais la trésorerie est tendue en fin de mois.",
     approach: ["Diagnostic des flux actuels", "Plan de trésorerie glissant", "Scénarios et plan d'actions"],
     deliverables: ["Plan de trésorerie sur 12 mois (Excel)", "Note de recommandations"],
+    seoDescription: "Pilotage de la trésorerie : diagnostic des flux, plan de trésorerie glissant sur 12 mois, scénarios et plan d'actions pour éviter les tensions de cash.",
   },
   {
     slug: "maitrise-des-couts",
@@ -66,12 +74,12 @@ export const services: ServiceContent[] = [
     problem: "Vos coûts vous échappent : écarts avec le budget, marges qui s'érodent sans cause identifiée.",
     approach: ["Cartographie des coûts et calcul du coût de revient", "Suivi budgétaire : mesure des écarts prévu / réalisé", "Plan de réduction priorisé"],
     deliverables: ["Rapport d'analyse des écarts", "Tableau de suivi budgétaire", "Plan d'actions chiffré"],
+    seoDescription: "Maîtrise des coûts : cartographie, coût de revient, suivi budgétaire (budget contre réalisé) et plan de réduction priorisé et chiffré.",
+    demo: { label: "Voir le suivi budget contre réalisé dans la démo", href: "/demo" },
   },
 ];
 
-export const keyFigures = [
-  { value: "10+", label: "ans d'expérience" },
-  { value: "50+", label: "missions réalisées" }, // placeholder éditable
-  { value: "7", label: "secteurs accompagnés" },
-  { value: "MBA", label: "Audit & Contrôle de Gestion" },
-];
+/** Libellés des chiffres clés ; les valeurs sont éditées dans l'admin (Paramètres → Profil du cabinet). */
+export const KEY_FIGURE_LABELS = { experience: "ans d'expérience", missions: "missions réalisées", sectors: "secteurs accompagnés" } as const;
+/** Fixe, non éditable. */
+export const EXPERTISE_FIGURE = { value: "MBA", label: "Audit & Contrôle de Gestion" };

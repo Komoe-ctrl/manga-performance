@@ -2,6 +2,7 @@ export * from "./prospects";
 export * from "./billing";
 export * from "./marketing";
 export * from "./references";
+export * from "./profile";
 export * from "./scraper";
 export * from "./exports";
 export * from "./privacy";

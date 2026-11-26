@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { aggregate, monthlySeries, periods, variances, type Granularity } from "@/lib/demo/compute";
-import { actionPlan, buildInsights, hotelSummary } from "@/lib/demo/insights";
+import { demoHotelReading } from "@/lib/demo/hotel-kpis";
+import { actionPlan } from "@/lib/demo/insights";
 import { COST_POSTS, DEMO_HOTELS, DEMO_MONTHS, DEMO_PRODUCTS, demoDashboard } from "@/lib/mock/demo-dashboard";
 import { ExportError, type ExportTable } from "./types";
 
@@ -38,9 +39,8 @@ export function buildDemoExport(filters: z.output<typeof filterSchema>): ExportT
 
   const monthly = monthlySeries(source, filters);
   const gaps = variances({ ...source, costPosts: COST_POSTS }, filters, period);
-  const previous = aggregate(source, filters, periods(source.months, filters.granularity).previous);
-  const summary = hotelSummary({ ...source, hotels: DEMO_HOTELS }, filters.productId, period);
-  const insights = buildInsights({ cur: current, prev: previous, gaps, hotels: summary, scopeIsAllHotels: filters.hotelId === "all" });
+  const { previous: previousPeriod } = periods(source.months, filters.granularity);
+  const reading = demoHotelReading(source, filters.hotelId, period, previousPeriod);
   const actions = actionPlan(gaps);
 
   return {
@@ -51,16 +51,17 @@ export function buildDemoExport(filters: z.output<typeof filterSchema>): ExportT
       `Hôtel : ${hotel}`,
       `Produit : ${product}`,
       `Période : ${GRANULARITY_LABELS[filters.granularity]}`,
-      `Sur la période : marge brute ${percent(current.marginRate)}, CA ${Math.round(current.revenue)} FCFA, charges ${Math.round(current.charges)} FCFA`,
+      `Sur la période : GOP Margin ${percent(current.marginRate)}, CA ${Math.round(current.revenue)} FCFA, charges ${Math.round(current.charges)} FCFA`,
+      `RevPAR ${Math.round(reading.kpis.revpar ?? 0)} FCFA, GOPPAR ${Math.round(reading.kpis.goppar ?? 0)} FCFA`,
       ...gaps.map((g) => `Écart ${g.post} : ${Math.round(g.gap)} FCFA (${percent(g.gapPct)})`),
-      ...insights.map((i) => `Lecture : ${i.title}. ${i.detail}`),
+      ...reading.alerts.map((a) => `Lecture : ${a.message}`),
       ...actions.map((a) => `Action ${a.priority} (${a.post}) : ${a.action}`),
     ],
     columns: [
       { header: "Mois", width: 2 },
       { header: "Chiffre d'affaires (FCFA)", width: 3, type: "money" },
       { header: "Charges réelles (FCFA)", width: 3, type: "money" },
-      { header: "Marge brute", width: 2 },
+      { header: "GOP Margin", width: 2 },
     ],
     rows: monthly.map((m) => [m.month, Math.round(m.ca), Math.round(m.charges), percent(m.marge)]),
   };

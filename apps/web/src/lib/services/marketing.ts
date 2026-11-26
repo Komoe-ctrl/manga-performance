@@ -1,3 +1,4 @@
+import { toPublicPost } from "@/lib/content/blog";
 import type { BlogPost, EmailSequence, NewsletterSubscriber } from "@/lib/types";
 import * as marketing from "@/server/actions/marketing";
 import { ServiceError, USE_DB, unwrap } from "./data-source";
@@ -24,14 +25,19 @@ export const listBlogPosts = (): Promise<BlogPost[]> =>
 export const getBlogPost = (idOrSlug: string): Promise<BlogPost | null> =>
   USE_DB
     ? unwrap(marketing.getPublishedPostAction(idOrSlug))
-    : latency(() => db.blogPosts.find((b) => b.id === idOrSlug || b.slug === idOrSlug) ?? null);
+    : latency(() => {
+        const post = db.blogPosts.find((b) => b.id === idOrSlug || b.slug === idOrSlug);
+        return post ? toPublicPost(post) : null;
+      });
 
 /** Back-office: any article, drafts included. */
 export const getBlogPostForEdit = (id: string): Promise<BlogPost | null> =>
   USE_DB ? unwrap(marketing.getBlogPostForEditAction(id)) : latency(() => db.blogPosts.find((b) => b.id === id) ?? null);
 
 export const publishedPosts = (): Promise<BlogPost[]> =>
-  USE_DB ? unwrap(marketing.listPublishedPostsAction()) : latency(() => db.blogPosts.filter((b): b is BlogPost => b.status === "publie"));
+  USE_DB
+    ? unwrap(marketing.listPublishedPostsAction())
+    : latency(() => db.blogPosts.map(toPublicPost).filter((b): b is BlogPost => b !== null));
 
 export interface NewsletterProof {
   turnstileToken?: string;
