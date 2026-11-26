@@ -34,6 +34,7 @@ export const adminNav: NavItem[] = [
       { label: "Séquences", href: "/admin/sequences" },
       { label: "Newsletter", href: "/admin/newsletter" },
       { label: "Blog", href: "/admin/blog" },
+      { label: "Références", href: "/admin/references" },
     ],
   },
   { label: "Scraper", href: "/admin/scraper" },

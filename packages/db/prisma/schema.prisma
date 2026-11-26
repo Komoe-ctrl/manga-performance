@@ -736,4 +736,46 @@ model HotelKpiResult {
 
   @@unique([periodId, version])
   @@index([submissionId, version])
+
+// Références clients et témoignages (site public, gérés dans /admin/references)
+// ---------------------------------------------------------------------------
+
+/// Un client dont on peut citer le nom. Publiable seulement avec son autorisation (contrainte SQL).
+model Reference {
+  id                  String        @id @default(cuid(2))
+  name                String
+  sector              String
+  description         String
+  /// Logo téléversé sous `public/references/` (PNG ou JPG).
+  logoKey             String?
+  url                 String?
+  displayOrder        Int           @default(0)
+  published           Boolean       @default(false)
+  /// Le client autorise la citation de son nom et de son logo : obligatoire pour publier.
+  clientAuthorization Boolean       @default(false)
+  testimonials        Testimonial[]
+  createdAt           DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime      @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?     @db.Timestamptz(3)
+
+  @@index([published, displayOrder])
+}
+
+/// Citation d'un client, rattachée à une référence. Publiable seulement avec l'autorisation écrite (contrainte SQL).
+model Testimonial {
+  id                   String    @id @default(cuid(2))
+  quote                String
+  author               String
+  authorRole           String
+  referenceId          String
+  reference            Reference @relation(fields: [referenceId], references: [id])
+  /// Autorisation écrite de l'auteur de la citation : obligatoire pour publier.
+  writtenAuthorization Boolean   @default(false)
+  published            Boolean   @default(false)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt            DateTime? @db.Timestamptz(3)
+
+  @@index([referenceId])
+  @@index([published])
 }

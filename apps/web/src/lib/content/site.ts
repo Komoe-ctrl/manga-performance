@@ -75,14 +75,3 @@ export const keyFigures = [
   { value: "7", label: "secteurs accompagnés" },
   { value: "MBA", label: "Audit & Contrôle de Gestion" },
 ];
-
-export const references = [
-  { sector: "Hôtellerie", context: TBD, mission: TBD, result: TBD },
-  { sector: "Santé", context: TBD, mission: TBD, result: TBD },
-  { sector: "PME industrie", context: TBD, mission: TBD, result: TBD },
-];
-
-export const testimonials = [
-  { author: "Directeur général, hôtel à Abidjan", quote: TBD },
-  { author: "Gérante, clinique à Bouaké", quote: TBD },
-];

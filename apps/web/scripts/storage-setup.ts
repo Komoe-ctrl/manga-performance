@@ -1,4 +1,4 @@
-// One-off setup of the storage bucket: public read access to `public/blog/*` only.
+// One-off setup of the storage bucket: public read access to `public/blog/*` and `public/references/*` only.
 // Run with `pnpm storage:setup` (reads the repository .env). Safe to repeat.
 import { resolve } from "node:path";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -22,4 +22,4 @@ const client = new S3Client({
   credentials: { accessKeyId: S3_ACCESS_KEY, secretAccessKey: S3_SECRET_KEY },
 });
 await applyPublicBlogPolicy(client, S3_BUCKET);
-console.log(`Bucket "${S3_BUCKET}": public read access on public/blog/* only.`);
+console.log(`Bucket "${S3_BUCKET}": public read access on public/blog/* and public/references/* only.`);

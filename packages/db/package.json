@@ -11,6 +11,7 @@
     "./cpra": "./src/cpra.ts",
     "./hotel-kpi": "./src/hotel-kpi.ts",
     "./usali": "./src/usali.ts",
+    "./references": "./src/references.ts",
     "./marketing": "./src/marketing.ts"
   },
   "scripts": {

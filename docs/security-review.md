@@ -20,7 +20,7 @@ points à valider ou à surveiller (en fin de document).
 | Webhooks | Refusés sans signature valide (Bearer ou HMAC). | `sequences-tracking.test.ts` |
 | Formulaires publics | Turnstile vérifié côté serveur, honeypot, 5 par heure et par IP, validation zod stricte, réponses génériques. Les clés de test Cloudflare sont refusées en production. | `leads`, `newsletter`, `turnstile`, `core/env` |
 | IP du client | Caddy remplace `X-Forwarded-For` par l'adresse réelle : les limites de débit ne se contournent pas avec un en-tête forgé. | `infra/Caddyfile` |
-| Fichiers | URL présignées (10 min en dépôt, 5 min en lecture), taille et type signés, vérification après dépôt (signature binaire + SHA-256), stockage privé, seul `public/blog/` est public (images). | `client-space.test.ts`, `storage.minio.test.ts` |
+| Fichiers | URL présignées (10 min en dépôt, 5 min en lecture), taille et type signés, vérification après dépôt (signature binaire + SHA-256), stockage privé, seuls `public/blog/` (couvertures) et `public/references/` (logos) sont publics (images PNG/JPG, lecture seule). Après la mise à jour qui ajoute les références, relancer `pnpm storage:setup` pour étendre la politique du bucket. | `client-space.test.ts`, `storage.minio.test.ts` |
 | Contenu riche | HTML du blog assaini à l'enregistrement (liste blanche stricte) ; le seul `dangerouslySetInnerHTML` non statique affiche ce HTML assaini ou l'aperçu de l'admin lui-même. | `blog.test.ts` |
 | En-têtes | CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` ; HSTS posé par Caddy. | `security-headers.test.ts`, `infra/Caddyfile` |
 | Exports | Admin seul, filtres revalidés côté serveur, journalisés ; valeurs écrites comme texte (pas d'injection de formule Excel). | `exports.test.ts` |
@@ -91,6 +91,22 @@ L'audit devrait être relancé à chaque mise à jour de dépendances (`pnpm aud
   sélectionnable dans le dépôt, sinon « conversion manquante » serait inatteignable) ; les statuts stockés reprennent
   ceux du moteur (`SOUS`, `SOUS_FORTE`, `SUR`, `SUR_FORTE`) ; un produit sans norme applicable n'est pas calculé et
   figure dans le journal du calcul plutôt que d'inventer un CPRA.
+
+## Références clients et témoignages
+
+- Rien n'est public sans autorisation, et cela est vérifié à trois niveaux : le service refuse la publication avec un
+  message clair, les requêtes publiques filtrent sur l'autorisation (retirer l'accord masque aussitôt le contenu, y
+  compris les témoignages de l'entreprise concernée), et une **contrainte SQL** interdit « publié sans autorisation »
+  même si le code était contourné.
+- Un témoignage nomme l'entreprise : il n'est publiable que si l'auteur a donné son autorisation écrite **et** que
+  l'entreprise citée a autorisé la citation de son nom.
+- Le site public ne reçoit ni brouillon, ni indicateur d'autorisation, ni champ interne. Le lien externe est limité à
+  http(s) (jamais `javascript:` ni `data:`) et s'ouvre avec `rel="noopener noreferrer"`.
+- Logos : PNG ou JPG, relus après téléversement (taille, signature binaire), uniquement sous `public/references/` ;
+  une clé hors de ce dossier (fichier d'un autre client, couverture du blog) est refusée. L'ancien fichier est supprimé
+  quand le logo est remplacé ou retiré.
+- Toute modification passe par des Server Actions d'administration (`runAdmin`) et est journalisée.
+- FELKAT est créée par la migration en **brouillon** (ni publiée ni autorisée, sans logo, description à compléter).
 
 ## Points à valider ou à surveiller
 

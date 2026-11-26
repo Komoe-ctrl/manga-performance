@@ -6,8 +6,10 @@ import {
   detectFileKind,
   extensionOf,
   isBlogCoverKey,
+  isReferenceLogoKey,
   isKeyOfClient,
   newPublicBlogKey,
+  newPublicReferenceLogoKey,
   newStorageKey,
   validateUploadRequest,
   type FileKind,
@@ -106,6 +108,21 @@ export function createUploadService({ storage }: { storage: ObjectStorage }) {
       const key = newPublicBlogKey(FILE_KINDS[check.kind].extensions[0]!);
       const uploadUrl = await storage.presignUpload({ key, contentType: check.mime, contentLength: input.sizeBytes, expiresInSeconds: UPLOAD_URL_SECONDS });
       return { key, uploadUrl, headers: { "Content-Type": check.mime }, expiresInSeconds: UPLOAD_URL_SECONDS, maxBytes: MAX_UPLOAD_BYTES };
+    },
+
+    /** Client logo: an image (PNG or JPG), uploaded to the public prefix public/references/. */
+    async requestPublicLogoUpload(input: { filename: string; mimeType: string; sizeBytes: number }): Promise<UploadTicket> {
+      const check = validateUploadRequest(input);
+      if (!check.ok) throw new FileError(check.reason);
+      if (!PUBLIC_IMAGE_KINDS.includes(check.kind)) throw new FileError("TYPE_NOT_ALLOWED");
+      const key = newPublicReferenceLogoKey(FILE_KINDS[check.kind].extensions[0]!);
+      const uploadUrl = await storage.presignUpload({ key, contentType: check.mime, contentLength: input.sizeBytes, expiresInSeconds: UPLOAD_URL_SECONDS });
+      return { key, uploadUrl, headers: { "Content-Type": check.mime }, expiresInSeconds: UPLOAD_URL_SECONDS, maxBytes: MAX_UPLOAD_BYTES };
+    },
+
+    async verifyPublicLogo(key: string): Promise<VerifiedUpload> {
+      if (!isReferenceLogoKey(key)) throw new FileError("INVALID_KEY");
+      return verifyKey(key, PUBLIC_IMAGE_KINDS);
     },
 
     async verifyPublicImage(key: string): Promise<VerifiedUpload> {

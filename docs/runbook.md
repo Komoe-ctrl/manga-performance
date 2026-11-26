@@ -11,7 +11,7 @@ serveur, les ports 80 et 443 ouverts (aucun autre port n'est publié).
 1. Récupérer le dépôt, puis `cp infra/.env.production.example infra/.env.production`.
 2. Remplir **toutes** les valeurs. Générer chaque secret avec `openssl rand -base64 48`. L'application refuse de
    démarrer en production si une valeur contient encore `change-me`, ou si la clé Turnstile est une clé de test.
-3. Créer le bucket S3 **privé** (OVH, Scaleway, R2…). Le préfixe `public/blog/` est le seul à rendre public en
+3. Créer le bucket S3 **privé** (OVH, Scaleway, R2…). Les préfixes `public/blog/` (couvertures) et `public/references/` (logos des références) sont les seuls à rendre publics en
    lecture (voir `pnpm storage:setup` pour la politique et le CORS).
 4. Démarrer : `docker compose -f infra/docker-compose.yml --env-file infra/.env.production up -d --build`.
    Le conteneur `web` applique les migrations (`prisma migrate deploy`) avant de lancer le serveur ; Caddy obtient

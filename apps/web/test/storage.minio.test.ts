@@ -147,10 +147,10 @@ describe.skipIf(!reachable)("S3 storage (MinIO)", () => {
       expect((await fetch(publicUrl, { method: "DELETE" })).status).toBe(403);
     });
 
-    it("limits the policy to read access on that single prefix", () => {
+    it("limits the policy to read access on the two public prefixes", () => {
       const policy = JSON.parse(publicBlogPolicy("my-bucket"));
       expect(policy.Statement).toHaveLength(1);
-      expect(policy.Statement[0]).toMatchObject({ Effect: "Allow", Principal: "*", Action: ["s3:GetObject"], Resource: ["arn:aws:s3:::my-bucket/public/blog/*"] });
+      expect(policy.Statement[0]).toMatchObject({ Effect: "Allow", Principal: "*", Action: ["s3:GetObject"], Resource: ["arn:aws:s3:::my-bucket/public/blog/*", "arn:aws:s3:::my-bucket/public/references/*"] });
     });
   });
 
