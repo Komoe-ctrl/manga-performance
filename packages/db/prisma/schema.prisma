@@ -574,17 +574,17 @@ model CollectionPlan {
 }
 
 model CollectionPeriod {
-  id             String         @id @default(cuid(2))
-  planId         String
-  plan           CollectionPlan @relation(fields: [planId], references: [id])
-  periodStart    DateTime       @db.Timestamptz(3)
-  periodEnd      DateTime       @db.Timestamptz(3)
-  dueAt          DateTime       @db.Timestamptz(3)
-  status         PeriodStatus   @default(ATTENDU)
-  remindersSent  Int            @default(0)
-  lastReminderAt DateTime?      @db.Timestamptz(3)
-  submissions    Submission[]
-  cpraResults    CpraResult[]
+  id              String           @id @default(cuid(2))
+  planId          String
+  plan            CollectionPlan   @relation(fields: [planId], references: [id])
+  periodStart     DateTime         @db.Timestamptz(3)
+  periodEnd       DateTime         @db.Timestamptz(3)
+  dueAt           DateTime         @db.Timestamptz(3)
+  status          PeriodStatus     @default(ATTENDU)
+  remindersSent   Int              @default(0)
+  lastReminderAt  DateTime?        @db.Timestamptz(3)
+  submissions     Submission[]
+  cpraResults     CpraResult[]
   hotelKpiResults HotelKpiResult[]
 
   @@unique([planId, periodStart])
@@ -614,7 +614,7 @@ model Submission {
   reviewComment   String?
   reviewedBy      String?
 
-  cpraResults CpraResult[]
+  cpraResults     CpraResult[]
   hotelKpiResults HotelKpiResult[]
 
   @@unique([periodId, version])

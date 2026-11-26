@@ -161,7 +161,17 @@ export async function computeHotelKpisForPeriod(prisma: PrismaClient, options: C
     commissionsOta: value("commissionsOta"),
     jours: daysInPeriod(period.periodStart, period.periodEnd),
   };
-  const kpis = hotelKpis(input);
+  // A missing amount is not zero: figures built on it would be invented (a GOP margin alert on made-up data).
+  // They are left empty ("—") and the consultant is told through INPUT_MISSING instead.
+  const computed = hotelKpis(input);
+  const revenueMissing = value("revenusTotaux") === null;
+  const gopMissing = revenueMissing || value("chargesDepartementales") === null || value("chargesNonReparties") === null;
+  const kpis: HotelKpis = {
+    ...computed,
+    trevpar: revenueMissing ? null : computed.trevpar,
+    goppar: gopMissing ? null : computed.goppar,
+    gopMarginPct: gopMissing ? null : computed.gopMarginPct,
+  };
   const previous = await loadPreviousKpis(prisma, period.plan.id, period.periodStart);
   const alerts = hotelAlerts(kpis, { previous, missing });
 

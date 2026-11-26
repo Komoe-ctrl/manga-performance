@@ -158,6 +158,32 @@ describe("hotel.compute — KPI mensuels", () => {
     expect(queue.emails).toHaveLength(1);
   });
 
+  it("never builds the GOP figures on a missing amount: no invented margin, no margin alert", async () => {
+    const s = await seed();
+    const p = await month(s.plan.id, 9);
+    // Revenue present but the non-allocated costs are missing: reading them as 0 would give a 60 % margin.
+    await accepted(p.id, { ...clientExample, chargesNonReparties: null });
+    const { queue } = await run(p.id);
+
+    const row = await stored(p.id);
+    const kpis = parseHotelKpis(row.kpis)!;
+    expect(kpis.gopMarginPct).toBeNull();
+    expect(kpis.goppar).toBeNull();
+    expect(kpis.revpar).toBe(30_000); // what does not depend on the missing amount stays computed
+    expect(kpis.trevpar).toBe(50_000);
+    expect((row.alerts as { code: string }[]).map((x) => x.code)).toEqual(["INPUT_MISSING", "ANNEXES_STRONG"]);
+    expect(queue.emails).toHaveLength(1);
+
+    // Missing revenue: TRevPAR and the margin are empty too.
+    const q = await month(s.plan.id, 10);
+    await accepted(q.id, { ...clientExample, revenusTotaux: null });
+    await run(q.id);
+    const second = parseHotelKpis((await stored(q.id)).kpis)!;
+    expect(second.trevpar).toBeNull();
+    expect(second.gopMarginPct).toBeNull();
+    expect(second.goppar).toBeNull();
+  });
+
   it("does not compute without an accepted deposit, nor for another template", async () => {
     const s = await seed();
     const p = await month(s.plan.id, 9);

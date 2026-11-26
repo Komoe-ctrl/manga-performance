@@ -1,5 +1,5 @@
 {
-  "note": "Jeu anonymisé reconstruit à partir des formules du fichier 02 du client. Aucune donnée réelle.",
+  "note": "Exemple chiffré reconstruit à partir des formules du fichier 02 du client, calculé à la main. Ce n'est PAS le jeu de référence du client : la preuve « identique au fichier Excel » reste à faire avec son fichier anonymisé. Aucune donnée réelle.",
   "entityId": "hotel-reference",
   "periodStart": "2026-06-01",
   "longStayFactor": 1.1,

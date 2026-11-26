@@ -156,7 +156,9 @@ describe("computeCpra", () => {
     expect(JSON.stringify(computeCpra(input))).toBe(JSON.stringify(computeCpra(input)));
   });
 
-  it("matches the anonymised reference dataset (client Excel, file 02)", () => {
+  // Worked example rebuilt from the formulas of the client's file 02 (not the client's own dataset, which we do not have yet).
+  // It checks the engine against hand-computed figures; proving it matches the client's Excel still needs their file.
+  it("reproduces the worked example derived from the formulas of file 02", () => {
     const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "fixtures/cpra-reference.json"), "utf8")) as {
       entityId: string;
       periodStart: string;
